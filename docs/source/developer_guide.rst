@@ -237,10 +237,12 @@ This should only be used to supplement a function's operational description, not
 it. The inclusion of an :code:`Examples` section is highly encouraged, but is not mandatory.
 The example code given in this section must follow the doctest_ format and should be fully
 self-contained. That is to say, the user should be able to copy, paste and run the code
-result without modification. Multiple examples should be separated by blank lines,
-comments explaining the examples should also have blank lines above and below them.
-:ref:`docstring_examples` demonstrates how the :code:`Examples` section is to be
-documented.
+result without modification. However, the modules torch, numpy and matplotlib.pyplot should
+be considered implicit, i.e. they are always imported and thus do not need to be explicitly
+stated. Furthermore, any explicit imports should be assumed to be inherited by all subsequent
+examples. Multiple examples should be separated by blank lines, comments explaining the
+examples should also have blank lines above and below them. :ref:`docstring_examples`
+demonstrates how the :code:`Examples` section is to be documented.
 
 .. code-block:: python
     :caption: Code-block: `Examples` section
@@ -365,6 +367,14 @@ Putting it all Together
 
 Module Docstrings
 -----------------
+Module level docstrings are required for each python module. These must proved a general
+overview of the module and a list of all code:`functions`, code:`classes` and module level
+:code:`variables` contained within. Like other docstrings, these should contain a one line
+summary followed by a more detailed description. Descriptions are intended to be read by the
+end-user, rather than developers, and so the writing style should reflect this. The various
+code:`functions`, code:`classes`, etc. present in the module should be listed under sections
+baring the same name. However, only module level :code:`variables` require descriptions.
+Furthermore, private entities should be committed from the docstring entirely.
 
 
 
@@ -403,9 +413,13 @@ comments to clarify what is being done in a step by step manner. Any deviations 
 reference source should also be clearly stated and justified.
 
 
+Module Structure
+----------------
+Module level variables
 
-Structure
----------
+
+Paradigmatic Structure
+----------------------
 Code should be written in a manner that ensures modularity, shape-agnosticism, and a
 plug-n-play nature. Within the context of this project "shape agnosticism" refers to the
 ability of a function to operate on inputs regardless of whether such inputs represent a
@@ -418,6 +432,9 @@ and is conducive to a plug-n-play codebase and supports the ability to take a cl
 function and replace it with another, similar one, without requiring additional changes to
 the code to be made, i.e. swapping one mixer method for another or being able to drop in one
 representation method for another.
+
+
+
 
 
 Miscellaneous
@@ -481,4 +498,30 @@ Citations
 .. _doctest: https://docs.python.org/3/library/doctest.html
 
 
+Notes
+-----
+- Classes should have a __repr__ method to allow quick and easy inspection of an object.
+- Version nomenclature X.Y.Z version, revision, patch.
+- Each directory should contain a ":code:`readme.md`" file which outlines what the directory contains.
+- Serialisation of models, models must be serialisable so that they can be stored and used at a later date.
+- PEP 484 may be used when the number of arguments is small (n $<$ 4) and the types are singular.
+- Indentation should use spaces (specifically 4) rather than tabs.
+- All printing should be handled via the logging function, and should be formated neatly using f-stings
+  which use a global precision variable (should use format '6.2E' when printing to terminal.).
+- Should use pylint with the custom pylintrc config file to grade code quality.
+- Modules must us relative imports.
+- __init__.py files must be declared for all module directories.
+- Code that uses depreciated functions or function signatures must be update prior to a pull request.
+- Mention that docstrings and comments for test functions is more relaxed.
+
+Todo
+----
+- Where suitable, consider replacing some of the examples with code taken from the maths
+  module. These functions will be taken directly from the active code, truncated and the
+  relevant lines highlighted.
+- Fill in the **Module Structure** section which details how a module file should be laid
+  out; i.e. licence, encoding, docstring, imports, etc. How functions and classes should
+  be grouped and separated for clarity.
+- Must create code to parse utf-8 characters in docstrings otherwise this will brake latex.
+- Need to rewrite returns specification section [Priority:High].
 
