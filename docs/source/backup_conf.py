@@ -13,7 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../../'))
-sys.path.insert(0, os.path.abspath('.'))
+
 # -- Project information -----------------------------------------------------
 
 project = 'TBMaLT'
@@ -35,9 +35,7 @@ extensions = [
     # Generate documentation form docstrings
     'sphinx.ext.autodoc',
     # Parse google style docstrings
-    #'sphinx.ext.napoleon',
-    # Wrapper for napolen which allows multiple reutrns to be given in the docstring
-    'betterdocs',
+    'sphinx.ext.napoleon',
     # Use read-the-docs html theme
     'sphinx_rtd_theme'
 ]

@@ -2,10 +2,6 @@
 
 This module contains a collection of back-propagatable mathematical functions.
 
-Functions:
-    * gaussian
-    * hellinger
-
 """
 import torch
 import numpy as np
@@ -36,9 +32,9 @@ def gaussian(x, mean, std):
             Standard deviation.
 
     Returns:
-        (torch.Tensor): g:
-            * The gaussian function(s) evaluated at the specified `x`, `mean`
-              & `std` value(s).
+        g (torch.Tensor):
+            The gaussian function(s) evaluated at the specified `x`, `mean` &
+            `std` value(s).
 
     Raises:
         TypeError: Raised if neither `x` or `mu` are of type torch.tensor.
@@ -86,8 +82,8 @@ def hellinger(p, q):
             Values observed in the second distribution.
 
     Returns:
-        (torch.Tensor): distance:
-            * The Hellinger distance between each `p`, `q` distribution pair.
+        distance (torch.Tensor):
+            The Hellinger distance between each `p`, `q` distribution pair.
 
     Notes:
         The Hellinger distance is computed as:

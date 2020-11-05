@@ -129,61 +129,12 @@ or a parent class then they need not be documented. [*]_
 Returns and Yields
 ^^^^^^^^^^^^^^^^^^
 Gives a description for, and specifies the type of, the entity(s) that are returned/yielded
-from a function. If returning a single variable, the first line *must* specify the returned
-variable's type and name like so :code:`(variable_type): variable_name:`. This is then
-followed by a restructured-text style bullet point which gives a description of said
-variable; as shown in :ref:`docstring_return_1`.
+from a function. Unlike numpy style docstring returns, Google does not have inbuilt support
+for elegantly documenting and parsing multiple returns. As such a custom parser has been
+implemented. This allows the returns section to be documented in an identical manner to the
+arguments section. Do **not** use standard google style returns as these will not be parsed
+correctly.
 
-.. code-block:: python
-    :caption: Code-block: `Returns` section (single variable)
-    :name: docstring_return_1
-    :linenos:
-
-    def example_function():
-        """...
-        Returns:
-            (float): some_returned_variable:
-                * A description of ``some_returned_variable`` should then be given
-                  here. This format is used to maintain visual consistency with
-                  the layout use when returning multiple variables
-
-
-            If needed a more in-depth discussion can then be given here. As such,
-            the "Returns" section should be treated more like a "Notes" section
-            than an "Arguments" section.
-        ...
-        """
-        ...
-
-The hanging lines of multi-line variable descriptions must be indented by **exactly two**
-spaces with respect to the ":code:`*`" character, any other indentation will break Sphinx.
-Optionally, a more in-depth free-form discussion can be given after this, if deemed
-necessary. Unlike numpy style returns, Google does not have inbuilt support for elegantly
-documenting and parsing multiple returns. The currently accepted workaround for this is to
-gather multiple returns into a single tuple. This is permitted as python :code:`functions`
-technically return multiple variables as a tuple. Hence, ":code:`(tuple):`" must be appended
-to the first line of the returns section as follows:
-
-.. code-block:: python
-    :caption: Code-block: `Returns` section (multiple variables)
-    :name: docstring_return_2
-    :linenos:
-
-    def example_function():
-        """...
-        Returns:
-            (tuple):
-            (float): variable_one:
-                * A description of ``variable_one`` should be given here.
-            (float): variable_two:
-                * A description of ``variable_two`` should be given here.
-
-            If needed a more in-depth discussion can then be given here. As such,
-            the "Returns" section should be treated more like a "Notes" section
-            than an "Arguments" section.
-        ...
-        """
-        ...
 
 Attributes
 ^^^^^^^^^^
@@ -368,13 +319,11 @@ Putting it all Together
 Module Docstrings
 -----------------
 Module level docstrings are required for each python module. These must proved a general
-overview of the module and a list of all code:`functions`, code:`classes` and module level
-:code:`variables` contained within. Like other docstrings, these should contain a one line
-summary followed by a more detailed description. Descriptions are intended to be read by the
-end-user, rather than developers, and so the writing style should reflect this. The various
-code:`functions`, code:`classes`, etc. present in the module should be listed under sections
-baring the same name. However, only module level :code:`variables` require descriptions.
-Furthermore, private entities should be committed from the docstring entirely.
+overview of the module and a list of all module level :code:`variables` contained within.
+Like other docstrings, these should contain a one line summary followed by a more detailed
+description. Descriptions are intended to be read by the end-user, rather than developers,
+and so the writing style should reflect this. Note, only module level :code:`variables`
+require descriptions.
 
 
 
@@ -387,7 +336,6 @@ its use in the main branch should generally be avoided. If including maths in th
 it is advisable to precede the triple-quote with an :code:`r` to indicate a raw string. This
 avoids having to escape every backslash. Docstrings should be parsed by autodoc and visually
 inspected prior to submitting a pull request.
-
 
 
 
@@ -432,8 +380,6 @@ and is conducive to a plug-n-play codebase and supports the ability to take a cl
 function and replace it with another, similar one, without requiring additional changes to
 the code to be made, i.e. swapping one mixer method for another or being able to drop in one
 representation method for another.
-
-
 
 
 
