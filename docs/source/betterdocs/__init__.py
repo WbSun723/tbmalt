@@ -49,13 +49,10 @@ def setup(app):
     if not isinstance(app, Sphinx):
         # probably called by tests
         return {'version': __version__, 'parallel_read_safe': True}
-
     _patch_python_domain()
-
     app.setup_extension('sphinx.ext.autodoc')
     app.connect('autodoc-process-docstring', _process_docstring)
     app.connect('autodoc-skip-member', _skip_member)
-
     for name, (default, rebuild) in Config._config_values.items():
         app.add_config_value(name, default, rebuild)
     return {'version': __version__, 'parallel_read_safe': True}

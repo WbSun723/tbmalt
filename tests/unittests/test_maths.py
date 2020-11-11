@@ -1,21 +1,18 @@
 """Performs tests on functions present in the tbmalt.common.maths module"""
-import os
-import sys
-sys.path.insert(0, os.path.abspath('../../'))
-
-from tbmalt.common import maths
+import os  # <- temp
+import sys  # <- temp
+import warnings  # <- temp
+import torch
 import numpy as np
 import pytest
-import warnings
-import torch
+from scipy.linalg import eigh
+sys.path.insert(0, os.path.abspath('../../'))
+from tbmalt.common import maths
+
+# Default must be set to float64 otherwise gradcheck will not function
+torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(True)
 
-# Make sure the code does not get committed to the main TBMaLT branch before
-# the import path is done a more appropriate manner. Once this is done os, sys
-# and warnings will no longer need to be imported.
-# TODO: Fix module import for maths_test.py; this will require the correct
-#  directory structure to be implemented first.
-warnings.warn('tbmalt.common.maths must be imported correctly')
 
 def run_on_gpu(func):
     """Runs a function on the GPU if present, skips otherwise."""
@@ -86,7 +83,7 @@ def test_gaussian_backprop():
 
 def test_gaussian_gpu():
     """GPU operability test."""
-    run_on_gpu(test_gaussian_single)
+    run_on_gpu(test_gaussian_batch)
 
 
 #################################
@@ -130,7 +127,7 @@ def _random_skewed_norm(n):
             2.5 - (np.random.rand() * 5),
             # How much to scale the distribution by
             scale=np.random.rand() * 3)
-        for i in range(n)
+        for _ in range(n)
     ])
 
     # Return the distributions
@@ -174,7 +171,7 @@ def test_hellinger_batch():
 
 
 def test_hellinger_backprop():
-    """Batch evaluation test."""
+    """Back propagation continuity test"""
     # Generate a random skewed normal distribution pair & add 1E-4 to prevent
     # gradcheck from generating negative numbers.
     p, q = torch.tensor(_random_skewed_norm(2) + 1E-4, requires_grad=True,
@@ -189,4 +186,126 @@ def test_hellinger_backprop():
 
 def test_hellinger_gpu():
     """GPU operability test."""
-    run_on_gpu(test_hellinger_single)
+    run_on_gpu(test_hellinger_batch)
+
+
+################################
+# TBMaLT.common.maths._SymEigB #
+################################
+def test_symeig_broadened_single():
+    """Single point evaluation test."""
+
+    # The forward pass is more of a sanity check as it just makes a call to
+    # "torch.symeig".
+
+    # Ensure data is random but consistent
+    np.random.seed(1)
+
+    # Generate random matrix to diagonalise
+    matrix = np.random.rand(6, 6)
+    matrix += matrix.T
+
+    # Get the calculated and reference values
+    ref_w, ref_v = eigh(matrix)
+    calc_w, calc_v = maths.symeig_broadened(torch.tensor(matrix))
+
+    # Check eigenvalues are comparable
+    abs_delta = np.max(np.abs(calc_w.numpy() - ref_w))
+
+    # Assert that the errors are within tolerance
+    assert abs_delta < 1E-12
+
+    # Check the resulting eigenvectors are orthogonal
+    dots = np.dot(calc_v.numpy(), calc_v.numpy().T)
+    np.fill_diagonal(dots, 0.0)  # <- ignore diagonals
+    abs_delta_2 = np.max(np.abs(dots))
+    assert abs_delta_2 < 1E-12
+
+
+def test_symeig_broadened_batch():
+    """Batch evaluation test."""
+
+    from tbmalt.common import batch
+
+    # This tests the functions ability to deal with "ghost" eigen values and
+    # vectors caused by padding matrices during the packing process.
+
+    # Ensure data is random but consistent
+    np.random.seed(1)
+
+    # Generate test data
+    sizes = torch.randint(2, 10, (10,))  # <- Random sizes
+    mats = [torch.rand(s, s) for s in sizes]  # <- random matrices
+    mats = [mat + mat.T for mat in mats]  # <- symmetrisation
+
+    # Pack into a single tensor padded with zeros.
+    mats_packed = batch.pack(mats)
+
+    # Perform the eigen decomposition calculation.
+    w_calc, v_calc = maths.symeig_broadened(mats_packed, sortout=True)
+
+    # Calculate the reference eigenvalues and pack them together. Don't bother
+    # with the eigenvectors as they are non-deterministic.
+    w_ref = batch.pack([torch.symeig(m)[0] for m in mats])
+
+    # If anything has gone wrong with the "sortout" subroutine or the
+    # calculation it will be picked up here.
+    abs_delta = torch.max(torch.abs(w_calc - w_ref))
+
+    # Assert that the errors are within tolerance
+    assert abs_delta < 1E-12
+
+
+def test_symeig_broadened_backprop():
+    """Back propagation continuity test"""
+
+    # Proxy functions are needed to enforce symmetry
+    def inbuilt(m):
+        v = (m + m.T) / 2
+        return torch.symeig(v, eigenvectors=True)
+
+    def no_broadening(m):
+        v = (m + m.T) / 2
+        return maths.symeig_broadened(v, method='none')
+
+    def conditional_broadening(m):
+        v = (m + m.T) / 2
+        return maths.symeig_broadened(v, method='cond')
+
+    def lorentzian_broadening(m):
+        v = (m + m.T) / 2
+        return maths.symeig_broadened(v, method='lorn')
+
+    np.random.seed(1)
+
+    # Create random matrix, and one with a known degenerate states
+    a = torch.rand((10, 10), requires_grad=True) + 10
+
+    # Functions to test: 0) inbuilt method, 1) modified but without broadening,
+    # 2) with conditional broadening & 3) with Lorentzian broadening.
+    funcs = [inbuilt, no_broadening, conditional_broadening, lorentzian_broadening]
+    for func in funcs:
+        grad_is_safe = torch.autograd.gradcheck(func, a)
+        assert grad_is_safe, f'Non-degenerate test failed on {func.__name__}'
+
+    # torch.autograd.gradcheck seems to fail on degenerate systems or those like
+    # torch.tensor([[5., 10.], [10., 5.]]) which don't produce degenerate eigen-
+    # valued systems. The main intent of this function is to prevent NaN's from
+    # appearing in the code.
+
+    # b = torch.tensor([
+    #     [0., 1, 1],
+    #     [1, 0., 1],
+    #     [1, 1, 0.]],
+    #     requires_grad=True)
+
+    # Repeat with known degenerate states; but skip the inbuilt symeig and non-
+    # bordering tests as they will always fail.
+    # for func in funcs[:2]:
+    #     grad_is_safe = torch.autograd.gradcheck(func, b)
+    #     assert grad_is_safe, f'Degenerate test failed on {func.__name__}'
+
+
+def test_symeig_broadened_gpu():
+    """GPU operability test."""
+    run_on_gpu(test_symeig_broadened_batch)
