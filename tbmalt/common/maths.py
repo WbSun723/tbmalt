@@ -282,13 +282,13 @@ class _SymEigB(torch.autograd.Function):
         bm = ctx.bm
 
         # Form the eigenvalue gradients into diagonal matrix
-        lambda_bar = w_bar.diag()
+        lambda_bar = w_bar.diag_embed()
 
         # Identify the indices of the upper triangle of the F matrix
-        tri_u = torch.triu_indices(*v.shape, 1)
+        tri_u = torch.triu_indices(*v.shape[-2:], 1)
 
         # Construct the deltas
-        deltas = w[tri_u[1]] - w[tri_u[0]]
+        deltas = w[..., tri_u[1]] - w[..., tri_u[0]]
 
         # Apply broadening
         if ctx.bm == 'cond':  # <- Conditional broadening
@@ -302,22 +302,24 @@ class _SymEigB(torch.autograd.Function):
             raise ValueError(f'Unknown broadening method {ctx.bm}')
 
         # Construct F matrix where F_ij = v_bar_j - v_bar_i; construction is
-        # done in this manner to avoid 1/0 which can cause intermittent
+        # done in this manner to avoid 1/0 which can cause intermittent and
         # hard-to-diagnose issues.
-        F = torch.zeros(len(w), len(w), dtype=ctx.dtype)
-        F[tri_u[0], tri_u[1]] = deltas  # <- Upper triangle
-        F[tri_u[1], tri_u[0]] -= F[tri_u[0], tri_u[1]]  # <- lower triangle
+        F = torch.zeros(*w.shape, w.shape[-1], dtype=ctx.dtype)
+        F[..., tri_u[0], tri_u[1]] = deltas  # <- Upper triangle
+        F[..., tri_u[1], tri_u[0]] -= F[..., tri_u[0], tri_u[1]]  # <- lower triangle
 
         # Construct the gradient following the equation in the doc-string.
-        a_bar = v @ (lambda_bar + sym(F * (v.T @ v_bar))) @ v.T
+        a_bar = v @ (lambda_bar + sym(F * (v.transpose(-2, -1) @ v_bar))) @ v.transpose(-2, -1)
 
         # Return the gradient. PyTorch expects a gradient for each parameter
         # (method, bf) hence two extra Nones are returned
         return a_bar, None, None
 
 
-def __eig_sort_out(w, v):
+def __eig_sort_out(w, v, ghost=True):
     """Move ghost eigen values/vectors to the end of the array.
+
+    Discuss the difference between ghosts (w=0) and auxiliaries (w=1)
 
     Performing and eigen-decomposition operation on a zero-padded packed
     tensor results in the emergence of ghost eigen-values/vectors. This can
@@ -329,6 +331,13 @@ def __eig_sort_out(w, v):
             The eigen-values.
         v (torch.Tensor):
             The eigen-vectors.
+        ghost (bool):
+            Ghost-eigenvlaues are assumed to be 0 if True, else assumed to be
+            1. If zero padded then this should be True, if zero padding is
+            turned into identity padding then False should be used. This will
+            also change the ghost eigenvalues from 1 to zero when appropriate.
+            [DEFAULT=True]
+
 
     Returns:
         w (torch.Tensor):
@@ -337,13 +346,19 @@ def __eig_sort_out(w, v):
             The eigen-vectors, with ghosts moved to the end.
 
     """
+    eval = 0 if ghost else 1
+
     # Create a mask that is True when an eigen value is zero
-    mask = w == 0.0
+    mask = w == eval
     # and its associated eigen vector is a column of a identity matrix:
     # i.e. all values are 1 or 0 and there is only a single 1.
     _is_one = torch.eq(v, 1)  # <- precompute
     mask &= torch.all(torch.eq(v, 0) | _is_one, dim=1)
     mask &= torch.sum(_is_one, dim=1) == 1  # <- Only a single "1"
+
+    # Convert any auxiliary eigenvalues into ghosts
+    if not ghost:
+        w = w - mask.double()
 
     # Pull out the indices of the true & ghost entries and cat them together
     # so that the ghost entries are at the end.
@@ -360,18 +375,20 @@ def __eig_sort_out(w, v):
     # must be used for now.
     sorter = np.argsort(indices[0], kind='stable')
 
-    # Apply the sorter to the indices
-    rows, columns = indices[:, sorter]
+    # Apply sorter to indices; use a tuple to make 1D & 2D cases compatible
+    sorted_indices = tuple(indices[..., sorter])
 
-    # Fix the order of the eigen values and eigen vectors
-    w = w[rows, columns].reshape(w.shape)
-    v = v[rows, ..., columns].reshape(v.shape).permute(0, 2, 1)
+    # Fix the order of the eigen values and eigen vectors.
+    w = w[sorted_indices].reshape(w.shape)
+    # Reshaping is needed to allow sorted_indices to be used for 2D & 3D
+    v = v.transpose(-1, -2)[sorted_indices].reshape(v.shape).transpose(-1, -2)
 
+    # Return the eigenvalues and eigenvectors
     return w, v
 
 
-def symeig_broadened(a, b=None, scheme='cholesky', broadening_method='cond',
-                     factor=1E-12, sort_out=True, **kwargs):
+def eighb(a, b=None, scheme='cholesky', broadening_method='cond',
+          factor=1E-12, sort_out=True, aux=True, **kwargs):
     r"""Solves general & standard eigen-problems, with optional broadening.
 
     Solves standard and generalised eigenvalue problems of the from Az = λBz
@@ -402,6 +419,9 @@ def symeig_broadened(a, b=None, scheme='cholesky', broadening_method='cond',
             If True; eigen-vector/value tensors will be reordered so that any
             "ghost" entries are moved to the end. "Ghost" are values which
             emerge as a result of zero-padding. [DEFAULT=True]
+        aux (bool, optional):
+            Converts zero-padding to identity-padding. This this can improve
+            the stability of backwards propagation. [DEFAULT=True]
 
     Keyword Arguments:
         direct_inv (bool):
@@ -507,24 +527,31 @@ def symeig_broadened(a, b=None, scheme='cholesky', broadening_method='cond',
     # Set up for the arguments
     args = (broadening_method, factor) if broadening_method else (True,)
 
+    if aux:
+        # Convert from zero-padding to identity padding
+        _is_zero = torch.eq(a, 0)
+        mask = torch.all(_is_zero, dim=-1) & torch.all(_is_zero, dim=-2)
+        a = a + torch.diag_embed(mask.double())
+
     if b is None:  # For standard eigenvalue problem
-        v, w = func(a, *args)  # Call the required eigen-solver
+        w, v = func(a, *args)  # Call the required eigen-solver
 
     else:  # Otherwise it will be a general eigenvalue problem
 
+        # Cholesky decomposition can only act on positive definite matrices;
+        # which is problematic for zero-padded tensors. Similar issues are
+        # encountered in the Löwdin scheme. To ensure positive definiteness
+        # the diagonals of padding columns/rows are therefore set to 1.
+
+        # Create a mask which is True wherever a column/row pair is 0-valued
+        _is_zero = torch.eq(b, 0)
+        mask = torch.all(_is_zero, dim=-1) & torch.all(_is_zero, dim=-2)
+
+        # Set the diagonals at these locations to 1
+        b = b + torch.diag_embed(mask.double())
+
         # For Cholesky decomposition scheme
         if scheme == 'cholesky':
-
-            # Cholesky decomposition can only act on positive definite matrices;
-            # which is problematic for zero-padded tensors. To ensure positive
-            # definiteness the diagonals of padding columns/rows are set to 1.
-
-            # Create a mask which is True wherever a column/row pair is 0-valued
-            _is_zero = torch.eq(b, 0)
-            mask = torch.all(_is_zero, dim=-1) & torch.all(_is_zero, dim=-2)
-
-            # Set the diagonals at these locations to 1
-            b = b + torch.diag_embed(mask.double())
 
             # Perform Cholesky factorization (A = LL^{T}) of B to attain L
             l = torch.cholesky(b)
@@ -544,30 +571,56 @@ def symeig_broadened(a, b=None, scheme='cholesky', broadening_method='cond',
             c = l_inv @ a @ l_inv_t
 
             # The eigenvalues of Az = λBz are the same as Cy = λy; hence:
-            w, v_ = torch.symeig(c, True)
+            w, v_ = func(c, *args)
 
             # Eigenvectors, however, are not, so they must be recovered: z = L^{-T}y
             v = l_inv_t @ v_
 
         elif scheme == 'lowdin':  # For Löwdin Orthogonalisation scheme
-            raise NotImplementedError('Löwdin is not yet implemented')
+
+            # Perform the BV = WV eigen decomposition.
+            w, v = func(b, *args)
+
+            # Embed w to construct "small b"; inverse power is also done here
+            # to avoid inf values later on.
+            b_small = torch.diag_embed(w ** -0.5)
+
+            # Construct symmetric orthogonalisation matrix via:
+            #   B^{-1/2} = V b^{-1/2} V^{T}
+            b_so = v @ b_small @ v.transpose(-1, -2)
+
+            # A' (a_prime) can then be constructed as: A' = B^{-1/2} A B^{-1/2}
+            a_prime = b_so @ a @ b_so
+
+            # Decompose the now orthogonalised A' matrix
+            w, v_prime = func(a_prime, *args)
+
+            # the correct eigenvector is then recovered via
+            #   V = B^{-1/2} V'
+            v = b_so @ v_prime
 
         else:  # If an unknown scheme was specified
             raise ValueError('Unknown scheme selected.')
+
     # If sort_out is enabled, then move ghosts to the end.
     if sort_out:
-        w, v = __eig_sort_out(w, v)
+        w, v = __eig_sort_out(w, v, not aux)
 
     # Return the eigenvalues and eigenvectors
     return w, v
 
 
-def sym(x):
+def sym(x, dim0=-1, dim1=-2):
     """Symmetries the specified tensor.
 
     Arguments:
         x (torch.Tensor):
             The tensor to be symmetrised.
+        dim0 (int, optional):
+            First dimension to be transposed. [DEFAULT=-1]
+        dim1 (int, optional):
+            Second dimension to be transposed [DEFAULT=-2]
+
 
     Returns:
         x_sym (torch.Tensor):
@@ -578,5 +631,4 @@ def sym(x):
         this issue internally. Except when the tensor is all zeros.
 
     """
-
-    return (x + x.T) / 2
+    return (x + x.transpose(dim0, dim1)) / 2
