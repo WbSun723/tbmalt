@@ -3,32 +3,29 @@
 This module contains classes and helper functions associated with batch
 construction, handling and maintenance.
 """
-
 import torch
+from typing import Optional, Any, Tuple, List
+Tensor = torch.Tensor
 
 
-def pack(tensors, axis=0, size=None, value=0):
+def pack(tensors: List[Tensor], axis: int = 0, value: Any = 0,
+         size: Optional[Tuple[int]] = None) -> Tensor:
     """Pad and pack a sequence of tensors together.
 
     Pad a list of variable length tensors with zeros, or some other value, and
     pack them into a single tensor.
 
     Arguments:
-        tensors (list of torch.Tensor):
-            List of tensors to be packed, all with identical dtypes.
-        axis (int, optional):
-            Axis along which tensors will be concatenated; 0 for first axis
-            -1 for last axis, etc. [DEFAULT=0]
-        size (int, optional):
-            Specifies the size to which tensors should be padded. By default
+        tensors: List of tensors to be packed, all with identical dtypes.
+        axis: Axis along which tensors will be packed; 0 for first axis
+            -1 for last axis, etc. This will be a new dimension. [DEFAULT=0]
+        value: The value with which the tensor is to be padded. [DEFAULT=0]
+        size: Specifies the size to which tensors should be padded. By default
             tensors are padded to the size of the largest tensor. However,
             ``max_size`` can be used to overwrite this behaviour.
-        value (Any, optional):
-            The value with which the tensor is to be padded. [DEFAULT=0]
 
     Returns:
-        packed_tensors (torch.Tensor):
-            The input tensors padded and packed into a single tensor.
+        packed_tensors: Input tensors padded and packed into a single tensor.
 
     Notes:
         ``packed_tensors`` maintains the same order as ``tensors``. This
@@ -57,7 +54,7 @@ def pack(tensors, axis=0, size=None, value=0):
 
     # Create a tensor to pack into & fill with padding value. Work under the
     # assumption that "axis" == 0 and permute later on (easier this way).
-    padded = torch.empty(len(tensors), *size,
+    padded = rch.empty(len(tensors), *size,
                          dtype=tensors[0].dtype).fill_(value)
 
     # Loop over tensors & the dimension of "padded" it is to be packed into.
@@ -86,4 +83,3 @@ def pack(tensors, axis=0, size=None, value=0):
 
     # Return the packed tensor
     return padded
-

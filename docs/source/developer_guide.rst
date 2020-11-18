@@ -470,4 +470,14 @@ Todo
   be grouped and separated for clarity.
 - Must create code to parse utf-8 characters in docstrings otherwise this will brake latex.
 - Need to rewrite returns specification section [Priority:High].
+- Mention that ctx does not need to be typed or described.
+- Typing kwargs and args must be done in the docstring.
+- Double check that default arguments are defined as keyword arguments.
+- Grad-checks in tests must have raise_exception=False
+- Grad-checks may need to be performed separately for single and batch operations
+  if there is a significant enough difference in how they operate or the function
+  itself is long and or complex.
+- Warnings that some grad tests can take a long time to run.
+- Any general functionality test, such as ensuring the correct errors are raises
+  should be placed within the "single_evaluation" function.
 

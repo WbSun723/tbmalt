@@ -36,12 +36,18 @@ extensions = [
     'sphinx.ext.autodoc',
     # Parse google style docstrings
     #'sphinx.ext.napoleon',
-    # Wrapper for napolen which allows multiple reutrns to be given in the docstring
+    # Wrapper for napoleon which allows multiple returns to be given in the docstring
     'betterdocs',
+    # Permit parsing of PEP 484
+    'sphinx_autodoc_typehints',
     # Use read-the-docs html theme
-    'sphinx_rtd_theme'
+    'sphinx_rtd_theme',
 ]
 
+
+set_type_checking_flag = False
+typehints_fully_qualified = False
+always_document_param_types = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -55,16 +61,15 @@ exclude_patterns = []
 # -- Napoleon configuration settings -----------------------------------------
 
 napoleon_google_docstring = True
-napoleon_google_docstring = True
 napoleon_include_init_with_doc = False
-napoleon_include_private_with_doc = True
+napoleon_include_private_with_doc = False
 napoleon_include_special_with_doc = False
 napoleon_use_admonition_for_examples = False
 napoleon_use_admonition_for_notes = False
 napoleon_use_admonition_for_references = False
-napoleon_use_ivar = True
-napoleon_use_param = False  # Makes little difference for the html version
-napoleon_use_rtype = True
+napoleon_use_ivar = False
+napoleon_use_param = True  # Place PEP 484 type definitions into the args section
+napoleon_use_rtype = False
 napoleon_use_keyword = True
 napoleon_custom_sections = None
 
