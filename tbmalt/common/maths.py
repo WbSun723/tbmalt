@@ -2,9 +2,9 @@
 
 This module contains a collection of back-propagatable mathematical functions.
 """
+from typing import Tuple, Union
 import torch
 import numpy as np
-from typing import Tuple, Union
 Tensor = torch.Tensor
 
 

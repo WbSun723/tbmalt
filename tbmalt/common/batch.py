@@ -3,8 +3,8 @@
 This module contains classes and helper functions associated with batch
 construction, handling and maintenance.
 """
-import torch
 from typing import Optional, Any, Tuple, List
+import torch
 Tensor = torch.Tensor
 
 
@@ -83,3 +83,7 @@ def pack(tensors: List[Tensor], axis: int = 0, value: Any = 0,
 
     # Return the packed tensor
     return padded
+
+
+def unpack(tensor: Tensor) -> List[Tensor]:
+    pass

@@ -36,157 +36,117 @@ One Line Summary
 ^^^^^^^^^^^^^^^^
 This is a short one-line description that allows users to quickly discern a function's
 purpose. This should immediately follow the opening quotes, terminate with a period and be
-followed by a blank line, as demonstrated in line-2 & 3 of the :ref:`docstring_general`
-code-block. One line summaries are mandatory for all functions without exception. While it
-is not always possible to convey the full intent of a function in a single line, an attempt
-should still be made to do so.
+followed by a blank line, as demonstrated in line-2 & 3 of :ref:`docstring_general`.
+One line summaries are mandatory for all functions without exception. While it is not always
+possible to convey the full intent of a function in a single line, an attempt should still
+be made to do so.
 
 
 Detailed Summary
 ^^^^^^^^^^^^^^^^
 Following the one line summary, a second more detailed description should be given. This
 description must be able to completely describe what a function does and how it is invoked.
-[*]_ Explanations of *how* a function works can be left to the *notes* section. Detailed
+[*]_ Explanations of *how* a function works can be left to the :code:`notes` section. Detailed
 summaries are generally considered mandatory, however special exceptions may be made, i.e.
-for :code:`getters`, :code:`setters` or trivial convenience functions. This section may
-contain images, tables, paragraphs, references, maths, examples and so on. A simple example
-of a :code:`detailed_summary` is provide in lines 4 to 5 of code-block: :ref:`docstring_general`.
+for :code:`getters` and :code:`setters`. This section may contain images, tables, paragraphs,
+references, maths, examples and so on. A simple example of a :code:`detailed_summary` is
+provide in lines 4 to 5 of :ref:`docstring_general`.
+
 
 
 Arguments
 ^^^^^^^^^
-Functions accepting non-method arguments must contain an *arguments* section within its
-docstring. This section, signified by the ":code:`Arguments:`" header, lists each argument
-by name and provides an informative description. The *arguments* section format is demonstrated
-in code-blocks :ref:`docstring_args_1` and :ref:`docstring_general`. Names must be terminated
-by a colon and any hanging lines (multi-line descriptions) must be indented.
+Any function that accepts arguments, other than :code:`self`, must contain an ":code:`arguments`"
+section in its docstring. This section, whose start is signified by an ":code:`Arguments:`"
+header, lists each argument by name, explicitly states its expected type, and provides
+an appropriate description. The name and type-info must appear on a single, colon-
+terminated line with the description placed on the following, indented, line(s), as
+demonstrated in :ref:`docstring_args_2` & :ref:`docstring_general`.
 
 .. code-block:: python
-    :caption: Argument declaration
+    :caption: Code-block: `Argument` declaration
     :name: docstring_args_1
     :linenos:
 
-    def func(...):
+    def func(name):
         """...
         Arguments:
-            arg_1: A short one-line description of the ``arg_1`` argument.
-            arg_2: A slightly longer, multi-line description can also be given.
-                However, the following lines must be intended like so. There
-                should be no space between subsequent argument descriptions.
+            name (type_info):
+                A description of the argument should go here. If a multi-line
+                description is needed then it should be wrapped like so. Note the
+                indentation used.
         ...
         """
         ...
 
-Method arguments such as :code:`self` and :code:`cls` should not be documented. Argument
-type information can be omitted from the docstring a PEP 484 style type declarations are
-used. See section `Type Declarations`_ for information on type declarations. Any
-arguments with default values, must be explicitly state their defaults by appending
-":code:`[DEFAULT=<val>]`" to the arguments description, where :code:`<val>` is replaced by
-the argument's default value; Note, this should *not* be broken over multiple lines.
 
-Additionally, the *arguments* section should also include any ":code:`*args`" arguments
-that it uses or consumes. ":code:`**kwargs`", on the other hand, are documented in their
-own section.
+
+Type info, located within the parenthesis, must always be given, no exceptions are permitted. [*]_
+If an argument is type agnostic then the its type should be listed as ":code:`Any`". If an argument
+is optional then :code:`None` should be included as a possible type, unless it defaults to a value
+other than :code:`None`, in which case :code:`optional` should be included. See
+:ref:`docstring_args_2`.
+
+.. code-block:: python
+    :caption: Code-block: Type declaration examples
+    :name: docstring_args_2
+    :linenos:
+
+    def example(a, b, c, d, e, f=None):
+        """...
+        Arguments:
+            a (int):
+                An integer.
+            b (int or float):
+                An integer or a float.
+            c (list[int or float]):
+                A list of integers and/or floats.
+            d (dict[str of Any]):
+                A dictionary keyed by strings and valued by any type.
+            e (torch.Tensor[Any]):
+                A torch tensor with flexible dtyping.
+            f (int or None):
+                An optional integer. [DEFAULT=None]
+        ...
+        """
+        ...
+
+If there is a default option, then it should be explicitly stated as ":code:`[DEFAULT=val]`"
+where :code:`val` is replaced by the argument's default value. Note, this should *not* be
+broken over multiple lines. The arguments section of a function's docstring should not only
+recount the positional and keyword arguments but also any ":code:`*args`" arguments it
+consumes. ":code:`**kwargs`", on the other hand, are documented in their own section.
+
 
 Keyword Arguments
 """""""""""""""""
-Any :code:`**kwargs` arguments that are used or consumed by a function should be documented
-identically to the standard arguments, albeit in a separate "*keyword arguments*" section.
-If :code:`*args` and :code:`**kwargs` are directly passed on to another function or a
-parent class then they need not be documented. [*]_
+Any and all :code:`**kwargs` arguments that are used or consumed by a function should be
+documented identically to the standard arguments, albeit in a separate "Keyword Arguments"
+section. If :code:`*args` and :code:`**kwargs` are directly passed on to another function
+or a parent class then they need not be documented. [*]_
 
 
 Returns and Yields
 ^^^^^^^^^^^^^^^^^^
-Describes the entities returned/yielded by a function. Unlike numpy style docstring returns,
-Google does not natively support multiple returns, at least not elegantly. As such, a custom
-parser has been implemented. This allows the *returns/yields* section to be documented in an
-identical manner to the *arguments* section. Do **not** use standard google style returns as
-these will not be parsed correctly. Types should be omitted here as they are defined in using
-the PEP 484 convention.
+Gives a description for, and specifies the type of, the entity(s) that are returned/yielded
+from a function. Unlike numpy style docstring returns, Google does not have inbuilt support
+for elegantly documenting and parsing multiple returns. As such a custom parser has been
+implemented. This allows the returns section to be documented in an identical manner to the
+arguments section. Do **not** use standard google style returns as these will not be parsed
+correctly.
 
 
 Attributes
 ^^^^^^^^^^
-The public attributes of a class should be documented in an *attributes* section.
-This section follows the *arguments* section(s) and should be documented in an
+The public attributes of a class should be documented in an :code:`Attributes` section.
+This section follows the :code:`Arguments` section(s) and should be documented in an
 identical manner. This section is only required when documenting classes with public
 attributes.
-
-
-Type Declarations
-^^^^^^^^^^^^^^^^^
-Type declarations following the PEP484 must be given for all non-method arguments and returns.
-[PEP484]_ Type declarations should make use of the `typing` module wherever possible but use
-aliases sparingly. [Typing]_ If an argument is type-agnostic then its type should be ":code:`Any`",
-if it is optional, i.e. ":code:`None`" is a valid type, then it should use the ":code:`Optional`"
-designation. Within the context of this project :code:`torch.Tensor` should always be aliased to
-:code:`Tensor`. A selection of PEP 484 type declaration examples can be found in the
-:ref:`docstring_type_1` code-block below.
-
-.. code-block:: python
-    :caption: Function type declarations.
-    :name: docstring_type_1
-    :linenos:
-
-    import torch
-    from numbers import Number
-    from typing import Union, List, Optional, Dict, Any
-    Tensor = torch.Tensor
-
-
-    def example(a: int, b: Union[int, float], c: List[Number], d: Dict[str, Any],
-                e: Tensor, f: Optional[int] = None) -> Tensor:
-        """...
-        Arguments:
-            a: an integer.
-            b: An integer or a float.
-            c: A list of anything numerical; integers, floats, etc.
-            d: A dictionary keyed by strings and valued by any type.
-            e: A torch tensor.
-            f: An optional integer. [DEFAULT=None]
-
-        Returns:
-            g: A tensor
-        ...
-        """
-        ...
-
-Type decorations are also expected for class attributes and properties and should be
-specified as demonstrated in code-block :ref:
-
-.. code-block:: python
-    :caption: Class type declarations.
-    :name: docstring_type_2
-    :linenos:
-
-    import torch
-    from numbers import Number
-    from typing import Union, List, Optional, Dict, Any
-    Tensor = torch.Tensor
-
-
-    def example(a: int, b: Union[int, float], c: List[Number], d: Dict[str, Any],
-                e: Tensor, f: Optional[int] = None) -> Tensor:
-        """...
-        Arguments:
-            a: an integer.
-            b: An integer or a float.
-            c: A list of anything numerical; integers, floats, etc.
-            d: A dictionary keyed by strings and valued by any type.
-            e: A torch tensor.
-            f: An optional integer. [DEFAULT=None]
-
-        Returns:
-            g: A tensor
-        ...
-        """
-        ...
 
 Notes
 ^^^^^
 In general any additional comments about a function or its usage which do not fit into
-any other section can be placed into the *notes* section. If the function's operation
+any other section can be placed into the :code:`Notes` section. If the function's operation
 is complex enough to require a dedicated walk-through, then it should be given here. Any
 works on which a function is based, papers, books, etc. should also be mentioned and
 referenced in this section.
@@ -194,13 +154,13 @@ referenced in this section.
 Raises
 ^^^^^^
 Any exceptions that are manually raised by a function should be documented in the
-*raises* section. This is particularly important when raising custom exceptions.
+:code:`Raises` section. This is particularly important when raising custom exceptions.
 This section should not only document what exceptions may be raised during operation, but
-also the circumstances under which they are raised. The :ref:`docstring_raises` code-block
+also the circumstances under which they are raised. :ref:`docstring_raises`
 shows how such sections should be formatted.
 
 .. code-block:: python
-    :caption: Raises section
+    :caption: Code-block: `Raises` section
     :name: docstring_raises
     :linenos:
 
@@ -218,25 +178,25 @@ shows how such sections should be formatted.
 Warnings
 ^^^^^^^^
 Any general warning about when a function may fail or where it might do something that the
-user may consider unexpected (*gotchas*) should be documented in the free-form *warnings*
+user may consider unexpected (*gotchas*) should be documented in the free-form :code:`Warnings`
 section.
 
 Examples
 ^^^^^^^^
 This section can be used to provide users with examples that illustrate a function's usage.
 This should only be used to supplement a function's operational description, not replace
-it. The inclusion of an *examples* section is highly encouraged, but is not mandatory.
-The example code given in this section must follow the [doctest]_ format and should be fully
+it. The inclusion of an :code:`Examples` section is highly encouraged, but is not mandatory.
+The example code given in this section must follow the doctest_ format and should be fully
 self-contained. That is to say, the user should be able to copy, paste and run the code
 result without modification. However, the modules torch, numpy and matplotlib.pyplot should
 be considered implicit, i.e. they are always imported and thus do not need to be explicitly
 stated. Furthermore, any explicit imports should be assumed to be inherited by all subsequent
 examples. Multiple examples should be separated by blank lines, comments explaining the
-examples should also have blank lines above and below them. The :ref:`docstring_examples`
-code block demonstrates how the *examples* section is to be documented.
+examples should also have blank lines above and below them. :ref:`docstring_examples`
+demonstrates how the :code:`Examples` section is to be documented.
 
 .. code-block:: python
-    :caption: Examples section
+    :caption: Code-block: `Examples` section
     :name: docstring_examples
     :linenos:
 
@@ -265,13 +225,13 @@ code block demonstrates how the *examples* section is to be documented.
 
 References
 ^^^^^^^^^^
-Any citations made in the notes section should be listed in the *references* section
+Any citations made in the notes section should be listed in the :code:`References` section
 and must follow the Harvard style. It is expected that comments within a function's code
 will also make use of these references. An example of how a reference is made is provided
 in code-block :ref:`docstring_references`.
 
 .. code-block:: python
-    :caption: References section
+    :caption: Code-block: `References` section
     :name: docstring_references
     :linenos:
 
@@ -294,7 +254,7 @@ Putting it all Together
 -----------------------
 
 .. code-block:: python
-    :caption: Full docstring example
+    :caption: Code-block: full docstring example
     :name: docstring_general
     :linenos:
 
@@ -473,15 +433,15 @@ Footnotes
 .. [*] https://google.github.io/styleguide/pyguide.html
 .. [*] See the Google style definition for more information.
 .. [*] In conjunction with the arguments and returns section of the docstring.
+.. [*] Types must still be specified in the docstring even when using PEP484_.
 .. [*] Exception: If the downstream function is private then the arguments should be specified.
 
 
 Citations
 ---------
 
-.. [PEP484] https://www.python.org/dev/peps/pep-0484/
-.. [Typing] https://docs.python.org/3/library/typing.html
-.. [doctest] https://docs.python.org/3/library/doctest.html
+.. _PEP484: https://www.python.org/dev/peps/pep-0484/
+.. _doctest: https://docs.python.org/3/library/doctest.html
 
 
 Notes
@@ -520,5 +480,4 @@ Todo
 - Warnings that some grad tests can take a long time to run.
 - Any general functionality test, such as ensuring the correct errors are raises
   should be placed within the "single_evaluation" function.
-- Mention the use of ``xx`` when referencing an argument by name.
 
