@@ -171,83 +171,60 @@ def test_7(a, b):
     c = a * b
     return c
 
-from typing import Union, List, Optional, Dict, Any
 
 
-def func(...):
-    """...
-    Arguments:
 
-        arg_2: A description of the argument should go here. If a multi-line
-            description is needed then it should be wrapped like so. Note the
-            indentation used.
-
-    ...
-    """
-    ...
-
-def example(a: int, b: Union[int, float], c: List[Union[int, float]],
-            d: Dict[str, Any], e: torch.tensor, f: Optional[int] = None
-            ) -> torch.Tensor:
-    """...
-    Arguments:
-        a: an integer.
-        b: An integer or a float.
-        c: A list of integers and/or floats.
-        d: A dictionary keyed by strings and valued by any type.
-        e: A torch tensor.
-        f: An optional integer. [DEFAULT=None]
-
-    Returns:
-        g: A tensor
-    ...
-    """
-    ...
 
 import torch
-from numbers import Number
-from typing import Union, List, Optional, Dict, Any
+from numbers import Number, Real
+from typing import Union, List, Optional, Dict, Any, Literal
 Tensor = torch.Tensor
-def example(a: int, b: Union[int, float], c: List[Number], d: Dict[str, Any],
-            e: Tensor, f: Optional[int] = None) -> Tensor:
+
+
+def func_test(i: Optional[Literal['a', 'b', 'c']]) -> int:
+    """This is a test.
+
+    Arguments:
+        i: some input available options are
+
+            * 'a' : Trust Region Reflective algorithm, particularly suitable
+              for large sparse problems with bounds. Generally robust method.
+            * 'b' : Trust Region Reflective algorithm, particularly suitable
+              for large sparse problems with bounds. Generally robust method.
+            - "chol": Cholesky factorisation.
+
+
+    """
+    return 10
+
+
+def example(a: int, b: Union[int, str], c: List[Real], d: Dict[str, Any],
+            e: Tensor, f: Literal['option_1', 'option_2'] = 'option_1',
+            g: Optional[int] = None) -> Tensor:
     """...
     Arguments:
         a: an integer.
-        b: An integer or a float.
-        c: A list of anything numerical; integers, floats, etc.
+        b: An integer or a string.
+        c: A list of anything numerical and real; integers, floats, etc.
         d: A dictionary keyed by strings and valued by any type.
         e: A torch tensor.
-        f: An optional integer. [DEFAULT=None]
+        f: String argument (with default) that can be of of the following:
+
+            - "option_1": the first possible option
+            - "option_2": the section option.
+
+            [DEFAULT='option_1']
+        g: An optional integer. [DEFAULT=None]
 
     Returns:
-        g: A tensor
+        h: A tensor
     ...
     """
-    pass
-
-class Example:
-    """...
-    Arguments:
-        arg_1: The first argument here is an integer.
-
-    Attributes:
-        attr_1: Attributes should be documented similar to arguments.
     ...
-    """
-
-    def __init__(self, arg_1: int):
-        self.arg_1 = arg_1
-        self.attr_1: List[int] = [arg_1, arg_1 + 2]
-        ...
-
-    @property
-    def prop_1(self):
-        pass
-
-p = MyClass(20)
-q = p.y
 
 
+
+o = func_test('a')
 
 a_string = 'str'
 z_1 = test_1(a_string, a_string)  # <- Should warn you that inputs are incorrect type

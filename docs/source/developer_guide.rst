@@ -85,8 +85,9 @@ arguments with default values, must be explicitly state their defaults by append
 the argument's default value; Note, this should *not* be broken over multiple lines.
 
 Additionally, the *arguments* section should also include any ":code:`*args`" arguments
-that it uses or consumes. ":code:`**kwargs`", on the other hand, are documented in their
-own section.
+that it uses or consumes. Typing for ":code:`*args`" (and :code:`**kwargs`) should be done
+with standard google docstring typing convention, i.e. "`<name> (<type>): <description>`".
+":code:`**kwargs`", on the other hand, are documented in their own section.
 
 Keyword Arguments
 """""""""""""""""
@@ -110,8 +111,19 @@ Attributes
 ^^^^^^^^^^
 The public attributes of a class should be documented in an *attributes* section.
 This section follows the *arguments* section(s) and should be documented in an
-identical manner. This section is only required when documenting classes with public
-attributes.
+identical manner. Unfortunately this is commonly a large source of duplication as
+many attributes *are* the arguments that were passed in to the ``__init__`` function.
+This section is only required when documenting classes with public attributes. While
+private attributes do not require a doc-string entry they should should be documented
+with a comment.
+
+**Note this requires further testing to identify how properties can be documented correctly.**
+**And to identify if we really need attribute/argument duplicates**
+
+Properties
+""""""""""
+
+
 
 
 Type Declarations
@@ -130,58 +142,61 @@ designation. Within the context of this project :code:`torch.Tensor` should alwa
     :linenos:
 
     import torch
-    from numbers import Number
-    from typing import Union, List, Optional, Dict, Any
+    from numbers import Real
+    from typing import Union, List, Optional, Dict, Any, Literal
     Tensor = torch.Tensor
 
 
-    def example(a: int, b: Union[int, float], c: List[Number], d: Dict[str, Any],
-                e: Tensor, f: Optional[int] = None) -> Tensor:
+    def example(a: int, b: Union[int, str], c: List[Real], d: Dict[str, Any],
+                e: Tensor, f: Literal['option_1', 'option_2'] = 'option_1',
+                g: Optional[int] = None) -> Tensor:
         """...
         Arguments:
             a: an integer.
-            b: An integer or a float.
-            c: A list of anything numerical; integers, floats, etc.
+            b: An integer or a string.
+            c: A list of anything numerical and real; integers, floats, etc.
             d: A dictionary keyed by strings and valued by any type.
             e: A torch tensor.
-            f: An optional integer. [DEFAULT=None]
+            f: Selection argument (with default) that can be one of the following:
+
+                - "option_1": the first possible option
+                - "option_2": the section option.
+
+                [DEFAULT='option_1']
+            g: An optional integer. [DEFAULT=None]
 
         Returns:
-            g: A tensor
+            h: A tensor
         ...
         """
         ...
 
 Type decorations are also expected for class attributes and properties and should be
-specified as demonstrated in code-block :ref:
+specified as demonstrated in code-block :ref:`docstring_type_2`.
 
 .. code-block:: python
     :caption: Class type declarations.
     :name: docstring_type_2
     :linenos:
 
-    import torch
-    from numbers import Number
-    from typing import Union, List, Optional, Dict, Any
-    Tensor = torch.Tensor
-
-
-    def example(a: int, b: Union[int, float], c: List[Number], d: Dict[str, Any],
-                e: Tensor, f: Optional[int] = None) -> Tensor:
+    class Example:
         """...
         Arguments:
-            a: an integer.
-            b: An integer or a float.
-            c: A list of anything numerical; integers, floats, etc.
-            d: A dictionary keyed by strings and valued by any type.
-            e: A torch tensor.
-            f: An optional integer. [DEFAULT=None]
+            arg_1: The first argument here is an integer.
 
-        Returns:
-            g: A tensor
+        Attributes:
+            attr_1: Attributes should be documented similar to arguments.
         ...
         """
-        ...
+
+        def __init__(self, arg_1: int):
+            self.arg_1 = arg_1
+            self.attr_1: List[int] = [arg_1, arg_1 + 2]
+            ...
+
+        @property
+        def prop_1(self) -> float:
+            ...
 
 Notes
 ^^^^^
@@ -204,7 +219,7 @@ shows how such sections should be formatted.
     :name: docstring_raises
     :linenos:
 
-    def example_function(val_1, val_2):
+    def example_function(val_1: int, val_2: int) -> int:
         """...
         Raises:
             AttributeError: Each error that is manually raised should be listed in
@@ -240,11 +255,9 @@ code block demonstrates how the *examples* section is to be documented.
     :name: docstring_examples
     :linenos:
 
-    def example_function(val_1, val_2):
+    def example_function(val_1: Real, val_2: Real) -> Real:
         """...
         Examples:
-            Comment explaining the first example.
-
             >>> from example_module import example_function
             >>> a = 10
             >>> b = 20
@@ -252,7 +265,9 @@ code block demonstrates how the *examples* section is to be documented.
             >>> print(c)
             200
 
-            Comment explaining the second example.
+            Text can be placed above or below any example if needed but it is not
+            mandatory. If a comment is made there must be a blank line between it
+            and any example.
 
             >>> from example_module import example_function
             >>> print(15.5 , 19.28)
@@ -278,7 +293,7 @@ in code-block :ref:`docstring_references`.
     def example_function():
         """...
         Notes:
-            A reference is cited like so.[1]_ It must then have a corresponding
+            A reference is cited like so [1]_ , It must then have a corresponding
             entry in the ``References`` section.
 
         References:
@@ -298,29 +313,22 @@ Putting it all Together
     :name: docstring_general
     :linenos:
 
-    def example_function(a, b, print_results=False):
-        """Calculate the product of two numbers ``a`` & ``b``.
+    def example_function(a: Real, b: Real) -> Number:
+        r"""A short one line summary of the function should be provided here.
 
-        This function takes two arguments ``a`` & ``b``. Multiplies them together
-        & returns the resulting number.
+        A longer multi-line function may follow if a more in-depth explanation of
+        the function's purpose is necessary.
 
         Arguments:
-            a (float or int):
-                The first argument, this is a value that is to be multiplied
-                against ``b``.
-            b (float or int):
-                The second argument, this will be multiplied against ``a``.
-            print_results (bool, optional):
-                If True, the result will be printed prior to being returned.
-                [DEFAULT=False]
+            a: Description of the first argument.
+            b: Description of the second argument.
 
         Returns:
-            (float): c:
-                The product of ``a`` & ``b``.
+            c: Description of the returned value.
 
         Notes:
-            This is an example of a Python docstring. [1]_ This example is
-            overly verbose by intent.
+            This is a highly contrived example of a Python docstring and is overly
+            verbose by intent. [1]_
 
         Examples:
             An example of an example:
@@ -330,10 +338,10 @@ Putting it all Together
             200
 
         Raises:
-            ValueError: If ``a`` & ``b`` are equal.
+            ValueError: If ``a`` is equal to 42.
 
         Warnings:
-            This example has never been tested. There is a 1 in 10 chance of this
+            This example has never been tested and there is a 1 in 10 chance of this
             code deciding to terminate itself.
 
         References:
@@ -341,17 +349,13 @@ Putting it all Together
                Centrum voor Wiskunde en Informatica Amsterdam".
 
         """
-        if a == b:  # <-- Raise an exception if a & b are equal.
-            raise ValueError("Can't multiply two equal numbers together.")
+        if a == 42:  # <-- Raise an exception if a is equal to 42.
+            raise ValueError('Argument "a" cannot be equal to 42.')
 
         if np.random.rand() < 0.1:  # <-- Pointless exit roulette.
             exit()
 
-        # Calculate the product
-        c = a * b
-
-        if print_results:  # <-- Print the result if instructed to do so.
-            print(c)
+        c = a * b  # <-- Calculate the product
 
         return c  # <-- Finally return the result
 
@@ -362,8 +366,28 @@ Module level docstrings are required for each python module. These must proved a
 overview of the module and a list of all module level :code:`variables` contained within.
 Like other docstrings, these should contain a one line summary followed by a more detailed
 description. Descriptions are intended to be read by the end-user, rather than developers,
-and so the writing style should reflect this. Note, only module level :code:`variables`
+and so the writing style should reflect this. Note, only public module level :code:`variables`
 require descriptions.
+
+.. code-block:: python
+    :caption: Module docstring example
+    :name: module_docstring
+    :linenos:
+
+    # -*- coding: utf-8 -*-
+    r"""This is a simple example of a module level docstring.
+
+    All modules should be provided with a short docstring detailing its function.
+    It does not need to list the classes and methods present only public module-
+    level variables, like so:
+
+    Attributes:
+        some_level_variable (int): Each module-level variable should be described.
+
+    A further freeform (or structured) discussion can be given if deemed necessary.
+    Note that the docstring is immediately preceded by a short line specifying the
+    documents encoding ``# -*- coding: utf-8 -*-``.
+    """
 
 
 
@@ -375,8 +399,8 @@ desecration. However, while :code:`Todo` section usage is encouraged in developm
 its use in the main branch should generally be avoided. If including maths in the docstring
 it is advisable to precede the triple-quote with an :code:`r` to indicate a raw string. This
 avoids having to escape every backslash. Docstrings should be parsed by autodoc and visually
-inspected prior to submitting a pull request.
-
+inspected prior to submitting a pull request. If an argument, attribute or property is referenced
+by name in the docstring it should be encased in a double prime, i.e. \`\`arg_1\`\`.
 
 
 Code
@@ -386,24 +410,24 @@ Comments
 --------
 Although similar to docstrings, comments should be written to aid other developers rather
 than the end user. It is important that comments are detailed enough to allow a new developer
-to jump-in at any part of the code and quickly understand exactly what is going on. To this
-end, a one-line -- one-comment policy is enforce; i.e. a comment should be provided for
-each line of code explaining its action, even those whose purpose may appear obvious. Any
-none-standard programming choices should also be justified, e.g. why an obscure set of
-instructions was used. Some lines of code may go uncommented if they are detailed in the
-previous comment (comment stacking). While this rule is not rigorously enforced, code that
-abuses comment stacking may be rejected. Comments are subject to the same column width
-restrictions as docstrings, i.e. 80 characters including the new-line and indentation
-characters, some exceptions are permitted if they improves readability. Comments can include
-UTF-8 characters and cite references in the docstring if needed. Code that follows a
-mathematical procedure from a paper or book should include the relevant equations in the
-comments to clarify what is being done in a step by step manner. Any deviations from the
-reference source should also be clearly stated and justified.
+to jump-in at any part of the code and quickly understand exactly what is going on. Comments
+must be provided for non-trivial lines of code, none-standard programming choices, etc.
+Comments become particularly important when performing tensor operations. Any sections of
+code that is not sufficiently commented will be rejected as it is not maintainable.
+Comments are subject to the same column width restrictions as docstrings, i.e. 80 characters
+including the new-line and indentation characters, some exceptions are permitted if they
+improves readability. Comments can include UTF-8 characters and cite references in the
+docstring if needed. Code that follows a mathematical procedure from a paper or book
+should include the relevant equations in the comments to clarify what is being done in a
+step by step manner. Any deviations from the reference source should also be clearly stated
+and justified.
 
 
 Module Structure
 ----------------
-Module level variables
+Encoding, module docstring, imports, setup, module-level variables, code, secondary
+module-level variables (i.e those that depend on the functions/classes present).
+
 
 
 Paradigmatic Structure
@@ -446,13 +470,49 @@ Testing
 Every python module in the TBMaLT package must have a corresponding unit-test file
 associated with it, named ":code:`test_<name>.py`. These files, located in the
 :code:`tests/unittests` directory, must be able to test each component of their associated
-modules using the :code:`pytest` package. Wherever possible, best efforts should be made
-to isolate the component being tested, as this aids the ability to track down the source
-of an error. Unit-tests should verify that functions perform as intended, produce results
-within acceptable tolerances, are stable during back-propagation, raise the correct
-exceptions in response to erroneous inputs, are GPU operable, batch operability, etc. These
-tests should not require any external software or data to be installed or downloaded in order
-to run.
+modules using the :code:`pytest` package. Such tests should not require any external
+software or data to be installed or downloaded in order to run. Wherever possible, best
+efforts should be made to isolate the component being tested, as this aids the ability to
+track down the source of an error. Unit-tests should verify that functions perform as
+intended, produce results within acceptable tolerances, are stable during back-propagation,
+raise the correct exceptions in response to erroneous inputs, are GPU operable, batch
+operability, etc. Typically, four tests are performed per-function:
+
+:guilabel:`single`
+    Tests the ability of a function to operate on a single input and return a valid result.
+    Furthermore, any general functionality tests, such as ensuring the correct errors are
+    raised, should also be placed within this test-function.
+
+:guilabel:`batch`
+    Ensures a valid result is still returned when operating on a batch of inputs.
+
+:guilabel:`grad`
+    Uses the :code:`torch.autograd.gradcheck` function to test the continuity and stability
+    of a backwards pass through the function. This should test the gradient through both
+    single point and batch evaluations. Note that `raise_exception=False` must be set to
+    `False` for it to be compatible with `pytest`. Furthermore, the dtype of the tensor must
+    be a double precision float otherwise it will always fail.
+
+:guilabel:`gpu`
+    **NOT TRUE THIS WILL BE REMOVED**
+    Confirms a function can run stably on a GPU. Care must be taken to ensure the tensors are
+    CUDA tensors. i.e. if `torch.set_default_dtype(torch.float64)` is used the code will actual
+    run on the CPU and not on the GPU as intended.
+
+These four tests should be conducted separately, and in the order they are listed above.
+Each test function's name must be descriptive and should generally have a suffix `single`
+, `batch`, `grad` or `gpu` suffix affixed to it. As gradient test can take a significant
+amount of time to run they must be marked with the `grad` flag, via a `@pytest.mark.grad`
+decorator, which allows them to be disabled. Likewise GPU test functions must be marked
+with the `gpu` flag. The GPU test can be performed by simply passing the batch test function
+as an argument into the `test_utils.run_on_gpu` function. To ensure consistency all functions
+should be decorated with the `@test_utils.fix_seed` decorator. This sets the numpy and
+pytorch random number generator seeds to 0 prior to running the function. All `assert`
+statements should also have a short message associated with them indicating what test is
+being performed. It is acknowledged that more/les complex functions may require a greater/lesser
+number of tests to be performed.
+**MUST REMOVE GPU MARK REFERENCES**
+
 
 In addition to the standard unit-tests there also exist a series of deep tests, located
 in the :code:`tests/deeptests` directory. These tests are entirely optional and are
@@ -460,9 +520,9 @@ traditionally reserved for testing core functionality. Unlike unit-test these ma
 additional data to be downloaded and new software packages, such as DFTB+, to be installed
 in order to run.
 
-While tests are expected to provide a high degree of coverage, it is unreasonable to strive
-for 100% coverage.
-
+While tests are expected to provide a reasonable degree of coverage, it is unreasonable to
+strive for 100% coverage. It should also be noted that commenting and docstring rules are
+significantly relaxed within test files, i.e. rigorous documentation is not enforced.
 
 
 References
@@ -478,7 +538,6 @@ Footnotes
 
 Citations
 ---------
-
 .. [PEP484] https://www.python.org/dev/peps/pep-0484/
 .. [Typing] https://docs.python.org/3/library/typing.html
 .. [doctest] https://docs.python.org/3/library/doctest.html
@@ -488,17 +547,16 @@ Notes
 -----
 - Classes should have a __repr__ method to allow quick and easy inspection of an object.
 - Version nomenclature X.Y.Z version, revision, patch.
-- Each directory should contain a ":code:`readme.md`" file which outlines what the directory contains.
 - Serialisation of models, models must be serialisable so that they can be stored and used at a later date.
 - PEP 484 may be used when the number of arguments is small (n $<$ 4) and the types are singular.
 - Indentation should use spaces (specifically 4) rather than tabs.
-- All printing should be handled via the logging function, and should be formated neatly using f-stings
+- All printing should be handled via the logging function, and should be formatted neatly using f-stings
   which use a global precision variable (should use format '6.2E' when printing to terminal.).
 - Should use pylint with the custom pylintrc config file to grade code quality.
-- Modules must us relative imports.
 - __init__.py files must be declared for all module directories.
 - Code that uses depreciated functions or function signatures must be update prior to a pull request.
-- Mention that docstrings and comments for test functions is more relaxed.
+- Printing should be optional, off by default and be handled via the logging module.
+
 
 Todo
 ----
@@ -509,16 +567,11 @@ Todo
   out; i.e. licence, encoding, docstring, imports, etc. How functions and classes should
   be grouped and separated for clarity.
 - Must create code to parse utf-8 characters in docstrings otherwise this will brake latex.
-- Need to rewrite returns specification section [Priority:High].
-- Mention that ctx does not need to be typed or described.
-- Typing kwargs and args must be done in the docstring.
-- Double check that default arguments are defined as keyword arguments.
-- Grad-checks in tests must have raise_exception=False
-- Grad-checks may need to be performed separately for single and batch operations
-  if there is a significant enough difference in how they operate or the function
-  itself is long and or complex.
-- Warnings that some grad tests can take a long time to run.
-- Any general functionality test, such as ensuring the correct errors are raises
-  should be placed within the "single_evaluation" function.
-- Mention the use of ``xx`` when referencing an argument by name.
+- Need to change the gpu test to ensure the result is a CUDA type tensor, it is not enough
+  to just pretend the function runs on the gpu.
 
+
+
+Requires Decision
+-----------------
+- Allow utf-8 characters (e.g. Ω) to be used directly in the docstring YES|NO.

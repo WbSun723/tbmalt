@@ -1,8 +1,9 @@
+# -*- coding: utf-8 -*-
 """A collection of common mathematical functions.
 
 This module contains a collection of back-propagatable mathematical functions.
 """
-from typing import Tuple, Union
+from typing import Tuple, Union, Literal, Optional
 import torch
 import numpy as np
 Tensor = torch.Tensor
@@ -35,7 +36,7 @@ def gaussian(x: Union[Tensor, float], mean: Union[Tensor, float],
             `std` value(s).
 
     Raises:
-        TypeError: Raised if neither `x` or `mu` are of type torch.tensor.
+        TypeError: Raised if neither ``x`` or ``mu`` are of type torch.Tensor.
 
     Notes:
         Multiple `x`, `mean` & `std` values can be specified for batch-wise
@@ -47,17 +48,18 @@ def gaussian(x: Union[Tensor, float], mean: Union[Tensor, float],
         Evaluating multiple points within a single distribution:
 
         >>> import tbmalt.common.maths as tb_maths
-        >>> x = torch.linspace(0, 1, 100)
-        >>> y = tb_maths.gaussian(x, 0.5, 0.5)
-        >>> plt.plot(x, y, '-k')
+        >>> import matplotlib.pyplot as plt
+        >>> x_vals = torch.linspace(0, 1, 100)
+        >>> y_vals = tb_maths.gaussian(x_vals, 0.5, 0.5)
+        >>> plt.plot(x_vals, y_vals, '-k')
         >>> plt.show()
 
         Evaluating points on a pair of distributions with differing means:
 
-        >>> x = torch.linspace(0, 1, 100)
-        >>> y1, y2 = tb_maths.gaussian(x, torch.tensor([0.25, 0.75]), 0.5)
-        >>> plt.plot(x, y1, '-r')
-        >>> plt.plot(x, y2, '-b')
+        >>> x_vals = torch.linspace(0, 1, 100)
+        >>> y1, y2 = tb_maths.gaussian(x_vals, torch.tensor([0.25, 0.75]), 0.5)
+        >>> plt.plot(x_vals, y1, '-r')
+        >>> plt.plot(x_vals, y2, '-b')
         >>> plt.show()
 
     """
@@ -238,7 +240,7 @@ class _SymEigB(torch.autograd.Function):
         ctx.dtype = a.dtype
 
         # Return the eigenvalues and eigenvectors
-        return (w, v)
+        return w, v
 
     @staticmethod
     def backward(ctx, w_bar: Tensor, v_bar: Tensor) -> Tuple[Tensor, Tensor]:
@@ -307,6 +309,7 @@ class _SymEigB(torch.autograd.Function):
         # (method, bf) hence two extra Nones are returned
         return a_bar, None, None
 
+
 def _eig_sort_out(w: Tensor, v: Tensor, ghost: bool = True
                   ) -> Tuple[Tensor, Tensor]:
     """Move ghost eigen values/vectors to the end of the array.
@@ -334,8 +337,8 @@ def _eig_sort_out(w: Tensor, v: Tensor, ghost: bool = True
     """
     eval = 0 if ghost else 1
 
-    # Create a mask that is True when an eigen value is zero
-    mask = w == eval
+    # Create a mask that is True when an eigen value is zero/one
+    mask = torch.eq(w, eval)
     # and its associated eigen vector is a column of a identity matrix:
     # i.e. all values are 1 or 0 and there is only a single 1.
     _is_one = torch.eq(v, 1)  # <- precompute
@@ -344,7 +347,7 @@ def _eig_sort_out(w: Tensor, v: Tensor, ghost: bool = True
 
     # Convert any auxiliary eigenvalues into ghosts
     if not ghost:
-        w = w - mask.double()
+        w = w - mask.type(w.dtype)
 
     # Pull out the indices of the true & ghost entries and cat them together
     # so that the ghost entries are at the end.
@@ -359,7 +362,7 @@ def _eig_sort_out(w: Tensor, v: Tensor, ghost: bool = True
     # mixed between different systems. As PyTorch's argsort is not stable, i.e.
     # it dose not respect any order already present in the data, numpy's argsort
     # must be used for now.
-    sorter = np.argsort(indices[0], kind='stable')
+    sorter = np.argsort(indices[0].cpu(), kind='stable')
 
     # Apply sorter to indices; use a tuple to make 1D & 2D cases compatible
     sorted_indices = tuple(indices[..., sorter])
@@ -373,10 +376,14 @@ def _eig_sort_out(w: Tensor, v: Tensor, ghost: bool = True
     return w, v
 
 
-def eighb(a: Tensor, b: Tensor = None, scheme: str = 'cholesky',
-          broadening_method: str = 'cond', factor: float = 1E-12,
-          sort_out: bool = True, aux: bool = True, **kwargs
-          ) -> Tuple[Tensor, Tensor]:
+def eighb(a: Tensor,
+          b: Tensor = None,
+          scheme: Literal['chol', 'lowd'] = 'chol',
+          broadening_method: Optional[Literal['cond', 'lorn']] = 'cond',
+          factor: float = 1E-12,
+          sort_out: bool = True,
+          aux: bool = True,
+          **kwargs) -> Tuple[Tensor, Tensor]:
     r"""Solves general & standard eigen-problems, with optional broadening.
 
     Solves standard and generalised eigenvalue problems of the from Az = λBz
@@ -390,14 +397,14 @@ def eighb(a: Tensor, b: Tensor = None, scheme: str = 'cholesky',
         b: Complementary positive definite real symmetric matrix for the
             generalised eigenvalue problem.
         scheme: Scheme to covert generalised eigenvalue problems to standard
-            ones, available schemes are:
+            ones:
 
-                - "cholesky": Cholesky factorisation.
-                - "lowdin": Löwdin orthogonalisation.
+                - "chol": Cholesky factorisation. [DEFAULT='chol']
+                - "lowd": Löwdin orthogonalisation.
 
-            Has no effect on solving standard problems. [DEFAULT='cholesky']
+            Has no effect on solving standard problems.
 
-        broadening_method: Broadening method to used, available options are
+        broadening_method: Broadening method to used:
 
                 - "cond": conditional broadening. [DEFAULT='cond']
                 - "lorn": Lorentzian broadening.
@@ -411,7 +418,7 @@ def eighb(a: Tensor, b: Tensor = None, scheme: str = 'cholesky',
             the stability of backwards propagation. [DEFAULT=True]
         direct_inv: If True then the matrix inversion will be computed
             directly rather than via a call to torch.solve. Only relevant to
-            the ``cholesky`` scheme. [DEFAULT=False]
+            the cholesky scheme. [DEFAULT=False]
 
     Returns:
         w: The eigenvalues, in ascending order.
@@ -509,7 +516,7 @@ def eighb(a: Tensor, b: Tensor = None, scheme: str = 'cholesky',
         # Convert from zero-padding to identity padding
         _is_zero = torch.eq(a, 0)
         mask = torch.all(_is_zero, dim=-1) & torch.all(_is_zero, dim=-2)
-        a = a + torch.diag_embed(mask.double())
+        a = a + torch.diag_embed(mask.type(a.dtype))
 
     if b is None:  # For standard eigenvalue problem
         w, v = func(a, *args)  # Call the required eigen-solver
@@ -526,10 +533,10 @@ def eighb(a: Tensor, b: Tensor = None, scheme: str = 'cholesky',
         mask = torch.all(_is_zero, dim=-1) & torch.all(_is_zero, dim=-2)
 
         # Set the diagonals at these locations to 1
-        b = b + torch.diag_embed(mask.double())
+        b = b + torch.diag_embed(mask.type(a.dtype))
 
         # For Cholesky decomposition scheme
-        if scheme == 'cholesky':
+        if scheme == 'chol':
 
             # Perform Cholesky factorization (A = LL^{T}) of B to attain L
             l = torch.cholesky(b)
@@ -554,7 +561,7 @@ def eighb(a: Tensor, b: Tensor = None, scheme: str = 'cholesky',
             # Eigenvectors, however, are not, so they must be recovered: z = L^{-T}y
             v = l_inv_t @ v_
 
-        elif scheme == 'lowdin':  # For Löwdin Orthogonalisation scheme
+        elif scheme == 'lowd':  # For Löwdin Orthogonalisation scheme
 
             # Perform the BV = WV eigen decomposition.
             w, v = func(b, *args)

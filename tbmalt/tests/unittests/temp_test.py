@@ -1,12 +1,10 @@
-"""Helper functions for batch operations.
-
-This module contains classes and helper functions associated with batch
-construction, handling and maintenance.
-"""
+import sys
 from typing import Optional, Any, Tuple, List
 import torch
+from time import time
 Tensor = torch.Tensor
-
+#sys.path.append('/home/mcsloy')
+from tbmalt.common import maths
 
 def pack(tensors: List[Tensor], axis: int = 0, value: Any = 0,
          size: Optional[Tuple[int]] = None) -> Tensor:
@@ -32,20 +30,6 @@ def pack(tensors: List[Tensor], axis: int = 0, value: Any = 0,
         is faster & more flexable than the internal pytorch p6ck & pad
         functions (at this particuarl task).
 
-    Examples:
-
-        >>> from dftbmalt.utils.batch import pack
-        >>> import torch
-        >>> a, b, c = torch.rand(2,2), torch.rand(3,3), torch.rand(4,4)
-        >>> abc_packed_a = pack([a, b, c])
-        >>> print(abc_packed_a.shape)
-        torch.Size([3, 4, 4])
-        >>> abc_packed_b = pack([a, b, c], axis=1)
-        >>> print(abc_packed_b.shape)
-        torch.Size([4, 3, 4])
-        >>> abc_packed_c = pack([a, b, c], axis=-1)
-        >>> print(abc_packed_c.shape)
-        torch.Size([4, 4, 3])
     """
 
     # If "size" unspecified; the maximum observed size along each axis is used
@@ -86,5 +70,29 @@ def pack(tensors: List[Tensor], axis: int = 0, value: Any = 0,
     return padded
 
 
-def unpack(tensor: Tensor) -> List[Tensor]:
-    pass
+def test_eighb_general_batch():
+    """eighb accuracy on a batch of general eigenvalue problems."""
+    torch.manual_seed(0)
+    sizes = torch.randint(5, 30, (50,))
+    a = [maths.sym(torch.rand(s, s)) for s in sizes]
+    b = [maths.sym(torch.eye(s) * torch.rand(s)) for s in sizes]
+    a_batch, b_batch = pack(a), pack(b)
+
+    aux_settings = [True, False]
+    schemes = ['chol', 'lowd']
+    t1 = time()
+    for scheme in schemes:
+        for aux in aux_settings:
+            w_calc = maths.eighb(a_batch, b_batch, scheme=scheme, aux=aux)[0]
+    t2 = time()
+    return t2 - t1
+
+
+if __name__ == '__main__':
+    torch.set_default_tensor_type(torch.FloatTensor)
+    t_cpu = test_eighb_general_batch()
+    # torch.set_default_tensor_type(torch.cuda.FloatTensor)
+    # t_gpu = test_eighb_general_batch()
+    # print(f'CPU: {t_cpu:6.2f}')
+    # print(f'GPU: {t_gpu:6.2f}')
+    # print(f'GPU/CPU: {t_gpu/t_cpu:6.2f}')
