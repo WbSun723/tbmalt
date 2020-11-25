@@ -1,41 +1,25 @@
 # -*- coding: utf-8 -*-
-r"""This is a simple example of a module level docstring.
+r"""This contains a collection of general utilities used then running PyTests.
 
-All modules should be provided with a short docstring detailing its function.
-It does not need to list the classes and methods present only public module-
-level variables, like so:
+This module should be imported as:
+    from tbmalt.tests.test_utils import *
 
-Attributes:
-    some_level_variable (int): Each module-level variable should be described.
-
-A further freeform (or structured) discussion can be given if deemed necessary.
-Note that the docstring is immediately preceded by a short line specifying the
-documents encoding ``# -*- coding: utf-8 -*-``.
+This ensures that the default dtype and autograd anomaly detection settings
+are all inherited.
 """
 
 import numpy as np
 import torch
 import functools
 import pytest
-from contextlib import contextmanager
+import sys
+from typing import Literal, Union
 
 # Default must be set to float64 otherwise gradcheck will not function
 torch.set_default_dtype(torch.float64)
 # This will track for any anomalys in the gradient
 torch.autograd.set_detect_anomaly(True)
 
-
-# _dtype_to_gpu_tensor = {
-#     torch.float16: torch.cuda.HalfTensor,
-#     torch.float32: torch.cuda.FloatType,
-#     torch.float64: torch.cuda.DoubleTensor,
-# }
-#
-# _dtype_to_cpu_tensor = {
-#     torch.float16: torch.HalfTensor,
-#     torch.float32: torch.FloatType,
-#     torch.float64: torch.DoubleTensor,
-# }
 
 def fix_seed(func):
     """Sets torch's & numpy's random number generator seed.
@@ -67,35 +51,52 @@ def fix_seed(func):
     return wrapper
 
 
-# @contextmanager
-# def on_gpu():
-#     old_tensor_type = torch.get_default_te
-#     _dtype_to_gpu_tensor[torch.get_default_dtype()]
-#     torch.set_default_tensor_type()
+def clean_zero_padding(m, sizes):
+    """Removes perturbations induced in the zero padding values by gradcheck.
 
-#torch.cuda.is_available()
+    When performing gradient stability tests via PyTorch's gradcheck function
+    small perturbations are induced in the input data. However, problems are
+    encountered when these perturbations occur in the padding values. These
+    values should always be zero, and so the test is not truly representative.
+    Furthermore, this can even prevent certain tests from running. Thus this
+    function serves to remove such perturbations in a gradient safe manner.
 
+    Note that this is intended to operate on 3D matrices where. Specifically a
+    batch of square matrices.
 
-#
-# class GPURunner:
-#
-#     def __init__(self):
-#         self.default_dtype = torch.get_default_dtype()
-#
-#     def __enter__(self):
-#         torch.set_default_dtype()
-#
-#     def __exit__(self):
+    Arguments:
+        m (torch.Tensor):
+            The tensor whose padding is to be cleaned.
+        sizes (torch.Tensor):
+            The true sizes of the tensors.
 
-def run_on_gpu(func):
-    # GIVE A BETTER DESCRIPTION OF WHAT THIS IS DOING
-    """Runs a function on the GPU if present, skips otherwise."""
-    # Skip this test if there is no gpu found.
-    if torch.cuda.device_count() == 0:
-        pytest.skip('Cannot run GPU test: no GPU found.')
-    else:
-        # Rerun the test function on the GPU and make sure the default
-        # dtype is a cuda.
-        with torch.cuda.device(1):
-            func()
+    Returns:
+        cleaned (torch.Tensor):
+            Cleaned tensor.
 
+    Notes:
+        This is only intended for 2D matrices packed into a 3D tensor.
+    """
+
+    # First identify the maximum tensor size
+    max_size = torch.max(sizes)
+
+    # Build a mask that is True anywhere that the tensor should be zero, i.e.
+    # True for regions of the tensor that should be zero padded.
+    mask_1d = (
+            (torch.arange(max_size) - sizes.unsqueeze(1)) >= 0
+    ).repeat(max_size, 1, 1)
+
+    # This, rather round about, approach to generating and applying the masks
+    # must be used as some PyTorch operations like masked_scatter do not seem
+    # to function correctly
+    mask_full = torch.zeros(*m.shape).bool()
+    mask_full[mask_1d.permute(1, 2, 0)] = True
+    mask_full[mask_1d.transpose(0, 1)] = True
+
+    # Create and apply the subtraction mask
+    temp = torch.zeros_like(m, device=m.device)
+    temp[mask_full] = m[mask_full]
+    cleaned = m - temp
+
+    return cleaned

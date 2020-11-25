@@ -476,7 +476,7 @@ efforts should be made to isolate the component being tested, as this aids the a
 track down the source of an error. Unit-tests should verify that functions perform as
 intended, produce results within acceptable tolerances, are stable during back-propagation,
 raise the correct exceptions in response to erroneous inputs, are GPU operable, batch
-operability, etc. Typically, four tests are performed per-function:
+operability, etc. Typically, three tests are performed per-function:
 
 :guilabel:`single`
     Tests the ability of a function to operate on a single input and return a valid result.
@@ -493,25 +493,77 @@ operability, etc. Typically, four tests are performed per-function:
     `False` for it to be compatible with `pytest`. Furthermore, the dtype of the tensor must
     be a double precision float otherwise it will always fail.
 
-:guilabel:`gpu`
-    **NOT TRUE THIS WILL BE REMOVED**
-    Confirms a function can run stably on a GPU. Care must be taken to ensure the tensors are
-    CUDA tensors. i.e. if `torch.set_default_dtype(torch.float64)` is used the code will actual
-    run on the CPU and not on the GPU as intended.
 
-These four tests should be conducted separately, and in the order they are listed above.
-Each test function's name must be descriptive and should generally have a suffix `single`
-, `batch`, `grad` or `gpu` suffix affixed to it. As gradient test can take a significant
-amount of time to run they must be marked with the `grad` flag, via a `@pytest.mark.grad`
-decorator, which allows them to be disabled. Likewise GPU test functions must be marked
-with the `gpu` flag. The GPU test can be performed by simply passing the batch test function
-as an argument into the `test_utils.run_on_gpu` function. To ensure consistency all functions
-should be decorated with the `@test_utils.fix_seed` decorator. This sets the numpy and
-pytorch random number generator seeds to 0 prior to running the function. All `assert`
-statements should also have a short message associated with them indicating what test is
-being performed. It is acknowledged that more/les complex functions may require a greater/lesser
-number of tests to be performed.
-**MUST REMOVE GPU MARK REFERENCES**
+These tests should be conducted separately and in the order shown above. They should be named
+descriptively and follow the pattern: :code:`test_<f-name>_<info>_<type>` where "`f-name`"
+is the name of the function being tested, "`type`" is a suffix that is `single`, `batch`
+or `grad` for single, batch and gradient tests respectively. If additional information is
+required it may be included in the optional `info` infix. All functions must take a pytest
+fixture argument named `device`, this is a `torch.device` object on which all torch objects
+must be created. To ensure GPU operability each test should check that torch objects returned
+from the tested function remain on the device specified by `device`. By default, tests will
+be run on the CPU, however passing the `--device cuda` argument will place tests on the GPU.
+To ensure consistency all functions should be decorated with the `@test_utils.fix_seed`
+decorator. This sets the numpy and pytorch random number generator seeds to 0 prior to
+running the function. All `assert` statements should also have a short message associated
+with them indicating what test is being performed. It is acknowledged that more/less complex
+functions may require a greater/lesser number of tests to be performed. As gradient test
+tend to have long run times they should be marked with a `@pytest.mark.grad` decorator,
+allowing them to be selectively skipped. Finally, all test modules should import * from
+`tbmalt.tests.test_utils.py` this ensures the correct float precision is used, activates
+gradient anomaly detection and grants access to `fix_seed`. Some test examples are shown
+below in code-block :ref:`unit_tests`.
+
+.. code-block:: python
+    :caption: Unit test examples
+    :name: unit_tests
+    :linenos:
+
+    @fix_seed
+    def test_example_single(device):
+        """Single evaluation test of example."""
+        # Generate test data
+        a, b = torch.rand(1, device=device), torch.rand(1, device=device)
+        # Call example function to get result
+        value = example(a, b)
+        # Get a reference value to compare to
+        reference = np.example(a.numpy(), b.numpy())
+        # Calculate the maximum absolute error
+        mae = np.max(abs(value - reference))
+        # Ensure the result is on the same device type as "device"
+        same_device = value.device.type == device.type
+        # Assert results are within tolerance
+        assert mae < 1E-12, 'Example single tolerance test'
+        # Assert result persists on the same device
+        assert same_device, 'Device persistence check'
+
+
+    @fix_seed
+    def test_example_batch(device):
+        """Batch evaluation test of example."""
+        a, b = torch.rand(10, device=device), torch.rand(10, device=device)
+        value = example(a, b)
+        reference = np.example(a.numpy(), b.numpy())
+        mae = np.max(abs(value - reference))
+        same_device = value.device.type == device.type
+        assert mae < 1E-12, 'Example batch tolerance test'
+        assert same_device, 'Device persistence check'
+
+
+    @fix_seed
+    @pytest.mark.grad
+    def test_example_grad(device):
+        """Gradient evaluation test of example."""
+        a1, b1 = torch.rand(1, device=device), torch.rand(1, device=device)
+        a2, b2 = torch.rand(10, device=device), torch.rand(10, device=device)
+        # Perform a check of the gradient
+        grad_is_safe_single = torch.autograd.gradcheck(example, (a1, b1),
+                                                       raise_exception=False)
+        grad_is_safe_batch = torch.autograd.gradcheck(example, (a2, b2),
+                                                      raise_exception=False)
+        # Assert the stability of the gradients
+        assert grad_is_safe_single, 'Gradient stability test single'
+        assert grad_is_safe_batch, 'Gradient stability test batch'
 
 
 In addition to the standard unit-tests there also exist a series of deep tests, located
@@ -523,6 +575,8 @@ in order to run.
 While tests are expected to provide a reasonable degree of coverage, it is unreasonable to
 strive for 100% coverage. It should also be noted that commenting and docstring rules are
 significantly relaxed within test files, i.e. rigorous documentation is not enforced.
+
+
 
 
 References
@@ -548,7 +602,6 @@ Notes
 - Classes should have a __repr__ method to allow quick and easy inspection of an object.
 - Version nomenclature X.Y.Z version, revision, patch.
 - Serialisation of models, models must be serialisable so that they can be stored and used at a later date.
-- PEP 484 may be used when the number of arguments is small (n $<$ 4) and the types are singular.
 - Indentation should use spaces (specifically 4) rather than tabs.
 - All printing should be handled via the logging function, and should be formatted neatly using f-stings
   which use a global precision variable (should use format '6.2E' when printing to terminal.).
@@ -566,12 +619,4 @@ Todo
 - Fill in the **Module Structure** section which details how a module file should be laid
   out; i.e. licence, encoding, docstring, imports, etc. How functions and classes should
   be grouped and separated for clarity.
-- Must create code to parse utf-8 characters in docstrings otherwise this will brake latex.
-- Need to change the gpu test to ensure the result is a CUDA type tensor, it is not enough
-  to just pretend the function runs on the gpu.
 
-
-
-Requires Decision
------------------
-- Allow utf-8 characters (e.g. Ω) to be used directly in the docstring YES|NO.

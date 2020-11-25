@@ -298,7 +298,7 @@ class _SymEigB(torch.autograd.Function):
         # Construct F matrix where F_ij = v_bar_j - v_bar_i; construction is
         # done in this manner to avoid 1/0 which can cause intermittent and
         # hard-to-diagnose issues.
-        F = torch.zeros(*w.shape, w.shape[-1], dtype=ctx.dtype)
+        F = torch.zeros(*w.shape, w.shape[-1], dtype=ctx.dtype, device=w_bar.device)
         F[..., tri_u[0], tri_u[1]] = deltas  # <- Upper triangle
         F[..., tri_u[1], tri_u[0]] -= F[..., tri_u[0], tri_u[1]]  # <- lower triangle
 

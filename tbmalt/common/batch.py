@@ -29,8 +29,8 @@ def pack(tensors: List[Tensor], axis: int = 0, value: Any = 0,
 
     Notes:
         ``packed_tensors`` maintains the same order as ``tensors``. This
-        is faster & more flexable than the internal pytorch p6ck & pad
-        functions (at this particuarl task).
+        is faster & more flexible than the internal pytorch p6ck & pad
+        functions (at this particularly task).
 
     Examples:
 
@@ -46,6 +46,10 @@ def pack(tensors: List[Tensor], axis: int = 0, value: Any = 0,
         >>> abc_packed_c = pack([a, b, c], axis=-1)
         >>> print(abc_packed_c.shape)
         torch.Size([4, 4, 3])
+
+    Todo:
+        - Expand functionality to allow packing of systems of arbitrary shape
+            and dimensionality.
     """
 
     # If "size" unspecified; the maximum observed size along each axis is used
