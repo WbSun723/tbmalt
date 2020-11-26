@@ -24,10 +24,6 @@ tight binding theory....
    developer_guide
    release_notes
 
-
-
-
-
 Indices and tables
 ==================
 

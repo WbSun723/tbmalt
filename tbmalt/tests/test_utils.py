@@ -11,9 +11,6 @@ are all inherited.
 import numpy as np
 import torch
 import functools
-import pytest
-import sys
-from typing import Literal, Union
 
 # Default must be set to float64 otherwise gradcheck will not function
 torch.set_default_dtype(torch.float64)
@@ -100,3 +97,10 @@ def clean_zero_padding(m, sizes):
     cleaned = m - temp
 
     return cleaned
+
+def __sft(self):
+    """Aliese for calling .cpu().numpy()"""
+    return self.cpu().numpy()
+
+
+torch.Tensor.sft = __sft

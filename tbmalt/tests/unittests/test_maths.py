@@ -71,7 +71,7 @@ def test_sym_single(device):
     data = torch.rand(10, 10, device=device)
     pred = maths.sym(data)
     ref = (data + data.T) / 2
-    abs_delta = torch.max(torch.abs(pred - ref))
+    abs_delta = torch.max(torch.abs(pred.cpu() - ref))
     same_device = pred.device == device
 
     assert abs_delta < 1E-12, 'Tolerance check'
@@ -84,7 +84,7 @@ def test_sym_batch(device):
     data = torch.rand(10, 10, 10, device=device)
     pred = maths.sym(data, -1, -2)
     ref = torch.stack([(i + i.T) / 2 for i in data], 0)
-    abs_delta = torch.max(torch.abs(pred - ref))
+    abs_delta = torch.max(torch.abs(pred.cpu() - ref))
     same_device = pred.device == device
 
     assert abs_delta < 1E-12, 'Tolerance check'
@@ -110,8 +110,9 @@ def test_gaussian_single(device):
 
     x, mu, sigma = torch.rand(3, device=device)
     pred = maths.gaussian(x, mu, sigma)
-    ref = _gaussian_reference(x.item(), mu.item(), sigma.item())
-    abs_delta = abs(pred.item() - ref)
+    ref = _gaussian_reference(x.cpu().item(), mu.cpu().item(),
+                              sigma.cpu().item())
+    abs_delta = abs(pred.cpu().item() - ref)
     same_device = pred.device == device
 
     assert abs_delta < 1E-12, 'Tolerance test'
@@ -124,8 +125,9 @@ def test_gaussian_batch(device):
 
     x, mu, sigma = torch.rand(3, 100, 4, device=device)
     pred = maths.gaussian(x, mu, sigma)
-    ref = _gaussian_reference(x.numpy(), mu.numpy(), sigma.numpy())
-    abs_delta = max(abs(pred.numpy().ravel() - ref.ravel()))
+    ref = _gaussian_reference(x.sft(), mu.sft(),
+                              sigma.sft())
+    abs_delta = max(abs(pred.sft().ravel() - ref.ravel()))
     same_device = pred.device == device
 
     assert abs_delta < 1E-12, 'Tolerance test'
@@ -163,7 +165,7 @@ def test_hellinger_single(device):
     ref = _hellinger_reference(p, q)
 
     # Calculate the absolute error
-    abs_delta = abs(pred.item() - ref)
+    abs_delta = abs(pred.cpu().item() - ref)
 
     same_device = pred.device == device
 
@@ -180,7 +182,7 @@ def test_hellinger_batch(device):
     pred = maths.hellinger(torch.tensor(p, device=device),
                            torch.tensor(q, device=device))
     ref = _hellinger_reference(p, q)
-    abs_delta = max(abs(pred.numpy().ravel() - ref.ravel()))
+    abs_delta = max(abs(pred.sft().ravel() - ref.ravel()))
 
     same_device = pred.device == device
 
@@ -213,11 +215,11 @@ def test_eighb_standard_single(device):
     """eighb accuracy on a single standard eigenvalue problem."""
     a = maths.sym(torch.rand(10, 10, device=device))
 
-    w_ref = linalg.eigh(a)[0]
+    w_ref = linalg.eigh(a.sft())[0]
 
     w_calc, v_calc = maths.eighb(a)
 
-    mae_w = torch.max(torch.abs(w_calc - w_ref))
+    mae_w = torch.max(torch.abs(w_calc.cpu() - w_ref))
     mae_v = torch.max(torch.abs((v_calc @ v_calc.T).fill_diagonal_(0)))
     same_device = w_calc.device == device == v_calc.device
 
@@ -233,11 +235,11 @@ def test_eighb_standard_batch(device):
     a = [maths.sym(torch.rand(s, s, device=device)) for s in sizes]
     a_batch = batch.pack(a)
 
-    w_ref = batch.pack([torch.tensor(linalg.eigh(i)[0]) for i in a])
+    w_ref = batch.pack([torch.tensor(linalg.eigh(i.cpu())[0]) for i in a])
 
     w_calc = maths.eighb(a_batch)[0]
 
-    mae_w = torch.max(torch.abs(w_calc - w_ref))
+    mae_w = torch.max(torch.abs(w_calc.cpu() - w_ref))
 
     same_device = w_calc.device == device
 
@@ -258,7 +260,7 @@ def test_eighb_general_single(device):
     for scheme in schemes:
         w_calc, v_calc = maths.eighb(a, b, scheme=scheme)
 
-        mae_w = torch.max(torch.abs(w_calc - w_ref))
+        mae_w = torch.max(torch.abs(w_calc.cpu() - w_ref))
         mae_v = torch.max(torch.abs((v_calc @ v_calc.T).fill_diagonal_(0)))
         same_device = w_calc.device == device == v_calc.device
 
@@ -284,7 +286,7 @@ def test_eighb_general_batch(device):
         for aux in aux_settings:
             w_calc = maths.eighb(a_batch, b_batch, scheme=scheme, aux=aux)[0]
 
-            mae_w = torch.max(torch.abs(w_calc - w_ref))
+            mae_w = torch.max(torch.abs(w_calc.cpu() - w_ref))
 
             same_device = w_calc.device == device
 
@@ -377,3 +379,4 @@ def test_eighb_general_grad(device):
         grad_is_safe = gradcheck(eigen_proxy, (a2, b2, scheme, sizes),
                                  raise_exception=False)
         assert grad_is_safe, f'Non-degenerate batch test failed on {scheme}'
+

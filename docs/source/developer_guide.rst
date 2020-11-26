@@ -487,32 +487,36 @@ operability, etc. Typically, three tests are performed per-function:
     Ensures a valid result is still returned when operating on a batch of inputs.
 
 :guilabel:`grad`
-    Uses the :code:`torch.autograd.gradcheck` function to test the continuity and stability
+    Uses the ``torch.autograd.gradcheck`` function to test the continuity and stability
     of a backwards pass through the function. This should test the gradient through both
-    single point and batch evaluations. Note that `raise_exception=False` must be set to
-    `False` for it to be compatible with `pytest`. Furthermore, the dtype of the tensor must
+    single point and batch evaluations. Note that ``raise_exception=False`` must be set to
+    ``False`` for it to be compatible with ``pytest``. Furthermore, the dtype of the tensor must
     be a double precision float otherwise it will always fail.
 
 
 These tests should be conducted separately and in the order shown above. They should be named
-descriptively and follow the pattern: :code:`test_<f-name>_<info>_<type>` where "`f-name`"
-is the name of the function being tested, "`type`" is a suffix that is `single`, `batch`
-or `grad` for single, batch and gradient tests respectively. If additional information is
-required it may be included in the optional `info` infix. All functions must take a pytest
-fixture argument named `device`, this is a `torch.device` object on which all torch objects
+descriptively and follow the pattern: ``test_<f-name>_<info>_<type>`` where "``f-name``"
+is the name of the function being tested, "``type``" is a suffix that is ``single``, ``batch``
+or ``grad`` for single, batch and gradient tests respectively. If additional information is
+required it may be included in the optional ``info`` infix. All functions must take a pytest
+fixture argument named ``device``, this is a ``torch.device`` object on which all torch objects
 must be created. To ensure GPU operability each test should check that torch objects returned
-from the tested function remain on the device specified by `device`. By default, tests will
-be run on the CPU, however passing the `--device cuda` argument will place tests on the GPU.
-To ensure consistency all functions should be decorated with the `@test_utils.fix_seed`
+from the tested function remain on the device specified by ``device``. By default, tests will
+be run on the CPU, however passing the ``--device cuda`` argument will place tests on the GPU.
+To ensure consistency all functions should be decorated with the ``@test_utils.fix_seed``
 decorator. This sets the numpy and pytorch random number generator seeds to 0 prior to
-running the function. All `assert` statements should also have a short message associated
+running the function. All ``assert`` statements should also have a short message associated
 with them indicating what test is being performed. It is acknowledged that more/less complex
 functions may require a greater/lesser number of tests to be performed. As gradient test
-tend to have long run times they should be marked with a `@pytest.mark.grad` decorator,
+tend to have long run times they should be marked with a ``@pytest.mark.grad`` decorator,
 allowing them to be selectively skipped. Finally, all test modules should import * from
-`tbmalt.tests.test_utils.py` this ensures the correct float precision is used, activates
-gradient anomaly detection and grants access to `fix_seed`. Some test examples are shown
-below in code-block :ref:`unit_tests`.
+``tbmalt.tests.test_utils.py`` this ensures the correct float precision is used, activates
+gradient anomaly detection and grants access to ``fix_seed``. Some test examples are shown
+below in code-block :ref:`unit_tests`. Any operation involving a GPU-tensor and a non-GPU
+entity, such as a numpy array, will result in ``TypeError``. Thus, such tensors often need
+to be moved to the CPU, via the ``.cpu()`` attribute, during the final stages of testing.
+Furthermore, the ``torch.Tensor`` class has been overloaded with a new ``.sft()`` attribute
+which aliases the ``.cpu().numpy()`` command which is frequently used during testing.
 
 .. code-block:: python
     :caption: Unit test examples
@@ -527,11 +531,11 @@ below in code-block :ref:`unit_tests`.
         # Call example function to get result
         value = example(a, b)
         # Get a reference value to compare to
-        reference = np.example(a.numpy(), b.numpy())
-        # Calculate the maximum absolute error
-        mae = np.max(abs(value - reference))
-        # Ensure the result is on the same device type as "device"
-        same_device = value.device.type == device.type
+        reference = np.example(a.sft(), b.sft())
+        # Calculate the maximum absolute error.
+        mae = np.max(abs(value.cpu() - reference))
+        # Ensure the result is on the same device as the input
+        same_device = value.device == device
         # Assert results are within tolerance
         assert mae < 1E-12, 'Example single tolerance test'
         # Assert result persists on the same device
@@ -543,9 +547,9 @@ below in code-block :ref:`unit_tests`.
         """Batch evaluation test of example."""
         a, b = torch.rand(10, device=device), torch.rand(10, device=device)
         value = example(a, b)
-        reference = np.example(a.numpy(), b.numpy())
-        mae = np.max(abs(value - reference))
-        same_device = value.device.type == device.type
+        reference = np.example(a.sft(), b.sft())
+        mae = np.max(abs(value.cpu() - reference))
+        same_device = value.device == device
         assert mae < 1E-12, 'Example batch tolerance test'
         assert same_device, 'Device persistence check'
 

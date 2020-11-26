@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import glob
 sys.path.insert(0, os.path.abspath('../../'))
 sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
@@ -34,6 +35,7 @@ extensions = [
     'sphinx.ext.viewcode',
     # Generate documentation form docstrings
     'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
     # Parse google style docstrings
     #'sphinx.ext.napoleon',
     # Wrapper for napoleon which allows multiple returns to be given in the docstring
@@ -57,6 +59,9 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+
+# autosummary_generate = glob.glob("*.rst")
+autosummary_generate = True
 
 # -- Napoleon configuration settings -----------------------------------------
 

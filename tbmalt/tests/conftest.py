@@ -17,5 +17,11 @@ def device(request) -> torch.device:
         device: The device on which the test will be run.
 
     """
-    return torch.device(request.config.getoption("--device"))
+    # Device checks require CPU to be specified *without* a device number and
+    # and cuda to be specified *with* one.
+    device_name = request.config.getoption("--device")
+    if device_name == 'cpu':
+        return torch.device('cpu')
+    if device_name == 'cuda':
+        return torch.device('cuda:0')
 

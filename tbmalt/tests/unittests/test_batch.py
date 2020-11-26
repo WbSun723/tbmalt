@@ -18,8 +18,8 @@ def test_pack(device):
     # Construct a numpy equivalent
     max_size = max(packed.shape[1:])
     ref = np.stack(
-        np.array([np.pad(i.numpy(), (0, max_size-len(i))) for i in matrices]))
-    equivalent = np.all((packed.numpy() - ref) < 1E-12)
+        np.array([np.pad(i.sft(), (0, max_size-len(i))) for i in matrices]))
+    equivalent = np.all((packed.sft() - ref) < 1E-12)
     same_device = packed.device == device
 
     assert equivalent, 'Check pack method against numpy'
