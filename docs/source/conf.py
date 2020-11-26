@@ -36,6 +36,7 @@ extensions = [
     # Generate documentation form docstrings
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.todo',
     # Parse google style docstrings
     #'sphinx.ext.napoleon',
     # Wrapper for napoleon which allows multiple returns to be given in the docstring
@@ -46,6 +47,7 @@ extensions = [
     'sphinx_rtd_theme',
 ]
 
+add_module_names = False
 
 set_type_checking_flag = False
 typehints_fully_qualified = False
@@ -60,8 +62,30 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 
-# autosummary_generate = glob.glob("*.rst")
+
+# ----------- Autosummary Setup ----------- #
+# Create documentation automatically for all modules
 autosummary_generate = True
+
+
+
+# Autosummary ignores requests to not document the class __init__ method. Thus
+# it must be done manually via a autodoc-skip-member hook. However this results
+# in it ignoring requests to not document special & private methods. Hence, an
+# ugly hack is needed.
+
+permitted_specials = ['__call__']
+
+
+def skip(app, what, name, obj, would_skip, options):
+    if name.startswith(('__', '_')) and name not in permitted_specials:
+        return True
+    else:
+        return would_skip
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", skip)
 
 # -- Napoleon configuration settings -----------------------------------------
 
@@ -77,7 +101,6 @@ napoleon_use_param = True  # Place PEP 484 type definitions into the args sectio
 napoleon_use_rtype = False
 napoleon_use_keyword = True
 napoleon_custom_sections = None
-
 
 
 # -- Options for HTML output -------------------------------------------------

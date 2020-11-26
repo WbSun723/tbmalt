@@ -609,36 +609,3 @@ def sym(x: Tensor, dim0: int = -1, dim1: int = -2) -> Tensor:
     """
     return (x + x.transpose(dim0, dim1)) / 2
 
-
-class Test:
-    """This is a random test class.
-
-    This is only used to see how the auto-doc deals with parsing class
-    docstrings.
-
-    Arguments:
-         x: This is the first argument.
-         y: This is the second argument.
-
-    Attributes:
-        z: This is an attribute
-
-    """
-    def __init__(self, x: float, y: float):
-        self.x = x
-        self.y = y
-        self.z: float = x * y
-
-    @property
-    def a(self) -> float:
-        """This is a property"""
-        return self.x ** 2
-
-    def func(self) -> float:
-        """This is a random function.
-
-        Returns:
-            b: A function return
-        """
-
-        return self.x + self.y

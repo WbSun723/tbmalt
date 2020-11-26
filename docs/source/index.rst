@@ -10,7 +10,6 @@ TBMaLT: Tight Binding Machine Learning Toolkit
 development, testing and deployment of machine learning quantum chemistry methods based on
 tight binding theory....
 
-
 .. toctree::
    :numbered:
    :maxdepth: 1
@@ -24,9 +23,12 @@ tight binding theory....
    developer_guide
    release_notes
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. autosummary::
+   :toctree: _autosummary
+   :template: module.rst
+   :recursive:
+
+   tbmalt
+
+

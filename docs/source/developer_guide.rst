@@ -113,16 +113,19 @@ The public attributes of a class should be documented in an *attributes* section
 This section follows the *arguments* section(s) and should be documented in an
 identical manner. Unfortunately this is commonly a large source of duplication as
 many attributes *are* the arguments that were passed in to the ``__init__`` function.
-This section is only required when documenting classes with public attributes. While
-private attributes do not require a doc-string entry they should should be documented
-with a comment.
+Thus, the decision has been made to only document attributes that do not directly map
+onto one of the arguments, i.e. do not document attributes whose names and descriptions
+are identical to one of the arguments'. This section is only required when documenting
+classes with public attributes. While private attributes do not require a doc-string
+entry they should should be documented with a comment. It should be noted that sphinx
+cannot currently parse PEP 484 style type declarations for attributes at the moment.
+Thus, such data is absent from the documentation.
 
-**Note this requires further testing to identify how properties can be documented correctly.**
-**And to identify if we really need attribute/argument duplicates**
 
 Properties
 """"""""""
-
+Properties should be documented in their ``getter`` function as shown in the
+:ref:`docstring_type_2` code-block.
 
 
 
@@ -196,6 +199,7 @@ specified as demonstrated in code-block :ref:`docstring_type_2`.
 
         @property
         def prop_1(self) -> float:
+            """properties should be documented like this."""
             ...
 
 Notes
@@ -580,6 +584,8 @@ While tests are expected to provide a reasonable degree of coverage, it is unrea
 strive for 100% coverage. It should also be noted that commenting and docstring rules are
 significantly relaxed within test files, i.e. rigorous documentation is not enforced.
 
+
+For a working example of a full module-level unit test see ``tbmalt/tests/unittests/test_maths.py``.
 
 
 
