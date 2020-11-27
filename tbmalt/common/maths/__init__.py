@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """A collection of common mathematical functions.
 
-This module contains a collection of back-propagatable mathematical functions.
+This module contains a collection of batch-operable, back-propagatable
+mathematical functions.
 """
 from typing import Tuple, Union, Literal, Optional
 import torch
@@ -285,25 +286,29 @@ class _SymEigB(torch.autograd.Function):
         deltas = w[..., tri_u[1]] - w[..., tri_u[0]]
 
         # Apply broadening
-        if ctx.bm == 'cond':  # <- Conditional broadening
+        if bm == 'cond':  # <- Conditional broadening
             deltas = 1 / torch.where(torch.abs(deltas) > bf,
                                      deltas, bf) * torch.sign(deltas)
-        elif ctx.bm == 'lorn':  # <- Lorentzian broadening
+        elif bm == 'lorn':  # <- Lorentzian broadening
             deltas = deltas / (deltas**2 + bf)
-        elif ctx.bm == 'none':  # <- Debugging only
+        elif bm == 'none':  # <- Debugging only
             deltas = 1 / deltas
         else:  # <- Should be impossible to get here
-            raise ValueError(f'Unknown broadening method {ctx.bm}')
+            raise ValueError(f'Unknown broadening method {bm}')
 
         # Construct F matrix where F_ij = v_bar_j - v_bar_i; construction is
         # done in this manner to avoid 1/0 which can cause intermittent and
         # hard-to-diagnose issues.
-        F = torch.zeros(*w.shape, w.shape[-1], dtype=ctx.dtype, device=w_bar.device)
-        F[..., tri_u[0], tri_u[1]] = deltas  # <- Upper triangle
-        F[..., tri_u[1], tri_u[0]] -= F[..., tri_u[0], tri_u[1]]  # <- lower triangle
+        F = torch.zeros(*w.shape, w.shape[-1], dtype=ctx.dtype,
+                        device=w_bar.device)
+        # Upper then lower triangle
+        F[..., tri_u[0], tri_u[1]] = deltas
+        F[..., tri_u[1], tri_u[0]] -= F[..., tri_u[0], tri_u[1]]
 
         # Construct the gradient following the equation in the doc-string.
-        a_bar = v @ (lambda_bar + sym(F * (v.transpose(-2, -1) @ v_bar))) @ v.transpose(-2, -1)
+        a_bar = v @ (lambda_bar
+                     + sym(F * (v.transpose(-2, -1) @ v_bar))
+                     ) @ v.transpose(-2, -1)
 
         # Return the gradient. PyTorch expects a gradient for each parameter
         # (method, bf) hence two extra Nones are returned
@@ -335,15 +340,16 @@ def _eig_sort_out(w: Tensor, v: Tensor, ghost: bool = True
         v: The eigen-vectors, with ghosts moved to the end.
 
     """
-    eval = 0 if ghost else 1
+    val = 0 if ghost else 1
 
     # Create a mask that is True when an eigen value is zero/one
-    mask = torch.eq(w, eval)
+    mask = torch.eq(w, val)
     # and its associated eigen vector is a column of a identity matrix:
-    # i.e. all values are 1 or 0 and there is only a single 1.
-    _is_one = torch.eq(v, 1)  # <- precompute
-    mask &= torch.all(torch.eq(v, 0) | _is_one, dim=1)
-    mask &= torch.sum(_is_one, dim=1) == 1  # <- Only a single "1"
+    # i.e. all values are 1 or 0 and there is only a single 1. This will
+    # just all zeros if columns are not one-hot.
+    is_one = torch.eq(v, 1)  # <- precompute
+    mask &= torch.all(torch.eq(v, 0) | is_one, dim=1)
+    mask &= torch.sum(is_one, dim=1) <= 1  # <- Only a single "1" at most.
 
     # Convert any auxiliary eigenvalues into ghosts
     if not ghost:
@@ -416,7 +422,9 @@ def eighb(a: Tensor,
             emerge as a result of zero-padding. [DEFAULT=True]
         aux: Converts zero-padding to identity-padding. This this can improve
             the stability of backwards propagation. [DEFAULT=True]
-        direct_inv: If True then the matrix inversion will be computed
+
+    Keyword Args:
+        direct_inv (bool): If True then the matrix inversion will be computed
             directly rather than via a call to torch.solve. Only relevant to
             the cholesky scheme. [DEFAULT=False]
 
@@ -514,8 +522,8 @@ def eighb(a: Tensor,
 
     if aux:
         # Convert from zero-padding to identity padding
-        _is_zero = torch.eq(a, 0)
-        mask = torch.all(_is_zero, dim=-1) & torch.all(_is_zero, dim=-2)
+        is_zero = torch.eq(a, 0)
+        mask = torch.all(is_zero, dim=-1) & torch.all(is_zero, dim=-2)
         a = a + torch.diag_embed(mask.type(a.dtype))
 
     if b is None:  # For standard eigenvalue problem
@@ -529,8 +537,8 @@ def eighb(a: Tensor,
         # the diagonals of padding columns/rows are therefore set to 1.
 
         # Create a mask which is True wherever a column/row pair is 0-valued
-        _is_zero = torch.eq(b, 0)
-        mask = torch.all(_is_zero, dim=-1) & torch.all(_is_zero, dim=-2)
+        is_zero = torch.eq(b, 0)
+        mask = torch.all(is_zero, dim=-1) & torch.all(is_zero, dim=-2)
 
         # Set the diagonals at these locations to 1
         b = b + torch.diag_embed(mask.type(a.dtype))
@@ -547,7 +555,8 @@ def eighb(a: Tensor,
                 l_inv = torch.inverse(l)
             else:
                 # Otherwise compute via an indirect method (default)
-                l_inv = torch.solve(torch.eye(a.shape[-1], dtype=a.dtype), l)[0]
+                l_inv = torch.solve(torch.eye(a.shape[-1],
+                                              dtype=a.dtype), l)[0]
 
             # Transpose of l_inv: improves speed in batch mode
             l_inv_t = torch.transpose(l_inv, -1, -2)
@@ -558,7 +567,8 @@ def eighb(a: Tensor,
             # The eigenvalues of Az = λBz are the same as Cy = λy; hence:
             w, v_ = func(c, *args)
 
-            # Eigenvectors, however, are not, so they must be recovered: z = L^{-T}y
+            # Eigenvectors, however, are not, so they must be recovered:
+            #   z = L^{-T}y
             v = l_inv_t @ v_
 
         elif scheme == 'lowd':  # For Löwdin Orthogonalisation scheme
@@ -608,4 +618,3 @@ def sym(x: Tensor, dim0: int = -1, dim1: int = -2) -> Tensor:
 
     """
     return (x + x.transpose(dim0, dim1)) / 2
-

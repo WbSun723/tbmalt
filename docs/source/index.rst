@@ -24,11 +24,7 @@ tight binding theory....
    release_notes
 
 
-.. autosummary::
-   :toctree: _autosummary
-   :template: module.rst
-   :recursive:
 
-   tbmalt
+
 
 

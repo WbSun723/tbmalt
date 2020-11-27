@@ -1,4 +1,4 @@
-{{ fullname | escape | underline}}
+{{ name | escape | underline}}
 
 .. automodule:: {{ fullname }}
 
@@ -21,6 +21,7 @@
    .. autosummary::
       :toctree:
       :nosignatures:
+      :template: function.rst
    {% for item in functions %}
       {{ item }}
    {%- endfor %}
