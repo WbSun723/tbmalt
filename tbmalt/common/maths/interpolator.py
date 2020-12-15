@@ -1,65 +1,67 @@
 import bisect
-import numpy as np
 import torch
-import matplotlib.pyplot as plt
 from typing import Tuple, Union, Optional
 from numbers import Real
 Tensor = torch.Tensor
 
 
+class BicubInterp:
+    """Vectorized bicubic interpolation method designed for molecule.
 
-class BicubInterpVec:
-    """Vectorized bicubic interpolation method for DFTB.
- 
+    The bicubic interpolation is designed to interpolate the integrals of
+    whole molecule. The xmesh, ymesh are the grid points and they are the same.
+    The zmesh is a 4D or 5D Tensor. The 1st, 2nd dimensions are corresponding
+    to the pairwise atoms in molecule. The 3rd and 4th are corresponding to
+    the xmesh and ymesh. The 5th dimension is optional. For bicubic
+    interpolation of single integral such as ss0 orbital, it is 4D Tensor.
+    For bicubic interpolation of all the orbital integral, zmesh is 5D Tensor.
+
     Arguments:
-        xmesh: a 1-D Tensor
-        ymesh: a 1-D Tensor
-        xmesh: a 1-D Tensor
-        ymesh: a 1-D Tensor
+        xmesh: a 1D Tensor
+        zmesh: a 4D or 5D Tensor
 
     Reference:
         .. https://en.wikipedia.org/wiki/Bicubic_interpolation
     """
 
-    def __init__(self, xmesh, zmesh):
+    def __init__(self, xmesh: Tensor, zmesh: Tensor):
         """Get interpolation with two variables."""
         self.xmesh = xmesh
         self.zmesh = zmesh
 
-    def __call__(self, xi, yi):
+    def __call__(self, xi: Tensor):
         """Calculate bicubic interpolation.
 
         Arguments:
-            ix, iy: the interpolation point
-        Returns:
-            p(x, y) = [1, x, x**2, x**3] * a_mat * [1, y, y**2, y**3].T
+            xi: the interpolation points of each atom in molecule
+
+        Notes:
+            For each bicubic interpolation, there is 4 surrounding grid points
+            and 12 second nearest neighbors. We use _ to represent previous
+            points.
         """
         self.xi = xi
-        self.yi = yi
-        # directly give the coefficients matrices
-        coeff = torch.tensor([[1., 0., 0., 0.], [0., 0., 1., 0.],
-                          [-3., 3., -2., -1.], [2., -2., 1., 1.]])
-        coeff_ = torch.tensor([[1., 0., -3., 2.], [0., 0., 3., -2.],
-                           [0., 1., -2., 1.], [0., 0., -1., 1.]])
-
-        # get the nearest grid points indices of xi and yi
-        xmesh_ = self.xmesh.cpu() if self.xmesh.device.type == 'cuda' else self.xmesh
         xi_ = self.xi.cpu() if self.xi.device.type == 'cuda' else self.xi
-        self.nx0 = [bisect.bisect(xmesh_[ii].detach().numpy(),
-                                    xi_[ii].detach().numpy()) - 1
+        coeff = torch.tensor([[1., 0., 0., 0.], [0., 0., 1., 0.],
+                              [-3., 3., -2., -1.], [2., -2., 1., 1.]])
+        coeff_ = torch.tensor([[1., 0., -3., 2.], [0., 0., 3., -2.],
+                               [0., 1., -2., 1.], [0., 0., -1., 1.]])
+
+        # get the nearest grid points indices of xi
+        self.nx0 = [bisect.bisect(self.xmesh[ii].cpu().detach().numpy(),
+                                  xi_[ii].cpu().detach().numpy()) - 1
                     for ii in range(len(self.xi))]
-        # get all surrounding 4 grid points indices, _1 means previous grid point index
+
+        # get all surrounding 4 grid points indices
         self.nind = [ii for ii in range(len(self.xi))]
         self.nx1 = [ii + 1 for ii in self.nx0]
         self.nx_1 = [ii - 1 if ii >= 1 else ii for ii in self.nx0]
         self.nx2 = [ii + 2 if ii <= len(self.xmesh) - 3 else ii + 1 for ii in self.nx0]
 
-        # this is to transfer x or y to fraction, with natom element
-        x_ = (self.xi - self.xmesh.T[self.nx0, self.nind]) / (self.xmesh.T[
+        # this is to transfer x to fraction
+        xf = (self.xi - self.xmesh.T[self.nx0, self.nind]) / (self.xmesh.T[
             self.nx1, self.nind] - self.xmesh.T[self.nx0, self.nind])
-
-        # build [1, x, x**2, x**3] matrices of all atoms, dimension: [4, natom]
-        xmat = torch.stack([x_ ** 0, x_ ** 1, x_ ** 2, x_ ** 3])
+        xmat = torch.stack([xf ** 0, xf ** 1, xf ** 2, xf ** 3])
 
         # get four nearest grid points values, each will be: [natom, natom, 20]
         f00, f10, f01, f11 = self.fmat0th(self.zmesh)
@@ -72,15 +74,8 @@ class BicubInterpVec:
                             torch.stack([f20, f21, f22, f23]),
                             torch.stack([f30, f31, f32, f33])])
 
-        # method 1 to calculate a_mat, not stable
-        # a_mat = t.einsum('ii,ijlmn,jj->ijlmn', coeff, fmat, coeff_)
-        # return t.einsum('ij,iijkn,ik->jkn', xmat, a_mat, xmat)
-        if fmat.dim() == 4:
-            a_mat = torch.matmul(torch.matmul(
-                coeff, fmat.permute(2, 3, 0, 1)), coeff_)
-        elif fmat.dim() == 5:
-            a_mat = torch.matmul(torch.matmul(
-                coeff, fmat.permute(2, 3, 4, 0, 1)), coeff_)
+        pdim = [2, 3, 0, 1] if fmat.dim() == 4 else [2, 3, 4, 0, 1]
+        a_mat = torch.matmul(torch.matmul(coeff, fmat.permute(pdim)), coeff_)
         return torch.stack([torch.stack(
             [torch.matmul(torch.matmul(xmat[:, i], a_mat[i, j]), xmat[:, j])
              for j in range(len(xi))]) for i in range(len(xi))])
@@ -123,44 +118,60 @@ class BicubInterpVec:
                                          (self.nx1[j] - self.nx_1[j])
                                          for j in self.nind]) for i in self.nind])
         fy01 = torch.stack([torch.stack([(f02[i, j] - f00[i, j]) /
-                                 (self.nx1[j] - self.nx_1[j])
-                                 for j in self.nind]) for i in self.nind])
+                                         (self.nx1[j] - self.nx_1[j])
+                                         for j in self.nind]) for i in self.nind])
         fy10 = torch.stack([torch.stack([(f11[i, j] - f1_1[i, j]) /
-                                 (self.nx1[j] - self.nx_1[j])
-                                 for j in self.nind]) for i in self.nind])
+                                         (self.nx1[j] - self.nx_1[j])
+                                         for j in self.nind]) for i in self.nind])
         fy11 = torch.stack([torch.stack([(f12[i, j] - f10[i, j]) /
-                                 (self.nx1[j] - self.nx_1[j])
-                                 for j in self.nind]) for i in self.nind])
+                                         (self.nx1[j] - self.nx_1[j])
+                                         for j in self.nind]) for i in self.nind])
         fx00 = torch.stack([torch.stack([(f10[i, j] - f_10[i, j]) /
-                                 (self.nx1[i] - self.nx_1[i])
-                                 for j in self.nind]) for i in self.nind])
+                                         (self.nx1[i] - self.nx_1[i])
+                                         for j in self.nind]) for i in self.nind])
         fx01 = torch.stack([torch.stack([(f20[i, j] - f00[i, j]) /
-                                 (self.nx1[i] - self.nx_1[i])
-                                 for j in self.nind]) for i in self.nind])
+                                         (self.nx1[i] - self.nx_1[i])
+                                         for j in self.nind]) for i in self.nind])
         fx10 = torch.stack([torch.stack([(f11[i, j] - f_11[i, j]) /
-                                 (self.nx1[i] - self.nx_1[i])
-                                 for j in self.nind]) for i in self.nind])
+                                         (self.nx1[i] - self.nx_1[i])
+                                         for j in self.nind]) for i in self.nind])
         fx11 = torch.stack([torch.stack([(f21[i, j] - f01[i, j]) /
-                                 (self.nx1[i] - self.nx_1[i])
-                                 for j in self.nind]) for i in self.nind])
+                                         (self.nx1[i] - self.nx_1[i])
+                                         for j in self.nind]) for i in self.nind])
         fxy00, fxy11 = fy00 * fx00, fx11 * fy11
         fxy01, fxy10 = fx01 * fy01, fx10 * fy10
         return fy00, fy01, fy10, fy11, fx00, fx01, fx10, fx11, fxy00, fxy01, \
             fxy10, fxy11
 
 
-class PolySpline():
-    """Polynomial natural (linear, cubic) spline.
+class Spline1d:
+    """Polynomial natural (linear, cubic) non-periodic spline.
 
     Arguments:
-        x: a 1-D Tensor
-        y: a 1-D Tensor
-        parameter (list, optional): a list of parameters get from grid points,
-            e.g., for cubic, parameter=[a, b, c, d]
+        x: 1D Tensor variable.
+        y: 1D (single) or 2D (batch) Tensor variable.
 
     Keyword Args:
-        kind: string, define spline method
+        kind: string, define spline method, default is cubic
         abcd: a tuple of Tensor
+
+    Methods:
+        __call__
+
+    Examples:
+        >>> import tbmalt.common.maths.interpolator as interp
+        >>> import torch
+        >>> import matplotlib.pyplot as plt
+        >>> from scipy.interpolate import CubicSpline
+        >>> x = torch.linspace(1, 10, 10)
+        >>> y = torch.rand(10)
+        >>> fit = interp.Spline1d(x, y)
+        >>> for ii in torch.linspace(1.1, 9.9, 89):
+        >>>     pred = fit(ii)
+        >>>     plt.plot(ii, pred, 'r.')
+        >>> plt.plot(x, y, 'o', label='grid point')
+        >>> plt.legend()
+        >>> plt.show()
 
     References:
         .. https://en.wikipedia.org/wiki/Spline_(mathematics)
@@ -168,158 +179,87 @@ class PolySpline():
     """
 
     def __init__(self, x: Tensor, y: Tensor, **kwargs):
-        """Initialize the interpolation class."""
-        self.xp = x
-        self.yp = y
+        self.xp, self.yp = x, y
         kind = kwargs.get('kind')
+
         if kind in ('cubic', None):
             self.kind = 'cubic'
-        if self.kind == 'cubic':
             if kwargs.get('abcd') is not None:
                 self.aa, self.bb, self.cc, self.dd = kwargs.get('abcd')
             else:
                 self.aa, self.bb, self.cc, self.dd = self.get_abcd()
+        elif kind == 'linear':
+            self.kind = 'linear'
+        else:
+            raise NotImplementedError('%s not implemented' % self.kind)
 
-    def __call__(self, xnew: Union[Tensor, Real]):
-        """Evaluate the polynomial spline.
+    def __call__(self, xnew: Tensor):
+        """Evaluate the polynomial linear or cubic spline.
 
         Arguments:
-            xnew: 0-d Tensor or real number
+            xnew: 0D Tensor
 
         Returns:
-            ynew: 0-d Tensor
+            ynew: 0D Tensor
         """
         # according to the order to choose spline method
-        self.xnew = xnew
+        self.xnew = xnew if xnew.dim() == 1 else xnew.unsqueeze(0)
+        self.batch = False if len(self.xnew) == 1 else True
+        self.knot = [ii in self.xp for ii in self.xnew]
 
-        # boundary condition of d
-        if not self.xp[0] <= self.xnew <= self.xp[-1]:
-            raise ValueError("%s is out of boundary" % self.xnew)
+        # boundary condition of xnew,  xp[0] < xnew < xp[-1]
+        assert self.xnew.ge(self.xp[0]).all() and self.xnew.le(self.xp[-1]).all()
 
         # get the nearest grid point index of d in x
-        if torch.is_tensor(self.xp):
-            self.dind = bisect.bisect(self.xp.numpy(), self.xnew) - 1
-        elif type(self.xp) is np.ndarray:
-            self.dind = bisect.bisect(self.xp, self.xnew) - 1
+        self.dind = [
+            bisect.bisect(self.xp.detach().numpy(), ii.detach().numpy()) - 1
+            for ii in self.xnew]
+        # generate new index if self.batch
+        self.ind = [torch.arange(len(self.xnew)), self.dind] if self.batch else self.dind
 
         if self.kind == 'cubic':
             return self.cubic()
+        elif self.kind == 'linear':
+            return self.linear()
 
     def linear(self):
         """Calculate linear interpolation."""
-        pass
+        return self.yp[self.ind] + (self.xnew - self.xp[self.dind]) / (
+            self.xp[1:] - self.xp[:-1])[self.dind] * (
+            self.yp[..., 1:] - self.yp[..., :-1])[self.ind]
 
     def cubic(self):
         """Calculate cubic spline interpolation."""
         # calculate a, b, c, d parameters, need input x and y
         dx = self.xnew - self.xp[self.dind]
-        return self.aa[self.dind] + self.bb[self.dind] * dx + \
-            self.cc[self.dind] * dx ** 2.0 + self.dd[self.dind] * dx ** 3.0
+        return self.aa[self.ind] + self.bb[self.ind] * dx + \
+            self.cc[self.ind] * dx ** 2 + self.dd[self.ind] * dx ** 3
 
     def get_abcd(self):
-        """Get parameter a, b, c, d for cubic spline interpolation."""
-        assert self.xp is not None and self.yp is not None
-
+        """Get parameter aa, bb, cc, dd for cubic spline interpolation."""
         # get the first dim of x
-        self.nx = self.xp.shape[0]
+        nx = self.xp.shape[0]
+        assert nx > 3  # the length of x variable must > 3
 
         # get the differnce between grid points
-        self.diff_xp = self.xp[1:] - self.xp[:-1]
+        dxp = self.xp[1:] - self.xp[:-1]
+        dyp = self.yp[..., 1:] - self.yp[..., :-1]
 
-        # get b, c, d from reference website: step 3~9
-        if self.yp.dim() == 1:
-            b = torch.zeros(self.nx - 1)
-            d = torch.zeros(self.nx - 1)
-            A = self.cala()
-        else:
-            b = torch.zeros(self.nx - 1, self.yp.shape[1])
-            d = torch.zeros(self.nx - 1, self.yp.shape[1])
+        # get b, c, d from reference website: step 3~9, first calculate c
+        A = torch.zeros(nx, nx)
+        A.diagonal()[1:-1] = 2 * (dxp[:-1] + dxp[1:])  # diag
+        A[torch.arange(nx - 1), torch.arange(nx - 1) + 1] = dxp  # off-diag
+        A[torch.arange(nx - 1) + 1, torch.arange(nx - 1)] = dxp
+        A[0, 0], A[-1, -1] = 1., 1.
+        A[0, 1], A[1, 0] = 0., 0.   # natural condition
+        A[-1, -2], A[-2, -1] = 0., 0.
 
-        A = self.cala()
-        B = self.calb()
+        B = torch.zeros(*self.yp.shape)
+        B[..., 1:-1] = 3 * (dyp[..., 1:] / dxp[1:] - dyp[..., :-1] / dxp[:-1])
+        B = B.permute(1, 0) if B.dim() == 2 else B
 
-        # a is grid point values
-        a = self.yp
-
-        # return c (Ac=B) with least squares and least norm problems
-        c, _ = torch.lstsq(B, A)
-        for i in range(self.nx - 1):
-            b[i] = (a[i + 1] - a[i]) / self.diff_xp[i] - \
-                self.diff_xp[i] * (c[i + 1] + 2.0 * c[i]) / 3.0
-            d[i] = (c[i + 1] - c[i]) / (3.0 * self.diff_xp[i])
-        return a, b, c.squeeze(), d
-
-    def cala(self):
-        """Calculate a para in spline interpolation."""
-        aa = torch.zeros(self.nx, self.nx)
-        aa[0, 0] = 1.0
-        for i in range(self.nx - 1):
-            if i != (self.nx - 2):
-                aa[i + 1, i + 1] = 2.0 * (self.diff_xp[i] + self.diff_xp[i + 1])
-            aa[i + 1, i] = self.diff_xp[i]
-            aa[i, i + 1] = self.diff_xp[i]
-
-        aa[0, 1] = 0.0
-        aa[self.nx - 1, self.nx - 2] = 0.0
-        aa[self.nx - 1, self.nx - 1] = 1.0
-        return aa
-
-    def calb(self):
-        """Calculate b para in spline interpolation."""
-        bb = torch.zeros(*self.yp.shape)
-        for i in range(self.nx - 2):
-            bb[i + 1] = 3.0 * (self.yp[i + 2] - self.yp[i + 1]) / \
-                self.diff_xp[i + 1] - 3.0 * (self.yp[i + 1] - self.yp[i]) / \
-                self.diff_xp[i]
-        return bb
-
-
-
-class Bspline():
-    """Bspline interpolation for DFTB.
-
-    originate from
-    """
-
-    def __init__(self):
-        """Revised from the following.
-
-        https://docs.scipy.org/doc/scipy-1.0.0/reference/generated/
-        scipy.interpolate.BSpline.html
-        """
-        pass
-
-    def bspline(self, t, c, k, x):
-        n = len(t) - k - 1
-        assert (n >= k + 1) and (len(c) >= n)
-        return sum(c[i] * self.B(t, k, x, i) for i in range(n))
-
-    def B(self, t, k, x, i):
-        if k == 0:
-            return 1.0 if t[i] <= x < t[i+1] else 0.0
-        if t[i+k] == t[i]:
-            c1 = 0.0
-        else:
-            c1 = (x - t[i]) / (t[i+k] - t[i]) * self.B(t, k-1, x, i)
-            if t[i + k + 1] == t[i + 1]:
-                c2 = 0.0
-            else:
-                c2 = (t[i + k + 1] - x) / (t[i + k + 1] - t[i + 1]) * \
-                    self.B(t, k - 1, x, i + 1)
-        return c1 + c2
-
-    def test(self):
-        """Test function for Bspline."""
-        tarr = [0, 1, 2, 3, 4, 5, 6]
-        carr = [0, -2, -1.5, -1]
-        fig, ax = plt.subplots()
-        xx = np.linspace(1.5, 4.5, 50)
-        ax.plot(xx, [self.bspline(tarr, carr, 2, ix) for ix in xx], 'r-',
-                lw=3, label='naive')
-        ax.grid(True)
-        ax.legend(loc='best')
-        plt.show()
-
-
-
-
+        cc, _ = torch.lstsq(B, A)
+        cc = cc.permute(1, 0) if cc.squeeze().dim() == 2 else cc.squeeze()
+        bb = dyp / dxp - dxp * (cc[..., 1:] + 2 * cc[..., :-1]) / 3
+        dd = (cc[..., 1:] - cc[..., :-1]) / (3 * dxp)
+        return self.yp, bb, cc, dd
