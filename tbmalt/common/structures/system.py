@@ -1,3 +1,4 @@
+"""Structural and orbital information."""
 import torch
 from typing import Union, List
 import tbmalt.common.batch as batch
@@ -61,11 +62,6 @@ class System:
             be auto-inferred from the presence of the ``cell`` parameter.
             (`bool`, `array_like` [`bool`], optional)
 
-    Notes:
-        Units, such as distance, should be given in atomic units. PyTorch
-        tensors will be instantiated using the default dtypes. These can be
-        changed using torch.set_default_dtype.
-
     Todo:
         Add periodic boundaries.
     """
@@ -75,7 +71,7 @@ class System:
                  lattice=None, **kwargs):
         self.unit = kwargs['unit'] if 'unit' in kwargs else 'angstrom'
         self.pbc = kwargs['pbc'] if 'pbc' in kwargs else lattice is not None
-        self.positions, self.numbers = self._check(numbers, positions)
+        self.positions, self.numbers, self.batch = self._check(numbers, positions)
 
         # size of each system
         self.size_system = self._get_size()
@@ -89,16 +85,13 @@ class System:
         # size of batch size, size of each system (number of atoms)
         self.size_batch = len(self.numbers)
 
-        # get max l of each atom
-        self.l_max = self._get_l_numbers()
-
-        # orbital_index is the orbital index of each atom in each system
-        # orbital_index_cumsum is the acculated orbital_index
-        self.orbital_index, self.orbital_index_cumsum, self.number_orbital = \
-            self._get_accumulated_orbital_numbers()
+        # get max l of each atom, number of orbitals of each atom
+        # number of orbitals of each system
+        self.l_max, self.atom_orbitals, self.system_orbitals = \
+            self._get_l_orbital()
 
         # get Hamiltonian, overlap shape in batch
-        self.hs_shape = self._get_hs_shape()
+        self.shape, self.hs_shape = self._get_hs_shape()
 
     def _check(self, numbers, positions):
         # sequences of tensor
@@ -115,7 +108,11 @@ class System:
 
         # transfer positions from angstrom to bohr
         positions = positions / _bohr if self.unit == 'angstrom' else positions
-        return positions, numbers
+
+        assert positions.shape[0] == numbers.shape[0]
+        batch_ = True if numbers.shape[0] != 1 else False
+
+        return positions, numbers, batch_
 
     def _get_distances(self):
         """Return distances between a list of atoms for each system."""
@@ -137,54 +134,41 @@ class System:
         """Get each system size (number of atoms) in batch."""
         return [len(inum[inum.ne(0.)]) for inum in self.numbers]
 
-    def _get_l_numbers(self):
+    def _get_l_orbital(self):
         """Return the number of orbitals associated with each atom."""
-        return [[_l_num[ii] for ii in isym] for isym in self.symbols]
+        # max l for each atom
+        l_max = [[_l_num[ii] for ii in isym] for isym in self.symbols]
 
-    def _get_atom_orbital_numbers(self):
-        """Return the number of orbitals associated with each atom.
+        # max valence orbital number for each atom and each system
+        atom_orbitals = [[(ii + 1) ** 2 for ii in lm] for lm in l_max]
+        system_orbitals = [sum(iao) for iao in atom_orbitals]
 
-        The atom orbital numbers is from (l + 1) ** 2.
-        """
-        return [[(_l_num[ii] + 1) ** 2 for ii in isym] for isym in self.symbols]
-
-    def get_resolved_orbital(self):
-        """Return l parameter and realted atom specie of each obital."""
-        resolved_orbital_specie = \
-            [sum([[ii] * int(jj) for ii, jj in zip(isym, iind)], [])
-             for isym, iind in zip(self.symbols, self.orbital_index)]
-        _l_orbital_res = [[0], [0, 1, 1, 1], [0, 1, 1, 1, 2, 2, 2, 2, 2]]
-        l_orbital_res = [sum([_l_orbital_res[iil] for iil in il], [])
-                         for il in self.l_max]
-        return resolved_orbital_specie, l_orbital_res
-
-    def _get_accumulated_orbital_numbers(self):
-        """Return accumulated number of orbitals associated with each atom.
-
-        For instance, for CH4, get_atom_orbital_numbers return [[4, 1, 1, 1,
-        1]], this function will return [[0, 4, 5, 6, 7, 8]], max_orbital is 8.
-        """
-        atom_index = self._get_atom_orbital_numbers()
-        index_cumsum = [torch.cumsum(torch.tensor(iind), 0).tolist()
-                        for iind in atom_index]
-        number_orbital = [int(ind[-1]) for ind in index_cumsum]
-        return atom_index, index_cumsum, number_orbital
+        return l_max, atom_orbitals, system_orbitals
 
     def _get_hs_shape(self):
         """Return shapes of Hamiltonian and overlap."""
-        maxorb = max([iorb[-1] for iorb in self.orbital_index_cumsum])
-
-        # 3D shape: size of batch, total orbital number, total orbital number
-        return torch.Size([len(self.orbital_index_cumsum), maxorb, maxorb])
+        maxorb = max(self.system_orbitals)
+        shape = [torch.Size([iorb, iorb]) for iorb in self.system_orbitals]
+        hs_shape = torch.Size([self.size_batch, maxorb, maxorb])
+        return shape, hs_shape
 
     def get_global_species(self):
         """Get species for single or multi systems according to numbers."""
         numbers_ = torch.unique(self.numbers)
-        numbers_nonzero = numbers_[numbers_.nonzero().squeeze()]
-        if numbers_nonzero.dim() == 0:
-            return _atom_name[numbers_nonzero - 1]
-        else:
-            return [_atom_name[ii - 1] for ii in numbers_nonzero]
+        numbers = numbers_[numbers_.ne(0.)]
+        element_name = [_atom_name[ii - 1] for ii in numbers]
+        element_number, nn = numbers.tolist(), len(numbers)
+        element_name_pair = [[iel, jel] for iel, jel in zip(
+            sorted(element_name * nn), element_name * nn)]
+        element_number_pair = [[_atom_name.index(ii[0]) + 1,
+                                _atom_name.index(ii[1]) + 1] for ii in element_name_pair]
+        return element_name, element_number, element_name_pair, element_number_pair
+
+    def get_resolved_orbital(self):
+        """Return resolved orbitals and accumulated orbitals."""
+        orbital_resolved = [[torch.arange(lm + 1, dtype=torch.int8).repeat_interleave(
+            2 * torch.arange(lm + 1) + 1) for lm in ilm] for ilm in self.l_max]
+        return orbital_resolved
 
     @classmethod
     def from_ase_atoms(cls, atoms):

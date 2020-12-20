@@ -2,7 +2,6 @@
 import torch
 from ase.atoms import Atoms
 import h5py
-from tbmalt.common import maths, batch
 from tbmalt.common.structures.system import System
 torch.set_default_dtype(torch.float64)
 torch.set_printoptions(15)
@@ -37,16 +36,14 @@ def test_system_single(device):
     assert sys.size_batch == 1
     assert sys.size_system == [5]
     assert sys.l_max == [[1, 0, 0, 0, 0]]
-    assert sys.orbital_index == [[4, 1, 1, 1, 1]]
-    assert sys.orbital_index_cumsum == [[4, 5, 6, 7, 8]]
-    assert sys.number_orbital == [8]
     assert sys.hs_shape == torch.Size([1, 8, 8])
 
 
 def test_symtem_ase_byhand_single(device):
     """Test single input, deal with ase input by hand."""
     ch4 = Atoms('CH4', positions=[
-        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
+        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
+        [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
 
     # deal with input by hand
     positions = torch.from_numpy(ch4.positions)
@@ -62,16 +59,14 @@ def test_symtem_ase_byhand_single(device):
     assert sys.size_batch == 1
     assert sys.size_system == [5]
     assert sys.l_max == [[1, 0, 0, 0, 0]]
-    assert sys.orbital_index == [[4, 1, 1, 1, 1]]
-    assert sys.orbital_index_cumsum == [[4, 5, 6, 7, 8]]
-    assert sys.number_orbital == [8]
     assert sys.hs_shape == torch.Size([1, 8, 8])
 
 
 def test_system_ase_byhand_batch(device):
     """Batch evaluation of maths.sym function."""
     ch4 = Atoms('CH4', positions=[
-        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
+        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
+        [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
     h2 = Atoms('H2', positions=[[0., 0., 0.], [0.5, 0.5, 0.5]])
 
     # deal with input by hand
@@ -90,9 +85,6 @@ def test_system_ase_byhand_batch(device):
     assert sys.size_batch == 2
     assert sys.size_system == [5, 2]
     assert sys.l_max == [[1, 0, 0, 0, 0], [0, 0]]
-    assert sys.orbital_index == [[4, 1, 1, 1, 1], [1, 1]]
-    assert sys.orbital_index_cumsum == [[4, 5, 6, 7, 8], [1, 2]]
-    assert sys.number_orbital == [8, 2]
     assert sys.hs_shape == torch.Size([2, 8, 8])
 
 
@@ -100,7 +92,8 @@ def test_from_ase_single(device):
     """Batch evaluation of maths.sym function."""
     # ase Atoms as input for single system
     ch4 = Atoms('CH4', positions=[
-        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
+        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
+        [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
     sys = System.from_ase_atoms(ch4)
 
     positions = torch.from_numpy(ch4.positions)
@@ -113,9 +106,6 @@ def test_from_ase_single(device):
     assert sys.size_batch == 1
     assert sys.size_system == [5]
     assert sys.l_max == [[1, 0, 0, 0, 0]]
-    assert sys.orbital_index == [[4, 1, 1, 1, 1]]
-    assert sys.orbital_index_cumsum == [[4, 5, 6, 7, 8]]
-    assert sys.number_orbital == [8]
     assert sys.hs_shape == torch.Size([1, 8, 8])
 
 
@@ -123,7 +113,8 @@ def test_from_ase_batch(device):
     """Batch evaluation of maths.sym function."""
     # ase Atoms as input for batch system
     ch4 = Atoms('CH4', positions=[
-        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
+        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
+        [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
     h2 = Atoms('H2', positions=[[0., 0., 0.], [0.5, 0.5, 0.5]])
     sys = System.from_ase_atoms([ch4, h2])
 
@@ -139,18 +130,15 @@ def test_from_ase_batch(device):
     assert sys.size_batch == 2
     assert sys.size_system == [5, 2]
     assert sys.l_max == [[1, 0, 0, 0, 0], [0, 0]]
-    assert sys.orbital_index == [[4, 1, 1, 1, 1], [1, 1]]
-    assert sys.orbital_index_cumsum == [[4, 5, 6, 7, 8], [1, 2]]
-    assert sys.number_orbital == [8, 2]
     assert sys.hs_shape == torch.Size([2, 8, 8])
 
 
 def test_hdf5():
     """Test h5py."""
     ch4 = Atoms('CH4', positions=[
-        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
+        [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
+        [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
     positions = torch.from_numpy(ch4.positions)
     numbers = torch.from_numpy(ch4.numbers)
     with h5py.File('test.hdf5', 'w') as f:
         System(numbers, positions).to_hd5(f)
-
