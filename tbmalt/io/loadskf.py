@@ -74,7 +74,7 @@ class IntegralGenerator:
 
         Argument:
             distances: distances of single & multi systems.
-            atom_pair: skf file type. Support normal skf input, h5py binary skf.
+            atom_pair: skf files type. Support normal skf, h5py binary skf.
             l_pair:
         Keyword Args:
             hs_type: type of skf files.
@@ -84,19 +84,19 @@ class IntegralGenerator:
         hs_type = kwargs.get('hs_type', 'H')
 
         # Retrieve the appropriate splines
-        splines = [self.sktable_dict[(*atom_pair.tolist(), *l_pair.tolist(), b, hs_type)]
-                   for b in range(min(l_pair) + 1)]
+        splines = [self.sktable_dict[(
+            *atom_pair.tolist(), *l_pair.tolist(), b, hs_type)]
+            for b in range(min(l_pair) + 1)]
 
         list_integral = [spline(distances) for spline in splines]
         if type(list_integral[0]) == np.ndarray:
             list_integral = [torch.from_numpy(ii) for ii in list_integral]
 
-        # return pack([spline(distances) for spline in splines]).T
         return pack(list_integral).T
 
     def get_onsite(self, onsite_blocks):
-        return torch.cat([self.sktable_dict[(*[ii.tolist(), ii.tolist()], 'onsite')]
-                   for ii in onsite_blocks])
+        return torch.cat([self.sktable_dict[
+            (*[ii.tolist(), ii.tolist()], 'onsite')] for ii in onsite_blocks])
 
 def _read_skf(path, sk_type, element, element_number):
     """Read different type SKF files.
@@ -421,32 +421,35 @@ class DFTBInterpolation:
             rr: interpolation points.
         """
         nn0, nn1 = xp.shape[0], xp.shape[1]
+        index_nn0 = torch.arange(nn0)
         icl = torch.zeros(nn0).long()
         cc, dd = torch.zeros(yp.shape), torch.zeros(yp.shape)
 
         cc[:], dd[:] = yp[:], yp[:]
-        dxp = abs(rr - xp[torch.arange(nn0), icl])
+        dxp = abs(rr - xp[index_nn0, icl])
 
-        # find the most close point to rr
-        for ii in range(nn1 - 1):
-            dxNew = abs(rr - xp[torch.arange(nn0), ii])
-            if (dxNew < dxp).any():
-                _mask = dxNew < dxp
-                icl[_mask] = ii
-                dxp[_mask] = dxNew[_mask]
+        # find the most close point to rr (single atom pair or multi pairs)
+        _mask, ii = torch.zeros(len(rr)) == 0, 0
+        dxNew = abs(rr - xp[index_nn0, 0])
+        while (dxNew < dxp).any():
+            ii += 1
+            assert ii < nn1 - 1  # index ii range from 0 to nn1 - 1
+            _mask = dxNew < dxp
+            icl[_mask] = ii
+            dxp[_mask] = abs(rr - xp[index_nn0, ii])[_mask]
 
-        yy = yp[torch.arange(nn0), icl]
+        yy = yp[index_nn0, icl]
         for mm in range(nn1 - 1):
             for ii in range(nn1 - mm - 1):
-                rtmp0 = xp[torch.arange(nn0), ii] - xp[torch.arange(nn0), ii + mm + 1]
-                rtmp1 = (cc[torch.arange(nn0), ii + 1] - dd[torch.arange(nn0), ii]) / rtmp0
-                cc[torch.arange(nn0), ii] = (xp[torch.arange(nn0), ii] - rr) * rtmp1
-                dd[torch.arange(nn0), ii] = (xp[torch.arange(nn0), ii + mm + 1] - rr) * rtmp1
+                rtmp0 = xp[index_nn0, ii] - xp[index_nn0, ii + mm + 1]
+                rtmp1 = (cc[index_nn0, ii + 1] - dd[index_nn0, ii]) / rtmp0
+                cc[index_nn0, ii] = (xp[index_nn0, ii] - rr) * rtmp1
+                dd[index_nn0, ii] = (xp[index_nn0, ii + mm + 1] - rr) * rtmp1
             if (2 * icl < nn1 - mm - 1).any():
                 _mask = 2 * icl < nn1 - mm - 1
-                yy[_mask] = (yy + cc[torch.arange(nn0), icl])[_mask]
+                yy[_mask] = (yy + cc[index_nn0, icl])[_mask]
             else:
                 _mask = 2 * icl >= nn1 - mm - 1
-                yy[_mask] = (yy + dd[torch.arange(nn0), icl - 1])[_mask]
+                yy[_mask] = (yy + dd[index_nn0, icl - 1])[_mask]
                 icl[_mask] = icl[_mask] - 1
         return yy
