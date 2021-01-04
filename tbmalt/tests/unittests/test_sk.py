@@ -30,9 +30,10 @@ def test_read_skf_auorg(device):
     assert torch.max(abs(c_c_ref - c_c_sktable)) < 1E-14, 'Tolerance check'
 
 
-def test_read_skf_mio(device):
+def test_read_skf_h5py(device):
     """Read auorg type SKF files."""
-    pass
+    sk = IntegralGenerator.from_dir('../slko/skf.hdf', elements=['C', 'H'],
+                                    sk_type='h5py')
 
 
 def test_sk_single(device):

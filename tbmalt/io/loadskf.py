@@ -63,7 +63,7 @@ class IntegralGenerator:
                 if sk_interp == 'dftb_interpolation' else CubicSpline
 
             # read skf files
-            skf = _read_skf(path, sk_type, ielement, ielement_number)
+            skf = read_skf(path, sk_type, ielement, ielement_number)
 
             # generate skf files dict
             sktable_dict = _get_sk_dict(
@@ -113,7 +113,7 @@ def _get_element_info(elements):
     return element_pair, element_number_pair
 
 
-def _read_skf(path, sk_type, element, element_number):
+def read_skf(path, sk_type, element, element_number):
     """Read different type SKF files.
 
     Argument:
@@ -164,19 +164,20 @@ def _get_sk_dict(sktable_dict, interpolator, interactions, skf):
 class LoadSKF:
     """Get integrals for given systems.
 
-        Argument:
-            elements: global elements of single & multi systems.
-            hamiltonian: hamiltonian in SK tables.
-            overlap: overlap in SK tables.
-            hs_grid: grid distances of hamiltonian and overlap.
-            R_cutoff: cutoff of hamiltonian and overlap.
+    Arguments:
+        elements: global elements of single & multi systems.
+        hamiltonian: hamiltonian in SK tables.
+        overlap: overlap in SK tables.
+        hs_grid: grid distances of hamiltonian and overlap.
+        hs_cutoff: cutoff of hamiltonian and overlap.
 
-        Keyword Args:
-            hs_type: type of skf files.
-            sk_interpolation: interpolation method of integrals which are not
-                in the grid points.
+    Keyword Args:
+        hs_type: type of skf files.
+        sk_interpolation: interpolation method of integrals which are not
+            in the grid points.
     """
-    def __init__(self, elements, hamiltonian, overlap, hs_grid, R_cutoff, **kwargs):
+
+    def __init__(self, elements, hamiltonian, overlap, hs_grid, hs_cutoff, **kwargs):
         # If a single element was specified, resolve it to a tensor
         if isinstance(elements, int):
             self.elements = torch.tensor([elements]*2)
@@ -195,7 +196,7 @@ class LoadSKF:
         self.hs_grid = hs_grid
 
         # Repulsion properties
-        self.R_cutoff = R_cutoff
+        self.hs_cutoff = hs_cutoff
         if 'repulsive' in kwargs:
             try:
                 self.repulsive = kwargs['repulsive']
@@ -226,23 +227,23 @@ class LoadSKF:
 
     @classmethod
     def read(cls, path, system=None, sk_type='normal', **kwargs):
+        """Read SKF files according to sk_type."""
         if not os.path.exists(path):
             raise FileNotFoundError('Target path does not exist')
         if sk_type == 'normal':
             return cls._read_normal(path, kwargs['element_number'])
         elif sk_type == 'h5py':
-            return cls._read_hdf(path, system, kwargs['element'], kwargs['element_number'])
+            return cls.read_hdf(path, system, kwargs['element'], kwargs['element_number'])
 
     @classmethod
     def get_version_number(cls, file, lines):
         """Return skf version number."""
         if file.startswith('@'):  # If 1'st char is @, the version is 1.0e
-            v = '1.0e'
+            return '1.0e'
         elif len(lines[0].split()) == 2 and lines[0].split()[1].isnumeric():
-            v = '0.9'  # If no comment line; this must be version 0.9
-        else:  # Otherwise version 1.0
-            v = '1.0'
-        return v
+            return '0.9'  # If no comment line; this must be version 0.9
+        else:
+            return '1.0'
 
     @classmethod
     def _read_normal(cls, path, element_number, system=None):
@@ -284,7 +285,7 @@ class LoadSKF:
             [lmf(i) for i in lines[2 + homo: 2 + n_points + homo]]).chunk(2, 1)
 
         # Repulsive Data
-        mass, *R_poly, r_cutoff = torch.tensor(lmf(lines[2 + homo]))[:10]
+        mass, *R_poly, cutoff = torch.tensor(lmf(lines[2 + homo]))[:10]
 
         # Check if there is a spline representation
         has_r_spline = 'Spline' in file
@@ -292,10 +293,10 @@ class LoadSKF:
         if has_r_spline:
             start = lines.index('Spline') + 1  # Identify spline section start
 
-            # Read number of spline sections & overwrite the r_cutoff previously
+            # Read number of spline sections & overwrite the hs_cutoff previously
             # fetched from the polynomial line.
-            n, r_cutoff = lines[start].split()
-            n, r_cutoff = int(n), float(r_cutoff)
+            n, hs_cutoff = lines[start].split()
+            n, hs_cutoff = int(n), float(hs_cutoff)
 
             r_tab = torch.tensor([lmf(line) for line in lines[start + 2: start + 1 + n]])
 
@@ -307,7 +308,7 @@ class LoadSKF:
             R_long = torch.tensor(lmf(lines[start + 1 + n])[3:])
 
         # Build the parameter lists to pass to the in_grid_pointst method
-        pos = (element_number, hamiltonian, overlap, hs_grid, r_cutoff)
+        pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
 
         # Those that are passed by keyword
         kwd = {'version': ver}
@@ -326,22 +327,21 @@ class LoadSKF:
         return cls(*pos, **kwd)
 
     @classmethod
-    def _read_hdf(cls, path, system, element_pair, element_number):
+    def read_hdf(cls, path, system, element_pair, element_number):
         """Generate integral along distance dimension."""
         if not os.path.isfile(path):
             raise FileExistsError('dataset %s do not exist' % path)
 
         with h5py.File(path, 'r') as f:
-            # get the grid sidtance, which should be the same
-            g_step = f[element_pair[0] + element_pair[1] + '/grid_dist'][()]
-            n_points = f[element_pair[0] + element_pair[1] + '/ngridpoint'][()]
-            hs_grid = torch.arange(1, n_points + 1) * g_step
+            hs_grid = f[element_pair[0] + element_pair[1] + '/hs_grid'][()]
+            hs_cutoff = f[element_pair[0] + element_pair[1] + '/hs_cutoff'][()]
+            hamiltonian = torch.from_numpy(f[element_pair[0] + element_pair[1]
+                                             + '/hamiltonian'][()])
+            overlap = torch.from_numpy(f[element_pair[0] + element_pair[1]
+                                         + '/overlap'][()])
 
-            # get hamiltonian and overlap
-            hs = torch.from_numpy(f[element_pair[0] + element_pair[1] + '/hs_all'][()])
-            r_cutoff = (n_points + 1) * g_step
-            hamiltonian, overlap = hs[:, :10], hs[:, 10:]
-            pos = (element_number, hamiltonian, overlap, hs_grid, r_cutoff)
+            # return hamiltonian, overlap, and related data
+            pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
         return cls(*pos)
 
     @classmethod

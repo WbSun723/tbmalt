@@ -171,6 +171,16 @@ class System:
         return orbital_resolved
 
     @classmethod
+    def to_element_number(cls, element):
+        """Return element number from element."""
+        return torch.tensor([_atom_name.index(iele) + 1 for iele in element])
+
+    @classmethod
+    def to_element(cls, element_number):
+        """Return elements number from elements."""
+        return [_atom_name[iele - 1] for iele in element_number]
+
+    @classmethod
     def from_ase_atoms(cls, atoms):
         """Instantiate a System instance from an ase.Atoms object.
 
@@ -183,7 +193,6 @@ class System:
         """
         if isinstance(atoms, list):  # If multiple atoms objects supplied:
             # Recursively call from_ase_atoms and return the result
-            # return [cls.from_ase_atoms(iat) for iat in atoms]
             numbers = [torch.from_numpy(iat.numbers) for iat in atoms]
             positions = [torch.from_numpy(iat.positions) for iat in atoms]
             return System(numbers, positions)
