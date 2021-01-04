@@ -32,8 +32,10 @@ def test_read_skf_auorg(device):
 
 def test_read_skf_h5py(device):
     """Read auorg type SKF files."""
-    sk = IntegralGenerator.from_dir('./skf.hdf', elements=['C', 'H'],
-                                    sk_type='h5py')
+    molecule = molecule_database('CH4')
+    path = './skf.hdf'
+    system = System.from_ase_atoms(molecule)
+    sk = IntegralGenerator.from_dir(path, system, sk_type='h5py')
     c_c_ref = torch.tensor([
         3.293893775138E-01, -2.631898290831E-01, 4.210227871585E-01,
         -4.705514912464E-01, -3.151402994035E-01, 3.193776711119E-01,
