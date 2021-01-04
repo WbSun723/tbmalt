@@ -50,6 +50,7 @@ class IntegralGenerator:
         # create a blank dict for integrals
         sktable_dict = {}
         assert elements is not None or system is not None
+
         # get global element species and all corresponding SKF files
         if system is not None:
             element, element_number, element_pair, element_number_pair = \
@@ -293,8 +294,7 @@ class LoadSKF:
         if has_r_spline:
             start = lines.index('Spline') + 1  # Identify spline section start
 
-            # Read number of spline sections & overwrite the hs_cutoff previously
-            # fetched from the polynomial line.
+            # Read number of spline sections & overwrite the hs_cutoff
             n, hs_cutoff = lines[start].split()
             n, hs_cutoff = int(n), float(hs_cutoff)
 
@@ -332,6 +332,7 @@ class LoadSKF:
         if not os.path.isfile(path):
             raise FileExistsError('dataset %s do not exist' % path)
 
+        kwd = {}  # create empty dict
         with h5py.File(path, 'r') as f:
             hs_grid = f[element_pair[0] + element_pair[1] + '/hs_grid'][()]
             hs_cutoff = f[element_pair[0] + element_pair[1] + '/hs_cutoff'][()]
@@ -342,7 +343,13 @@ class LoadSKF:
 
             # return hamiltonian, overlap, and related data
             pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
-        return cls(*pos)
+
+            # homo SKF files
+            if element_pair[0] == element_pair[1]:
+                onsite = torch.from_numpy(f[element_pair[0] + element_pair[1]
+                                            + '/onsite'][()])
+                kwd.update({'onsite': onsite})
+        return cls(*pos, **kwd)
 
     @classmethod
     def _read_compression_radii(cls, path):
@@ -406,9 +413,12 @@ class DFTBInterpolation:
 
         # Beyond the grid => extrapolation with polynomial of 5th order
         elif (self.ngridpoint < ind < self.ngridpoint + ntail - 1).any():
-            dr = rr - rmax
+            _mask = self.ngridpoint < ind < self.ngridpoint + ntail - 1
+            dr = (rr - rmax)[_mask]
             ilast = self.ngridpoint
-            xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
+            xa = (ind_last.unsqueeze(1) - ninterp + torch.arange(ninterp)) * self.incr
+
+            # get original and derivative of y
             yb = self.y[ilast - ninterp - 1: ilast - 1]
             y0 = self.poly_interp_2d(xa, yb, xa[ninterp - 1] - delta_r)
             y2 = self.poly_interp_2d(xa, yb, xa[ninterp - 1] + delta_r)
@@ -416,7 +426,7 @@ class DFTBInterpolation:
             y1 = ya[ninterp - 1]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            dd = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+            result[_mask] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
         return result
 
     def poly5_zero(self, y0, y0p, y0pp, xx, dx):

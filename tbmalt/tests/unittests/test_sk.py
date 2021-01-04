@@ -32,8 +32,22 @@ def test_read_skf_auorg(device):
 
 def test_read_skf_h5py(device):
     """Read auorg type SKF files."""
-    sk = IntegralGenerator.from_dir('../slko/skf.hdf', elements=['C', 'H'],
+    sk = IntegralGenerator.from_dir('./skf.hdf', elements=['C', 'H'],
                                     sk_type='h5py')
+    c_c_ref = torch.tensor([
+        3.293893775138E-01, -2.631898290831E-01, 4.210227871585E-01,
+        -4.705514912464E-01, -3.151402994035E-01, 3.193776711119E-01,
+        -4.531014049627E-01, 4.667288655632E-01])
+    atom_pair = torch.tensor([6, 6])
+    distance = torch.tensor([2.0])
+    c_c_sktable = torch.cat([
+        sk(distance, atom_pair, torch.tensor([1, 1]), hs_type='H').squeeze(0),
+        sk(distance, atom_pair, torch.tensor([0, 1]), hs_type='H').squeeze(0),
+        sk(distance, atom_pair, torch.tensor([0, 0]), hs_type='H').squeeze(0),
+        sk(distance, atom_pair, torch.tensor([1, 1]), hs_type='S').squeeze(0),
+        sk(distance, atom_pair, torch.tensor([0, 1]), hs_type='S').squeeze(0),
+        sk(distance, atom_pair, torch.tensor([0, 0]), hs_type='S').squeeze(0)])
+    assert torch.max(abs(c_c_ref - c_c_sktable)) < 1E-14, 'Tolerance check'
 
 
 def test_sk_single(device):
