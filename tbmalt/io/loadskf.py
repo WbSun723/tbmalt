@@ -11,9 +11,8 @@ _orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 79: 'd'}
 class IntegralGenerator:
     """Read skf files and return integrals.
 
-    IntegralGenerator from_dir will read skf files with path of skf files and
-    system object. Then return integrals according to parameters, such as
-    distance, l_pair, etc.
+    IntegralGenerator from_dir will read skf files with path of skf files. Then
+    return integrals according to parameters, such as distance, l_pair, etc.
 
     Argument:
         sktable_dict: This should be a dictionary of scipy splines keyed by a
@@ -27,7 +26,7 @@ class IntegralGenerator:
         self.sktable_dict = sktable_dict
 
     @classmethod
-    def from_dir(cls, path, system, **kwargs):
+    def from_dir(cls, path, system=None, elements=None, **kwargs):
         """Read all skf files in a directory & return an SKIG instance.
 
         Argument:
@@ -50,10 +49,13 @@ class IntegralGenerator:
 
         # create a blank dict for integrals
         sktable_dict = {}
-
+        assert elements is not None or system is not None
         # get global element species and all corresponding SKF files
-        element, element_number, element_pair, element_number_pair = \
-            system.get_global_species()
+        if system is not None:
+            element, element_number, element_pair, element_number_pair = \
+                system.get_global_species()
+        elif elements is not None:
+            element_pair, element_number_pair = _get_element_info(elements)
 
         # loop of all global element pairs
         for ielement, ielement_number in zip(element_pair, element_number_pair):
@@ -69,13 +71,14 @@ class IntegralGenerator:
 
         return cls(sktable_dict)
 
-    def __call__(self, distances, atom_pair, l_pair, **kwargs):
+    def __call__(self, distances, atom_number_pair, l_pair, **kwargs):
         """Get integrals for given systems.
 
         Argument:
             distances: distances of single & multi systems.
-            atom_pair: skf files type. Support normal skf, h5py binary skf.
-            l_pair:
+            atom_number_pair: all element number pairs.
+            l_pair: all l number pairs.
+
         Keyword Args:
             hs_type: type of skf files.
             sk_interpolation: interpolation method of integrals which are not
@@ -85,7 +88,7 @@ class IntegralGenerator:
 
         # Retrieve the appropriate splines
         splines = [self.sktable_dict[(
-            *atom_pair.tolist(), *l_pair.tolist(), b, hs_type)]
+            *atom_number_pair.tolist(), *l_pair.tolist(), b, hs_type)]
             for b in range(min(l_pair) + 1)]
 
         list_integral = [spline(distances) for spline in splines]
@@ -95,8 +98,20 @@ class IntegralGenerator:
         return pack(list_integral).T
 
     def get_onsite(self, onsite_blocks):
+        """Return onsite."""
         return torch.cat([self.sktable_dict[
             (*[ii.tolist(), ii.tolist()], 'onsite')] for ii in onsite_blocks])
+
+
+def _get_element_info(elements):
+    """Generate element pair information."""
+    _elements_dict = {"H": 1, "C": 6, "N": 7, "O": 8, "Au": 79}
+    element_pair = [[iel, jel] for iel, jel in zip(
+        sorted(elements * len(elements)), elements * len(elements))]
+    element_number_pair = [[_elements_dict[ii[0]], _elements_dict[ii[1]]]
+                           for ii in element_pair]
+    return element_pair, element_number_pair
+
 
 def _read_skf(path, sk_type, element, element_number):
     """Read different type SKF files.
@@ -141,7 +156,8 @@ def _get_sk_dict(sktable_dict, interpolator, interactions, skf):
                     torch.cat([onsite[-1], onsite[-2].repeat(3)])
             elif _orb[skf.elements.tolist()[0]] == 'd':
                 sktable_dict[(*skf.elements.tolist(), 'onsite')] = \
-                    torch.cat([onsite[-1], onsite[-2].repeat(3), onsite[-3].repeat(5)])
+                    torch.cat([onsite[-1], onsite[-2].repeat(3),
+                               onsite[-3].repeat(5)])
     return sktable_dict
 
 
@@ -150,14 +166,16 @@ class LoadSKF:
 
         Argument:
             elements: global elements of single & multi systems.
-            hamiltonian: skf file type. Support normal skf input, h5py binary skf.
-            overlap:
+            hamiltonian: hamiltonian in SK tables.
+            overlap: overlap in SK tables.
+            hs_grid: grid distances of hamiltonian and overlap.
+            R_cutoff: cutoff of hamiltonian and overlap.
+
         Keyword Args:
             hs_type: type of skf files.
             sk_interpolation: interpolation method of integrals which are not
                 in the grid points.
     """
-
     def __init__(self, elements, hamiltonian, overlap, hs_grid, R_cutoff, **kwargs):
         # If a single element was specified, resolve it to a tensor
         if isinstance(elements, int):
