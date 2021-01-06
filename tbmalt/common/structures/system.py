@@ -1,7 +1,7 @@
 """Structural and orbital information."""
 import torch
 from typing import Union, List
-import tbmalt.common.batch as batch
+from tbmalt.common.batch import pack
 _bohr = 0.529177249
 Tensor = torch.Tensor
 _atom_name = ["H", "He",
@@ -96,13 +96,13 @@ class System:
     def _check(self, numbers, positions):
         # sequences of tensor
         if type(numbers) is list:
-            numbers = batch.pack(numbers)
+            numbers = pack(numbers)
         elif type(numbers) is torch.Tensor and numbers.dim() == 1:
             numbers = numbers.unsqueeze(0)
 
         # positions type check
         if type(positions) is list:
-            positions = batch.pack(positions)
+            positions = pack(positions)
         elif type(positions) is torch.Tensor and positions.dim() == 2:
             positions = positions.unsqueeze(0)
 
@@ -116,9 +116,9 @@ class System:
 
     def _get_distances(self):
         """Return distances between a list of atoms for each system."""
-        return batch.pack([torch.sqrt(((ipos[:inat].repeat(inat, 1) -
-                                        ipos[:inat].repeat_interleave(inat, 0))
-                                       ** 2).sum(1)).reshape(inat, inat)
+        return pack([torch.sqrt(((ipos[:inat].repeat(inat, 1) -
+                                  ipos[:inat].repeat_interleave(inat, 0))
+                                 ** 2).sum(1)).reshape(inat, inat)
                            for ipos, inat in zip(self.positions, self.size_system)])
 
     def _get_symbols(self):
@@ -127,7 +127,7 @@ class System:
 
     def get_positions_vec(self):
         """Return positions vector between atoms."""
-        return batch.pack([ipo.unsqueeze(-3) - ipo.unsqueeze(-2)
+        return pack([ipo.unsqueeze(-3) - ipo.unsqueeze(-2)
                            for ipo in self.positions])
 
     def _get_size(self):
@@ -140,7 +140,8 @@ class System:
         l_max = [[_l_num[ii] for ii in isym] for isym in self.symbols]
 
         # max valence orbital number for each atom and each system
-        atom_orbitals = [[(ii + 1) ** 2 for ii in lm] for lm in l_max]
+        atom_orbitals = pack([torch.tensor([(ii + 1) ** 2 for ii in lm])
+                              for lm in l_max])
         system_orbitals = [sum(iao) for iao in atom_orbitals]
 
         return l_max, atom_orbitals, system_orbitals

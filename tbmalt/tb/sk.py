@@ -2,7 +2,9 @@
 import numpy as np
 import torch
 from tbmalt.common.structures.basis import Basis
-ATOMNAME = {1: 'H', 6: 'C', 7: 'N', 8: 'O'}
+from tbmalt.common.batch import pack
+Tensor = torch.Tensor
+Size = torch.Size
 _sqr3 = np.sqrt(3.)
 _hsqr3 = 0.5 * np.sqrt(3.)
 
@@ -23,7 +25,7 @@ class SKT:
         HS: A tensor holding Hamiltonian or Overlap matrices associated.
     """
 
-    def __init__(self, system, sktable, **kwargs):
+    def __init__(self, system: object, sktable: object, **kwargs):
         self.system = system
         self.H = torch.zeros(self.system.hs_shape)
         self.S = torch.zeros(self.system.hs_shape)
@@ -59,7 +61,7 @@ class SKT:
             gathered_vecs = vec_mat_a[index_mask_a]
 
             # request integrals from the integrals
-            gathered_h, gathered_s = _integral_retrieve(
+            gathered_h, gathered_s = integral_retrieve(
                 gathered_dists, gathered_an, sktable, l_pair)
 
             # call relevant Slater-Koster function to get the sk-block
@@ -89,8 +91,11 @@ class SKT:
             torch.arange(self.H.shape[0]).repeat_interleave(self.H.shape[1]),
             torch.arange(self.H.shape[1]).repeat(self.H.shape[0]),
             torch.arange(self.H.shape[2]).repeat(self.H.shape[0]))
-        self.H[mask_onsite] = _onsite_retrieve(an_mat_a, sktable, self.H.shape)
+        self.H[mask_onsite] = onsite_retrieve(an_mat_a, sktable, self.H.shape)
         self.S[mask_onsite] = 1.
+
+        # return U Hubbert
+        self.U = U_retrieve(an_mat_a, sktable, self.system.numbers.shape)
 
 
 def split_by_size(tensor, split_sizes, dim=0):
@@ -121,7 +126,7 @@ def split_by_size(tensor, split_sizes, dim=0):
                  for start, length in zip(splits, split_sizes))
 
 
-def _integral_retrieve(distances, atom_pairs, integral, l_pair):
+def integral_retrieve(distances, atom_pairs, integral, l_pair):
     """Integral retrieval operation."""
     sktable_h = torch.zeros(len(atom_pairs), l_pair.min() + 1)
     sktable_s = torch.zeros(len(atom_pairs), l_pair.min() + 1)
@@ -140,8 +145,15 @@ def _integral_retrieve(distances, atom_pairs, integral, l_pair):
     return sktable_h, sktable_s
 
 
-def _onsite_retrieve(an_mat_a, integral, shape):
-    """Onsite retrieval operation."""
+def onsite_retrieve(an_mat_a: Tensor, integral: object,
+                     shape: Size) -> Tensor:
+    """Onsite retrieval operation.
+
+    Arguments:
+        an_mat_a: Gather atomic number index for single or batch system.
+        integral: Object of reading SK tables.
+        shape: Shape of Hamiltonian and overlap.
+    """
     # get the diagonals of the atomic identity matrices
     onsite_data = torch.zeros(shape[0], shape[1])
     onsite_element_block = an_mat_a.diagonal(dim1=-3, dim2=-2)[:, 0, :]
@@ -151,6 +163,19 @@ def _onsite_retrieve(an_mat_a, integral, shape):
         ionsite = integral.get_onsite(onsite_block[onsite_block.ne(0)])
         onsite_data[ii, :ionsite.shape[0]] = ionsite
     return onsite_data.flatten()
+
+
+def U_retrieve(an_mat_a: Tensor, integral: object, shape: Size) -> Tensor:
+    """Onsite retrieval operation.
+
+    Arguments:
+        an_mat_a: Gather atomic number index for single or batch system.
+        integral: Object of reading SK tables.
+        shape: Shape of Hamiltonian and overlap.
+    """
+    # get the diagonals of the atomic identity matrices
+    u_element_block = an_mat_a.diagonal(dim1=-3, dim2=-2)[:, 0, :]
+    return pack([integral.get_U(iu[iu.ne(0)]) for iu in u_element_block])
 
 
 def _skt_ss(r, integrals):

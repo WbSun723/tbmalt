@@ -12,7 +12,10 @@ torch.set_printoptions(15)
 
 def test_read_skf_auorg(device):
     """Read auorg type SKF files."""
-    sk = IntegralGenerator.from_dir('../slko/auorg-1-1', elements=['C', 'H'])
+    molecule = molecule_database('CH4')
+    path = '../slko/auorg-1-1'
+    system = System.from_ase_atoms(molecule)
+    sk = IntegralGenerator.from_dir(path, system)
     # Hpp0 Hpp1, Hsp0, Hss0, Spp0 Spp1, Ssp0, Sss0 at distance 2.0
     atom_pair = torch.tensor([6, 6])
     distance = torch.tensor([2.0])

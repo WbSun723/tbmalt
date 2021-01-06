@@ -5,14 +5,16 @@ import torch
 import h5py
 from scipy.interpolate import CubicSpline
 from tbmalt.common.batch import pack
+Tensor = torch.Tensor
 _orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 79: 'd'}
 
 
 class IntegralGenerator:
     """Read skf files and return integrals.
 
-    IntegralGenerator from_dir will read skf files with path of skf files. Then
-    return integrals according to parameters, such as distance, l_pair, etc.
+    IntegralGenerator from_dir will read skf files with path of skf files and
+    system object. Then return integrals according to parameters, such as
+    distance, l_pair, etc.
 
     Argument:
         sktable_dict: This should be a dictionary of scipy splines keyed by a
@@ -39,7 +41,11 @@ class IntegralGenerator:
             sk_type: type of skf files.
             sk_interpolation: interpolation method of integrals which are not
                 in the grid points.
+            orbital_resolve: If each orbital is resolved for U.
         """
+        if kwargs.get('orbital_resolve', False):
+            raise NotImplementedError('Not implement orbital resolved U.')
+
         sk_type = kwargs.get('sk_type', 'normal')
         sk_interp = kwargs.get('sk_interpolation', 'dftb_interpolation')
 
@@ -55,6 +61,8 @@ class IntegralGenerator:
         if system is not None:
             element, element_number, element_pair, element_number_pair = \
                 system.get_global_species()
+
+        # get global element species and all corresponding SKF files
         elif elements is not None:
             element_pair, element_number_pair = _get_element_info(elements)
 
@@ -64,32 +72,42 @@ class IntegralGenerator:
                 if sk_interp == 'dftb_interpolation' else CubicSpline
 
             # read skf files
-            skf = read_skf(path, sk_type, ielement, ielement_number)
+            skf = _read_skf(path, sk_type, ielement, ielement_number)
 
             # generate skf files dict
             sktable_dict = _get_sk_dict(
                 sktable_dict, interpolator, interactions, skf)
+            if skf.homo:
+                # return onsite
+                if (*skf.elements.tolist(), 'onsite') not in sktable_dict:
+                    sktable_dict = _get_onsite_dict(sktable_dict, skf)
+
+                # retutn U
+                if (*skf.elements.tolist(), 'U') not in sktable_dict:
+                    sktable_dict = _get_u_dict(sktable_dict, skf, **kwargs)
 
         return cls(sktable_dict)
 
-    def __call__(self, distances, atom_number_pair, l_pair, **kwargs):
+    def __call__(self, distances, atom_pair, l_pair, **kwargs):
         """Get integrals for given systems.
 
         Argument:
             distances: distances of single & multi systems.
-            atom_number_pair: all element number pairs.
-            l_pair: all l number pairs.
-
+            atom_pair: skf files type. Support normal skf, h5py binary skf.
+            l_pair:
         Keyword Args:
             hs_type: type of skf files.
             sk_interpolation: interpolation method of integrals which are not
                 in the grid points.
+            orbital_resolve: If each orbital is resolved for U.
         """
+        if kwargs.get('orbital_resolve', False):
+            raise NotImplementedError('Not implement orbital resolved U.')
         hs_type = kwargs.get('hs_type', 'H')
 
         # Retrieve the appropriate splines
         splines = [self.sktable_dict[(
-            *atom_number_pair.tolist(), *l_pair.tolist(), b, hs_type)]
+            *atom_pair.tolist(), *l_pair.tolist(), b, hs_type)]
             for b in range(min(l_pair) + 1)]
 
         list_integral = [spline(distances) for spline in splines]
@@ -98,10 +116,23 @@ class IntegralGenerator:
 
         return pack(list_integral).T
 
-    def get_onsite(self, onsite_blocks):
-        """Return onsite."""
+    def get_onsite(self, atom_number: Tensor):
+        """Return onsite with onsite_blocks.
+
+        Argument:
+            atom_number: Atomic numbers.
+        """
         return torch.cat([self.sktable_dict[
-            (*[ii.tolist(), ii.tolist()], 'onsite')] for ii in onsite_blocks])
+            (*[ii.tolist(), ii.tolist()], 'onsite')] for ii in atom_number])
+
+    def get_U(self, atom_number: Tensor):
+        """Return onsite with onsite_blocks.
+
+        Argument:
+            atom_number: Atomic numbers.
+        """
+        return torch.cat([self.sktable_dict[
+            (*[ii.tolist(), ii.tolist()], 'U')] for ii in atom_number])
 
 
 def _get_element_info(elements):
@@ -114,7 +145,7 @@ def _get_element_info(elements):
     return element_pair, element_number_pair
 
 
-def read_skf(path, sk_type, element, element_number):
+def _read_skf(path, sk_type, element, element_number):
     """Read different type SKF files.
 
     Argument:
@@ -134,7 +165,7 @@ def read_skf(path, sk_type, element, element_number):
 def _get_sk_dict(sktable_dict, interpolator, interactions, skf):
     """Get sk tables for each orbital interaction.
 
-    Argument:
+    Arguments:
         sktable_dict: sk tables dictionary.
         interpolator: sk interpolation method.
         interactions: orbital interactions, such as (0, 0, 0), or ss0 orbital.
@@ -145,40 +176,61 @@ def _get_sk_dict(sktable_dict, interpolator, interactions, skf):
             interpolator(skf.hs_grid, skf.hamiltonian.T[ii])
         sktable_dict[(*skf.elements.tolist(), *name, 'S')] = \
             interpolator(skf.hs_grid, skf.overlap.T[ii])
+    return sktable_dict
 
-        # add onsite, return onsite obey sequence s, p, d ...
-        if skf.homo:
-            onsite = skf.onsite.unsqueeze(1)
-            if _orb[skf.elements.tolist()[0]] == 's':
-                sktable_dict[(*skf.elements.tolist(), 'onsite')] = \
-                    torch.cat([onsite[-1]])
-            elif _orb[skf.elements.tolist()[0]] == 'p':
-                sktable_dict[(*skf.elements.tolist(), 'onsite')] = \
-                    torch.cat([onsite[-1], onsite[-2].repeat(3)])
-            elif _orb[skf.elements.tolist()[0]] == 'd':
-                sktable_dict[(*skf.elements.tolist(), 'onsite')] = \
-                    torch.cat([onsite[-1], onsite[-2].repeat(3),
-                               onsite[-3].repeat(5)])
+
+def _get_onsite_dict(sktable_dict: dict, skf: object) -> dict:
+    """Get sk tables for global element.
+
+    Arguments:
+        sktable_dict: sk tables dictionary.
+        skf: object with SKF integrals data.
+    """
+    # add onsite, return onsite obey sequence s, p, d ...
+    onsite = skf.onsite.unsqueeze(1)
+
+    if _orb[skf.elements.tolist()[0]] == 's':
+        sktable_dict[(*skf.elements.tolist(), 'onsite')] = torch.cat([onsite[-1]])
+
+    elif _orb[skf.elements.tolist()[0]] == 'p':
+        sktable_dict[(*skf.elements.tolist(), 'onsite')] = \
+            torch.cat([onsite[-1], onsite[-2].repeat(3)])
+
+    elif _orb[skf.elements.tolist()[0]] == 'd':
+        sktable_dict[(*skf.elements.tolist(), 'onsite')] = \
+            torch.cat([onsite[-1], onsite[-2].repeat(3), onsite[-3].repeat(5)])
+    return sktable_dict
+
+
+def _get_u_dict(sktable_dict: dict, skf: object, **kwargs) -> dict:
+    """Get sk tables for global element.
+
+    Arguments:
+        sktable_dict: sk tables dictionary.
+        skf: object with SKF integrals data.
+    """
+    if kwargs.get('orbital_resolve', False):
+        raise NotImplementedError('Not implement orbital resolved U.')
+
+    # add onsite, return onsite obey sequence s, p, d ...
+    sktable_dict[(*skf.elements.tolist(), 'U')] = skf.U.unsqueeze(1)[-1]
     return sktable_dict
 
 
 class LoadSKF:
     """Get integrals for given systems.
 
-    Arguments:
-        elements: global elements of single & multi systems.
-        hamiltonian: hamiltonian in SK tables.
-        overlap: overlap in SK tables.
-        hs_grid: grid distances of hamiltonian and overlap.
-        hs_cutoff: cutoff of hamiltonian and overlap.
-
-    Keyword Args:
-        hs_type: type of skf files.
-        sk_interpolation: interpolation method of integrals which are not
-            in the grid points.
+        Argument:
+            elements: global elements of single & multi systems.
+            hamiltonian: skf file type. Support normal skf input, h5py binary skf.
+            overlap:
+        Keyword Args:
+            hs_type: type of skf files.
+            sk_interpolation: interpolation method of integrals which are not
+                in the grid points.
     """
 
-    def __init__(self, elements, hamiltonian, overlap, hs_grid, hs_cutoff, **kwargs):
+    def __init__(self, elements, hamiltonian, overlap, hs_grid, R_cutoff, **kwargs):
         # If a single element was specified, resolve it to a tensor
         if isinstance(elements, int):
             self.elements = torch.tensor([elements]*2)
@@ -191,13 +243,14 @@ class LoadSKF:
         self.homo = self.elements[0] == self.elements[1]
         if self.homo:
             self.onsite = kwargs['onsite']
+            self.U = kwargs['U']
 
         self.hamiltonian = hamiltonian
         self.overlap = overlap
         self.hs_grid = hs_grid
 
         # Repulsion properties
-        self.hs_cutoff = hs_cutoff
+        self.R_cutoff = R_cutoff
         if 'repulsive' in kwargs:
             try:
                 self.repulsive = kwargs['repulsive']
@@ -228,11 +281,10 @@ class LoadSKF:
 
     @classmethod
     def read(cls, path, system=None, sk_type='normal', **kwargs):
-        """Read SKF files according to sk_type."""
         if not os.path.exists(path):
             raise FileNotFoundError('Target path does not exist')
         if sk_type == 'normal':
-            return cls._read_normal(path, kwargs['element_number'])
+            return cls.read_normal(path, kwargs['element_number'])
         elif sk_type == 'h5py':
             return cls.read_hdf(path, system, kwargs['element'], kwargs['element_number'])
 
@@ -240,14 +292,15 @@ class LoadSKF:
     def get_version_number(cls, file, lines):
         """Return skf version number."""
         if file.startswith('@'):  # If 1'st char is @, the version is 1.0e
-            return '1.0e'
+            v = '1.0e'
         elif len(lines[0].split()) == 2 and lines[0].split()[1].isnumeric():
-            return '0.9'  # If no comment line; this must be version 0.9
-        else:
-            return '1.0'
+            v = '0.9'  # If no comment line; this must be version 0.9
+        else:  # Otherwise version 1.0
+            v = '1.0'
+        return v
 
     @classmethod
-    def _read_normal(cls, path, element_number, system=None):
+    def read_normal(cls, path, element_number, system=None):
         """Read in a skf file and returns an SKF_File instance.
 
         File names should follow the naming convention X-Y.skf where X and
@@ -286,7 +339,7 @@ class LoadSKF:
             [lmf(i) for i in lines[2 + homo: 2 + n_points + homo]]).chunk(2, 1)
 
         # Repulsive Data
-        mass, *R_poly, cutoff = torch.tensor(lmf(lines[2 + homo]))[:10]
+        mass, *R_poly, r_cutoff = torch.tensor(lmf(lines[2 + homo]))[:10]
 
         # Check if there is a spline representation
         has_r_spline = 'Spline' in file
@@ -294,9 +347,10 @@ class LoadSKF:
         if has_r_spline:
             start = lines.index('Spline') + 1  # Identify spline section start
 
-            # Read number of spline sections & overwrite the hs_cutoff
-            n, hs_cutoff = lines[start].split()
-            n, hs_cutoff = int(n), float(hs_cutoff)
+            # Read number of spline sections & overwrite the r_cutoff previously
+            # fetched from the polynomial line.
+            n, r_cutoff = lines[start].split()
+            n, r_cutoff = int(n), float(r_cutoff)
 
             r_tab = torch.tensor([lmf(line) for line in lines[start + 2: start + 1 + n]])
 
@@ -308,7 +362,7 @@ class LoadSKF:
             R_long = torch.tensor(lmf(lines[start + 1 + n])[3:])
 
         # Build the parameter lists to pass to the in_grid_pointst method
-        pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
+        pos = (element_number, hamiltonian, overlap, hs_grid, r_cutoff)
 
         # Those that are passed by keyword
         kwd = {'version': ver}
@@ -348,7 +402,9 @@ class LoadSKF:
             if element_pair[0] == element_pair[1]:
                 onsite = torch.from_numpy(f[element_pair[0] + element_pair[1]
                                             + '/onsite'][()])
-                kwd.update({'onsite': onsite})
+                U = torch.from_numpy(f[element_pair[0] + element_pair[1]
+                                       + '/U'][()])
+                kwd.update({'onsite': onsite, 'U': U})
         return cls(*pos, **kwd)
 
     @classmethod
@@ -413,12 +469,9 @@ class DFTBInterpolation:
 
         # Beyond the grid => extrapolation with polynomial of 5th order
         elif (self.ngridpoint < ind < self.ngridpoint + ntail - 1).any():
-            _mask = self.ngridpoint < ind < self.ngridpoint + ntail - 1
-            dr = (rr - rmax)[_mask]
+            dr = rr - rmax
             ilast = self.ngridpoint
-            xa = (ind_last.unsqueeze(1) - ninterp + torch.arange(ninterp)) * self.incr
-
-            # get original and derivative of y
+            xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
             yb = self.y[ilast - ninterp - 1: ilast - 1]
             y0 = self.poly_interp_2d(xa, yb, xa[ninterp - 1] - delta_r)
             y2 = self.poly_interp_2d(xa, yb, xa[ninterp - 1] + delta_r)
@@ -426,7 +479,7 @@ class DFTBInterpolation:
             y1 = ya[ninterp - 1]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            result[_mask] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+            dd = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
         return result
 
     def poly5_zero(self, y0, y0p, y0pp, xx, dx):
