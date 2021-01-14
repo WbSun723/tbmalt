@@ -31,11 +31,14 @@ class IntegralGenerator:
     def from_dir(cls, path, system=None, elements=None, **kwargs):
         """Read all skf files in a directory & return an SKIG instance.
 
-        Argument:
+        Arguments:
             path: path to the directory in which skf files can be found. If
                 sk_type is normal, the path represents only the directory. if
                 sk_type is h5py, the path is the joint directory and h5py file.
-            system: system object.
+                sk_type is compression_radii, the path is the path to list of
+                    SKF files with various compression radii.
+            system: Optional, system object.
+            element: Optional, global elements for read SKF files.
 
         Keyword Args:
             sk_type: type of skf files.
@@ -119,7 +122,7 @@ class IntegralGenerator:
     def get_onsite(self, atom_number: Tensor):
         """Return onsite with onsite_blocks.
 
-        Argument:
+        Arguments:
             atom_number: Atomic numbers.
         """
         return torch.cat([self.sktable_dict[
@@ -128,7 +131,7 @@ class IntegralGenerator:
     def get_U(self, atom_number: Tensor):
         """Return onsite with onsite_blocks.
 
-        Argument:
+        Arguments:
             atom_number: Atomic numbers.
         """
         return torch.cat([self.sktable_dict[
@@ -148,7 +151,7 @@ def _get_element_info(elements):
 def _read_skf(path, sk_type, element, element_number):
     """Read different type SKF files.
 
-    Argument:
+    Arguments:
         path: path to SKF files.
         sk_type: type of SKF files.
         element: element pair of SKF files.
@@ -160,6 +163,8 @@ def _read_skf(path, sk_type, element, element_number):
     elif sk_type == 'h5py':
         return LoadSKF.read(path, sk_type='h5py',
                             element=element, element_number=element_number)
+    elif sk_type == 'compression_radii':
+        raise NotImplementedError('Not implement loading conpression radii SKF.')
 
 
 def _get_sk_dict(sktable_dict, interpolator, interactions, skf):
@@ -220,7 +225,7 @@ def _get_u_dict(sktable_dict: dict, skf: object, **kwargs) -> dict:
 class LoadSKF:
     """Get integrals for given systems.
 
-        Argument:
+        Arguments:
             elements: global elements of single & multi systems.
             hamiltonian: skf file type. Support normal skf input, h5py binary skf.
             overlap:
@@ -287,6 +292,8 @@ class LoadSKF:
             return cls.read_normal(path, kwargs['element_number'])
         elif sk_type == 'h5py':
             return cls.read_hdf(path, system, kwargs['element'], kwargs['element_number'])
+        elif sk_type == 'compression_radii':
+            return cls._read_compression_radii(path)
 
     @classmethod
     def get_version_number(cls, file, lines):
@@ -410,7 +417,7 @@ class LoadSKF:
     @classmethod
     def _read_compression_radii(cls, path):
         """Read in a skf file and returns an SKF_File instance."""
-        pass
+        raise NotImplementedError()
 
     @classmethod
     def from_splines(cls):

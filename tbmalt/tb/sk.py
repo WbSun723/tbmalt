@@ -3,6 +3,8 @@ import numpy as np
 import torch
 from tbmalt.common.structures.basis import Basis
 from tbmalt.common.batch import pack
+from numbers import Real
+from typing import Union
 Tensor = torch.Tensor
 Size = torch.Size
 _sqr3 = np.sqrt(3.)
@@ -32,14 +34,15 @@ class SKT:
         basis = Basis(self.system)
 
         # create mask matrices which show full/block orbital information
-        l_mat_f = basis.azimuthal_matrix(mask=True, mask_lower=False)
-        l_mat_b = basis.azimuthal_matrix(block=True, mask=True, mask_lower=False)
+        l_mat_f = basis.azimuthal_matrix(mask=True)
+        l_mat_b = basis.azimuthal_matrix(block=True, mask=True)
 
         # atom indices and atomic numbers
-        i_mat_b = basis.index_matrix(block=True)
-        an_mat_a = basis.atomic_number_matrix(atomic=True)
+        i_mat_b = basis.index_matrix('block')
+        an_mat_a = basis.atomic_number_matrix('atom')
 
-        vec_mat_a = self.system.positions.unsqueeze(-3) - self.system.positions.unsqueeze(-2)
+        vec_mat_a = self.system.positions.unsqueeze(-3) - \
+            self.system.positions.unsqueeze(-2)
         vec_mat_a = torch.nn.functional.normalize(vec_mat_a, p=2, dim=-1)
 
         # Loop over each type of azimuthal-pair interaction
@@ -76,15 +79,19 @@ class SKT:
 
             # Concatenate each group of SK blocks & flatten the result. Then
             # concatenate each of the now flatted block groups.
-            h_data_shaped = torch.cat([group.transpose(1, 0).flatten() for group in groups_h])
-            s_data_shaped = torch.cat([group.transpose(1, 0).flatten() for group in groups_s])
+            h_data_shaped = torch.cat([group.transpose(1, 0).flatten()
+                                       for group in groups_h])
+            s_data_shaped = torch.cat([group.transpose(1, 0).flatten()
+                                       for group in groups_s])
 
             # Create the full size index mask which will assign the results
             index_mask_f = torch.where((l_mat_f == l_pair).all(dim=-1))
             self.H[index_mask_f] = h_data_shaped
-            self.H[index_mask_f[0], index_mask_f[2], index_mask_f[1]] = h_data_shaped
+            self.H[index_mask_f[0], index_mask_f[2], index_mask_f[1]] = \
+                h_data_shaped
             self.S[index_mask_f] = s_data_shaped
-            self.S[index_mask_f[0], index_mask_f[2], index_mask_f[1]] = s_data_shaped
+            self.S[index_mask_f[0], index_mask_f[2], index_mask_f[1]] =\
+                s_data_shaped
 
         # get all the onsite mask for batch system
         mask_onsite = (
@@ -98,7 +105,7 @@ class SKT:
         self.U = U_retrieve(an_mat_a, sktable, self.system.numbers.shape)
 
 
-def split_by_size(tensor, split_sizes, dim=0):
+def split_by_size(tensor: Tensor, split_sizes: Tensor, dim=0):
     """Splits tensor according to chunks of split_sizes.
 
     Arguments:
@@ -126,7 +133,8 @@ def split_by_size(tensor, split_sizes, dim=0):
                  for start, length in zip(splits, split_sizes))
 
 
-def integral_retrieve(distances, atom_pairs, integral, l_pair):
+def integral_retrieve(distances: Tensor, atom_pairs: Tensor, integral: object,
+                      l_pair: Tensor):
     """Integral retrieval operation."""
     sktable_h = torch.zeros(len(atom_pairs), l_pair.min() + 1)
     sktable_s = torch.zeros(len(atom_pairs), l_pair.min() + 1)
@@ -145,8 +153,8 @@ def integral_retrieve(distances, atom_pairs, integral, l_pair):
     return sktable_h, sktable_s
 
 
-def onsite_retrieve(an_mat_a: Tensor, integral: object,
-                     shape: Size) -> Tensor:
+def onsite_retrieve(
+        an_mat_a: Tensor, integral: object, shape: Size) -> Tensor:
     """Onsite retrieval operation.
 
     Arguments:
@@ -178,7 +186,7 @@ def U_retrieve(an_mat_a: Tensor, integral: object, shape: Size) -> Tensor:
     return pack([integral.get_U(iu[iu.ne(0)]) for iu in u_element_block])
 
 
-def _skt_ss(r, integrals):
+def _skt_ss(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for ss interactions.
 
     Arguments:
@@ -194,7 +202,7 @@ def _skt_ss(r, integrals):
     return integrals.unsqueeze(1)
 
 
-def _skt_sp(r, integrals):
+def _skt_sp(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for sp interactions.
 
     Arguments:
@@ -210,7 +218,7 @@ def _skt_sp(r, integrals):
     return (integrals * r).unsqueeze(1).roll(-1, -1)
 
 
-def _skt_sd(r, integrals):
+def _skt_sd(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for sd interactions.
 
     Arguments:
@@ -257,7 +265,7 @@ def _skt_sd(r, integrals):
     return (rot.T * integrals).unsqueeze(1)
 
 
-def _skt_sf(r, integrals):
+def _skt_sf(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for sf interactions.
 
     Arguments:
@@ -273,7 +281,7 @@ def _skt_sf(r, integrals):
     raise NotImplementedError()
 
 
-def _skt_pp(r, integrals):
+def _skt_pp(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for pp interactions.
 
     Arguments:
@@ -285,7 +293,6 @@ def _skt_pp(r, integrals):
     Returns:
         sub_block: The pp matrix sub-block, or a set thereof.
     """
-
     # Construct the rotation matrix:
     #       ┌                    ┐
     #       │ σp_y-p_y, πp_y-p_y │
@@ -319,21 +326,14 @@ def _skt_pp(r, integrals):
     return torch.bmm(rot, integrals.unsqueeze(2)).view(r.shape[0], 3, 3)
 
 
-def _skt_pd(r, integrals):
+def _skt_pd(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for pd interactions.
 
-    Parameters
-    ----------
-    r : `torch.tensor` [`float`]
-        The unit difference vector between a pair of orbitals. Or an
-        array representing a set of such differences.
-    integrals : `torch.tensor` [`float`]
-        pd0 & pd1 integrals evaluated at the inter-atomic associated
-        with the specified distance(s).
-
-    Returns
-    -------
-    sub_block: The pd matrix sub-block, or a set thereof.
+    Arguments:
+        r: The unit difference vector between a pair of orbitals. Or an
+            array representing a set of such differences.
+        integrals: pd0 & pd1 integrals evaluated at the inter-atomic associated
+            with the specified distance(s).
 
     """
     # Unpack unit vector into its components. The transpose is needed when
@@ -433,7 +433,7 @@ def _skt_pd(r, integrals):
     return (rot @ integrals.unsqueeze(2)).view(-1, 3, 5)
 
 
-def _skt_pf(r, integrals):
+def _skt_pf(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for pf interactions.
 
     Arguments:
@@ -441,11 +441,14 @@ def _skt_pf(r, integrals):
             array representing a set of such differences.
         integrals: sf0 & sf1 integrals evaluated at the inter-atomic
             associated with the specified distance(s).
+
+    Returns:
+        sub_block: The pf matrix sub-block, or a set thereof.
     """
     raise NotImplementedError()
 
 
-def _skt_dd(r, integrals):
+def _skt_dd(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for dd interactions.
 
     Arguments:
@@ -637,7 +640,7 @@ def _skt_dd(r, integrals):
     return (rot @ integrals.unsqueeze(2)).view(-1, 5, 5)
 
 
-def _skt_df(r, integrals):
+def _skt_df(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for df interactions.
 
     Arguments:
@@ -645,11 +648,14 @@ def _skt_df(r, integrals):
             array representing a set of such differences.
         integrals: df0, df1 & df2 integrals evaluated at the inter-atomic
             associated with the specified distance(s).
+
+    Returns:
+        sub_block: The df matrix sub-block, or a set thereof.
     """
     raise NotImplementedError()
 
 
-def _skt_ff(r, integrals):
+def _skt_ff(r: Tensor, integrals: Union[Tensor, Real]):
     """Perform Slater-Koster transformations for ff interactions.
 
     Arguments:
@@ -657,6 +663,9 @@ def _skt_ff(r, integrals):
             array representing a set of such differences.
         integrals: ff0, ff1, ff2 & ff3 integrals evaluated at the inter-atomic
             associated with the specified distance(s).
+
+    Returns:
+        sub_block: The ff matrix sub-block, or a set thereof.
     """
     raise NotImplementedError()
 
