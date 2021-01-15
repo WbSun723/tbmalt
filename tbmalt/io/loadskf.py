@@ -443,11 +443,11 @@ class LoadSKF:
 
             if repulsive:
                 nrep = f[element_ij + '/n_repulsive'][()]
-                rep = f[element_ij + '/rep_table'][()]
-                r_grid = f[element_ij + '/rep_grid'][()]
-                r_short = f[element_ij + '/rep_short'][()]
-                r_long_grid = f[element_ij + '/rep_long_grid'][()]
-                r_long_c = f[element_ij + '/rep_long_c'][()]
+                rep = torch.from_numpy(f[element_ij + '/rep_table'][()])
+                r_grid = torch.from_numpy(f[element_ij + '/rep_grid'][()])
+                r_short = torch.from_numpy(f[element_ij + '/rep_short'][()])
+                r_long_grid = torch.from_numpy(f[element_ij + '/rep_long_grid'][()])
+                r_long_c = torch.from_numpy(f[element_ij + '/rep_long_c'][()])
                 r_cutoff = f[element_ij + '/rep_cutoff'][()]
                 kwd.update({'n_repulsive': nrep, 'rep_table': rep,
                             'rep_grid': r_grid, 'rep_short': r_short,
