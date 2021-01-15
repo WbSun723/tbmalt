@@ -6,7 +6,7 @@ import h5py
 from scipy.interpolate import CubicSpline
 from tbmalt.common.batch import pack
 Tensor = torch.Tensor
-_orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 79: 'd'}
+_orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 15: 'p', 16: 'p', 79: 'd'}
 
 
 class IntegralGenerator:
@@ -28,7 +28,7 @@ class IntegralGenerator:
         self.sktable_dict = sktable_dict
 
     @classmethod
-    def from_dir(cls, path, system=None, elements=None, **kwargs):
+    def from_dir(cls, path: str, system=None, elements=None, **kwargs) -> dict:
         """Read all skf files in a directory & return an SKIG instance.
 
         Arguments:
@@ -46,10 +46,11 @@ class IntegralGenerator:
                 in the grid points.
             orbital_resolve: If each orbital is resolved for U.
         """
+        repulsive = kwargs.get('repulsive', False)
+
         if kwargs.get('orbital_resolve', False):
             raise NotImplementedError('Not implement orbital resolved U.')
 
-        sk_type = kwargs.get('sk_type', 'normal')
         sk_interp = kwargs.get('sk_interpolation', 'dftb_interpolation')
 
         # The interactions: ddσ, ddπ, ddδ, ...
@@ -69,17 +70,20 @@ class IntegralGenerator:
         elif elements is not None:
             element_pair, element_number_pair = _get_element_info(elements)
 
+        elif system is None and element is None:
+            raise ValueError('At least one of system and element is not None')
+
         # loop of all global element pairs
         for ielement, ielement_number in zip(element_pair, element_number_pair):
             interpolator = DFTBInterpolation \
                 if sk_interp == 'dftb_interpolation' else CubicSpline
 
             # read skf files
-            skf = _read_skf(path, sk_type, ielement, ielement_number)
+            skf = LoadSKF.read(path, ielement, ielement_number, **kwargs)
 
             # generate skf files dict
-            sktable_dict = _get_sk_dict(
-                sktable_dict, interpolator, interactions, skf)
+            sktable_dict = _get_hs_dict(sktable_dict, interpolator, interactions, skf)
+
             if skf.homo:
                 # return onsite
                 if (*skf.elements.tolist(), 'onsite') not in sktable_dict:
@@ -89,12 +93,16 @@ class IntegralGenerator:
                 if (*skf.elements.tolist(), 'U') not in sktable_dict:
                     sktable_dict = _get_u_dict(sktable_dict, skf, **kwargs)
 
+            if repulsive:
+                sktable_dict = _get_repulsive_dict(sktable_dict, skf)
+
         return cls(sktable_dict)
 
-    def __call__(self, distances, atom_pair, l_pair, **kwargs):
+    def __call__(self, distances: Tensor, atom_pair: Tensor,
+                 l_pair: Tensor, **kwargs) -> Tensor:
         """Get integrals for given systems.
 
-        Argument:
+        Arguments:
             distances: distances of single & multi systems.
             atom_pair: skf files type. Support normal skf, h5py binary skf.
             l_pair:
@@ -119,7 +127,7 @@ class IntegralGenerator:
 
         return pack(list_integral).T
 
-    def get_onsite(self, atom_number: Tensor):
+    def get_onsite(self, atom_number: Tensor) -> Tensor:
         """Return onsite with onsite_blocks.
 
         Arguments:
@@ -128,7 +136,7 @@ class IntegralGenerator:
         return torch.cat([self.sktable_dict[
             (*[ii.tolist(), ii.tolist()], 'onsite')] for ii in atom_number])
 
-    def get_U(self, atom_number: Tensor):
+    def get_U(self, atom_number: Tensor) -> Tensor:
         """Return onsite with onsite_blocks.
 
         Arguments:
@@ -137,10 +145,16 @@ class IntegralGenerator:
         return torch.cat([self.sktable_dict[
             (*[ii.tolist(), ii.tolist()], 'U')] for ii in atom_number])
 
+    def get_repulsive(self) -> dict:
+        """Return repulsive parameter."""
+        return self.sktable_dict
 
-def _get_element_info(elements):
+
+def _get_element_info(elements: list):
     """Generate element pair information."""
-    _elements_dict = {"H": 1, "C": 6, "N": 7, "O": 8, "Au": 79}
+    _elements_dict = {"H": 1, "Li": 3, "B": 5, "C": 6, "N": 7, "O": 8, "F": 9,
+                      "Na": 11, "Mg": 12, "Al": 13, "Si": 14, "P": 15,
+                      "S": 16, "Ti": 22, "Au": 79}
     element_pair = [[iel, jel] for iel, jel in zip(
         sorted(elements * len(elements)), elements * len(elements))]
     element_number_pair = [[_elements_dict[ii[0]], _elements_dict[ii[1]]]
@@ -148,32 +162,14 @@ def _get_element_info(elements):
     return element_pair, element_number_pair
 
 
-def _read_skf(path, sk_type, element, element_number):
-    """Read different type SKF files.
-
-    Arguments:
-        path: path to SKF files.
-        sk_type: type of SKF files.
-        element: element pair of SKF files.
-        element_number: pair element numbers.
-    """
-    if sk_type == 'normal':
-        isk = os.path.join(path, element[0] + '-' + element[1] + '.skf')
-        return LoadSKF.read(isk, element_number=element_number)
-    elif sk_type == 'h5py':
-        return LoadSKF.read(path, sk_type='h5py',
-                            element=element, element_number=element_number)
-    elif sk_type == 'compression_radii':
-        raise NotImplementedError('Not implement loading conpression radii SKF.')
-
-
-def _get_sk_dict(sktable_dict, interpolator, interactions, skf):
+def _get_hs_dict(sktable_dict: dict, interpolator: object,
+                 interactions: list, skf: object) -> dict:
     """Get sk tables for each orbital interaction.
 
     Arguments:
         sktable_dict: sk tables dictionary.
         interpolator: sk interpolation method.
-        interactions: orbital interactions, such as (0, 0, 0), or ss0 orbital.
+        interactions: orbital interactions, e.g. (0, 0, 0) for ss0 orbital.
         skf: object with SKF integrals data.
     """
     for ii, name in enumerate(interactions):
@@ -222,20 +218,35 @@ def _get_u_dict(sktable_dict: dict, skf: object, **kwargs) -> dict:
     return sktable_dict
 
 
+def _get_repulsive_dict(sktable_dict: dict, skf: object) -> dict:
+    """Return repulsive parameter."""
+    sktable_dict[(*skf.elements.tolist(), 'n_repulsive')] = skf.n_repulsive
+    sktable_dict[(*skf.elements.tolist(), 'rep_cutoff')] = skf.rep_cutoff
+    sktable_dict[(*skf.elements.tolist(), 'rep_table')] = skf.rep_table
+    sktable_dict[(*skf.elements.tolist(), 'rep_grid')] = skf.rep_grid
+    sktable_dict[(*skf.elements.tolist(), 'rep_short')] = skf.rep_short
+    sktable_dict[(*skf.elements.tolist(), 'rep_long_c')] = skf.rep_long_c
+    sktable_dict[(*skf.elements.tolist(), 'rep_long_grid')] = skf.rep_long_grid
+    return sktable_dict
+
+
 class LoadSKF:
     """Get integrals for given systems.
 
         Arguments:
             elements: global elements of single & multi systems.
-            hamiltonian: skf file type. Support normal skf input, h5py binary skf.
-            overlap:
+            hamiltonian: Hamiltonian skf table data.
+            overlap: Overlap skf table data.
+
         Keyword Args:
             hs_type: type of skf files.
             sk_interpolation: interpolation method of integrals which are not
                 in the grid points.
     """
 
-    def __init__(self, elements, hamiltonian, overlap, hs_grid, R_cutoff, **kwargs):
+    def __init__(self, elements, hamiltonian: Tensor, overlap: Tensor,
+                 hs_grid: Tensor, hs_cutoff, **kwargs):
+        repulsive = kwargs.get('repulsive', False)
         # If a single element was specified, resolve it to a tensor
         if isinstance(elements, int):
             self.elements = torch.tensor([elements]*2)
@@ -255,141 +266,161 @@ class LoadSKF:
         self.hs_grid = hs_grid
 
         # Repulsion properties
-        self.R_cutoff = R_cutoff
-        if 'repulsive' in kwargs:
-            try:
-                self.repulsive = kwargs['repulsive']
-                self.r_short = kwargs['R_short']
-                self.r_long = kwargs['R_long']
-                self.r_grid = kwargs['R_grid']
-            except KeyError as e:
-                raise KeyError(
-                    f'Repulsive spline missing "{e.args[0]}" keyword argument.')
+        self.hs_cutoff = hs_cutoff
 
-        # For polynomial representation
-        self.r_poly = kwargs.get('r_poly', None)
-        self.__repulsion_by_spline = self.r_poly is None
+        if repulsive:
+            self.n_repulsive = kwargs['n_repulsive']
+            self.rep_cutoff = kwargs['rep_cutoff']
+            self.rep_table = kwargs['rep_table']
+            self.rep_grid = kwargs['rep_grid']
+            self.rep_long_grid = kwargs['rep_long_grid']
+            self.rep_short = kwargs['rep_short']
+            self.rep_long_c = kwargs['rep_long_c']
 
-        # Identify the skf specification version
+        # for polynomial representation of
+        self.rep_poly = kwargs.get('r_poly', None)
+
+        # identify the skf specification version
         if 'version' in kwargs:
             self.version = kwargs['version']
-        elif self.hamiltonian.shape[1] == 20:
-            self.version = '1.0e'
-        else:
-            self.version = '1.0'
-
-    @property
-    def repulsion_by_spline(self):
-        """True if a repulsive spline present & False if polynomial used."""
-        # Getter used to prevent manual alteration
-        return self.__repulsion_by_spline
 
     @classmethod
-    def read(cls, path, system=None, sk_type='normal', **kwargs):
-        if not os.path.exists(path):
-            raise FileNotFoundError('Target path does not exist')
+    def read(cls, path: str, element: list, element_number: list, **kwargs):
+        """Read different type SKF files.
+
+        Arguments:
+            path: path to SKF files.
+            sk_type: type of SKF files.
+            element: element pair of SKF files.
+            element_number: pair element numbers.
+        """
+        sk_type = kwargs.get('sk_type', 'normal')
         if sk_type == 'normal':
-            return cls.read_normal(path, kwargs['element_number'])
+            path = os.path.join(path, element[0] + '-' + element[1] + '.skf')
+            return cls.read_normal(path, element_number, **kwargs)
         elif sk_type == 'h5py':
-            return cls.read_hdf(path, system, kwargs['element'], kwargs['element_number'])
+            return cls.read_hdf(path, element, element_number, **kwargs)
         elif sk_type == 'compression_radii':
-            return cls._read_compression_radii(path)
+            return cls.read_compression_radii(path, **kwargs)
 
     @classmethod
-    def get_version_number(cls, file, lines):
-        """Return skf version number."""
+    def _get_version_number(cls, file: str, lines: list) -> str:
+        """Return skf version, see: https://github.com/bhourahine/slako-doc."""
         if file.startswith('@'):  # If 1'st char is @, the version is 1.0e
-            v = '1.0e'
+            return '1.0e'
         elif len(lines[0].split()) == 2 and lines[0].split()[1].isnumeric():
-            v = '0.9'  # If no comment line; this must be version 0.9
-        else:  # Otherwise version 1.0
-            v = '1.0'
-        return v
+            return '0.9'  # If no comment line; this must be version 0.9
 
     @classmethod
-    def read_normal(cls, path, element_number, system=None):
+    def _asterisk_to_repeat_tensor(cls, xx: list) -> Tensor:
+        """Transfer 'int*float' to repetitive tensor float.repeat(int)."""
+        return torch.cat([torch.tensor([float(ii.split('*')[1])]).repeat(
+            int(ii.split('*')[0])) if '*' in ii else torch.tensor([float(ii)])
+            for ii in xx])
+
+    @classmethod
+    def read_normal(cls, path_to_skf: str, element_number: list, **kwargs):
         """Read in a skf file and returns an SKF_File instance.
 
         File names should follow the naming convention X-Y.skf where X and
         Y are the chemical symbol's of the elements involved.
 
         Arguments:
-            path: Path to the target skf file.
+            path_to_skf: Path to the target skf file.
+            element_number: Input element number pair.
         """
-        # Alias for common code structure; convert str to list of floats
-        lmf = lambda x: list(map(float, x.split()))
+        repulsive = kwargs.get('repulsive', False)
 
-        file = open(path, 'r').read()
+        # alias for common code structure
+        lmf = lambda xx: list(map(float, xx.split()))
+        _asterisk = lambda xx: list(map(str.strip, xx.split()))
+
+        file = open(path_to_skf, 'r').read()
         lines = file.split('\n')
 
-        ver = cls.get_version_number(file, lines)
-        lines = lines[1:] if ver in ['1.0', '1.0e'] else lines
+        ver = cls._get_version_number(file, lines)
+        lines = lines[1:] if ver in ['1.0e'] else lines
 
         # Get atomic numbers & identify if this is the homo case
         homo = element_number[0] == element_number[1]
+        is_asterisk = '*' in lines[2] or '*' in lines[2 + homo]
 
         if homo:
-            # & occupations
-            homo_ln = torch.tensor(lmf(lines[1]))
+            if is_asterisk:
+                homo_ln = cls._asterisk_to_repeat_tensor(_asterisk(
+                    lines[1].replace(',', ' ')))
+            else:
+                homo_ln = torch.tensor(lmf(lines[1]))
             n = int((len(homo_ln) - 1) / 3)  # <- Number of shells specified
             onsite, _, U, occupations = homo_ln.split_with_sizes([n, 1, n, n])
 
-        # H & S Tables
-        g_step, n_points = lines[0].split()
+        # grid distance and grid points number
+        g_step, n_points = lines[0].replace(',', ' ').split()[:2]
         g_step, n_points = float(g_step), int(n_points)
 
-        # Construct distance list. Note; distance start at 1 * g_step not zero
+        # construct distance list. Note; distance start at 1 * g_step not zero
         hs_grid = torch.arange(1, n_points + 1) * g_step
 
         # Fetch the H and S sk tables
-        hamiltonian, overlap = torch.tensor(
-            [lmf(i) for i in lines[2 + homo: 2 + n_points + homo]]).chunk(2, 1)
+        if is_asterisk:
+            hamiltonian, overlap = torch.stack([
+                cls._asterisk_to_repeat_tensor(_asterisk(ii.replace(',', ' ')))
+                for ii in lines[2 + homo: 2 + n_points + homo]]).chunk(2, 1)
+        else:
+            hamiltonian, overlap = torch.tensor(
+                [lmf(ii) for ii in lines[2 + homo: 2 + n_points + homo]]).chunk(2, 1)
 
-        # Repulsive Data
-        mass, *R_poly, r_cutoff = torch.tensor(lmf(lines[2 + homo]))[:10]
+        # 2 + homo line data, which contains mass, rcut and cutoff
+        if is_asterisk:
+            mass, *r_poly, cutoff = cls._asterisk_to_repeat_tensor(_asterisk(
+                lines[2 + homo].replace(',', '')))[:10]
+        else:
+            mass, *r_poly, cutoff = torch.tensor(lmf(lines[2 + homo]))[:10]
 
         # Check if there is a spline representation
-        has_r_spline = 'Spline' in file
-
-        if has_r_spline:
+        if 'Spline' in file and repulsive:
             start = lines.index('Spline') + 1  # Identify spline section start
 
-            # Read number of spline sections & overwrite the r_cutoff previously
-            # fetched from the polynomial line.
-            n, r_cutoff = lines[start].split()
-            n, r_cutoff = int(n), float(r_cutoff)
+            # get number of spline sections & overwrite the r_cutoff previously
+            nrep, r_cutoff = lines[start].split()
+            nrep, r_cutoff = int(nrep), float(r_cutoff)
 
-            r_tab = torch.tensor([lmf(line) for line in lines[start + 2: start + 1 + n]])
+            r_tab = torch.tensor([lmf(line) for line in
+                                  lines[start + 2: start + 1 + nrep]])
 
-            R = r_tab[:, 2:]
-            R_grid = torch.tensor([*r_tab[:, 0], r_tab[-1, 1]])
+            rep = r_tab[:, 2:]  # -> repulsive tables
+            r_grid = torch.tensor([*r_tab[:, 0], r_tab[-1, 1]])
 
             # Get the short and long range terms
-            R_short = torch.tensor(lmf(lines[start + 1]))
-            R_long = torch.tensor(lmf(lines[start + 1 + n])[3:])
+            r_short = torch.tensor(lmf(lines[start + 1]))
+            r_long_tab = torch.tensor(lmf(lines[start + 1 + nrep]))
+            r_long_grid = r_long_tab[:2]
+            r_long_c = r_long_tab[2:]
 
         # Build the parameter lists to pass to the in_grid_pointst method
-        pos = (element_number, hamiltonian, overlap, hs_grid, r_cutoff)
+        pos = (element_number, hamiltonian, overlap, hs_grid, cutoff)
 
         # Those that are passed by keyword
-        kwd = {'version': ver}
+        kwd = {'version': ver, 'r_poly': r_poly}
 
         if homo:  # Passed only if homo case
             kwd.update({'mass': mass, 'onsite': onsite, 'U': U,
                         'occupations': occupations})
 
-        if has_r_spline:  # Passed only if there is a repulsive spline
-            kwd.update({'R': R, 'R_grid': R_grid, 'R_short': R_short,
-                        'R_long': R_long})
-
-        else:  # Passed if there is no repulsive spline
-            kwd.update({'R_poly': R_poly})
+        if 'Spline' in file and repulsive:
+            kwd.update({'n_repulsive': nrep, 'rep_table': rep,
+                        'rep_grid': r_grid, 'rep_short': r_short,
+                        'rep_long_grid': r_long_grid, 'rep_long_c': r_long_c,
+                        'rep_cutoff': r_cutoff, 'repulsive': True})
 
         return cls(*pos, **kwd)
 
     @classmethod
-    def read_hdf(cls, path, system, element_pair, element_number):
-        """Generate integral along distance dimension."""
+    def read_hdf(cls, path: str, element_pair: list, element_number: list,
+                 **kwargs):
+        """Generate integral from h5py binary data."""
+        repulsive = kwargs.get('repulsive', False)
+
         if not os.path.isfile(path):
             raise FileExistsError('dataset %s do not exist' % path)
 
@@ -415,13 +446,8 @@ class LoadSKF:
         return cls(*pos, **kwd)
 
     @classmethod
-    def _read_compression_radii(cls, path):
+    def read_compression_radii(cls, path, **kwargs):
         """Read in a skf file and returns an SKF_File instance."""
-        raise NotImplementedError()
-
-    @classmethod
-    def from_splines(cls):
-        """Instantiates an ``SKF_File`` entity from a set of splines."""
         raise NotImplementedError()
 
 

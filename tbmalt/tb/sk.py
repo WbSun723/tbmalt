@@ -77,8 +77,7 @@ class SKT:
             groups_h = split_by_size(h_data, groupings)
             groups_s = split_by_size(s_data, groupings)
 
-            # Concatenate each group of SK blocks & flatten the result. Then
-            # concatenate each of the now flatted block groups.
+            # Concatenate each group of SK blocks & flatten the result
             h_data_shaped = torch.cat([group.transpose(1, 0).flatten()
                                        for group in groups_h])
             s_data_shaped = torch.cat([group.transpose(1, 0).flatten()
