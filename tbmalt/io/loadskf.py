@@ -5,6 +5,7 @@ import torch
 import h5py
 from scipy.interpolate import CubicSpline
 from tbmalt.common.batch import pack
+from tbmalt.common.maths.interpolator import SKInterpolation as SKInterp
 Tensor = torch.Tensor
 _orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 15: 'p', 16: 'p', 79: 'd'}
 
@@ -75,8 +76,7 @@ class IntegralGenerator:
 
         # loop of all global element pairs
         for ielement, ielement_number in zip(element_pair, element_number_pair):
-            interpolator = DFTBInterpolation \
-                if sk_interp == 'dftb_interpolation' else CubicSpline
+            interpolator = SKInterp if sk_interp == 'dftb_interpolation' else CubicSpline
 
             # read skf files
             skf = LoadSKF.read(path, ielement, ielement_number, **kwargs)
@@ -462,119 +462,3 @@ class LoadSKF:
         raise NotImplementedError()
 
 
-class DFTBInterpolation:
-    """Interpolation of SK tables.
-
-    Arguments:
-        x: Grid points of distances.
-        y: integral tables.
-    """
-
-    def __init__(self, x, y):
-        self.incr = x[1] - x[0]
-        self.y = y
-        self.ngridpoint = len(x)
-
-    def __call__(self, rr, ninterp=8, delta_r=1E-5, ntail=5):
-        """Interpolation SKF according to distance from integral tables.
-
-        Arguments:
-            rr: interpolation points
-            ngridpoint: number of total grid points
-            distance between atoms
-            ninterp: interpolate from up and lower SKF grid points number
-
-        """
-        tail = ntail * self.incr
-        rmax = (self.ngridpoint + ntail - 1) * self.incr
-        ind = (rr / self.incr).int()
-        result = torch.zeros(rr.shape)
-
-        # thye input SKF must have more than 8 grid points
-        if self.ngridpoint < ninterp + 1:
-            raise ValueError("Not enough grid points for interpolation!")
-
-        # distance beyond grid points in SKF
-        if (rr >= rmax).any():
-            result[rr >= rmax] = 0.
-
-        # => polynomial fit
-        elif (ind <= self.ngridpoint).any():
-            _mask = ind <= self.ngridpoint
-
-            # get the index of rr in grid points
-            ind_last = (ind[_mask] + ninterp / 2 + 1).int()
-            ind_last[ind_last > self.ngridpoint] = self.ngridpoint
-            ind_last[ind_last < ninterp] = ninterp
-
-            xa = (ind_last.unsqueeze(1) - ninterp + torch.arange(ninterp)) * self.incr
-            yb = torch.stack([self.y[ii - ninterp - 1: ii - 1] for ii in ind_last])
-            result[_mask] = self.poly_interp_2d(xa, yb, rr)
-
-        # Beyond the grid => extrapolation with polynomial of 5th order
-        elif (self.ngridpoint < ind < self.ngridpoint + ntail - 1).any():
-            dr = rr - rmax
-            ilast = self.ngridpoint
-            xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
-            yb = self.y[ilast - ninterp - 1: ilast - 1]
-            y0 = self.poly_interp_2d(xa, yb, xa[ninterp - 1] - delta_r)
-            y2 = self.poly_interp_2d(xa, yb, xa[ninterp - 1] + delta_r)
-            ya = self.y[ilast - ninterp - 1: ilast - 1]
-            y1 = ya[ninterp - 1]
-            y1p = (y2 - y0) / (2.0 * delta_r)
-            y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            dd = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
-        return result
-
-    def poly5_zero(self, y0, y0p, y0pp, xx, dx):
-        """Get integrals if beyond the grid range with 5th polynomial."""
-        dx1 = y0p * dx
-        dx2 = y0pp * dx * dx
-        dd = 10.0 * y0 - 4.0 * dx1 + 0.5 * dx2
-        ee = -15.0 * y0 + 7.0 * dx1 - 1.0 * dx2
-        ff = 6.0 * y0 - 3.0 * dx1 + 0.5 * dx2
-        xr = xx / dx
-        yy = ((ff * xr + ee) * xr + dd) * xr * xr * xr
-        return yy
-
-    def poly_interp_2d(self, xp, yp, rr):
-        """Interpolate from DFTB+ (lib_math) with uniform grid.
-
-        Arguments:
-            xp: 2D tensor, 1st dimension if batch size, 2nd is grid points.
-            yp: 2D tensor of integrals.
-            rr: interpolation points.
-        """
-        nn0, nn1 = xp.shape[0], xp.shape[1]
-        index_nn0 = torch.arange(nn0)
-        icl = torch.zeros(nn0).long()
-        cc, dd = torch.zeros(yp.shape), torch.zeros(yp.shape)
-
-        cc[:], dd[:] = yp[:], yp[:]
-        dxp = abs(rr - xp[index_nn0, icl])
-
-        # find the most close point to rr (single atom pair or multi pairs)
-        _mask, ii = torch.zeros(len(rr)) == 0, 0
-        dxNew = abs(rr - xp[index_nn0, 0])
-        while (dxNew < dxp).any():
-            ii += 1
-            assert ii < nn1 - 1  # index ii range from 0 to nn1 - 1
-            _mask = dxNew < dxp
-            icl[_mask] = ii
-            dxp[_mask] = abs(rr - xp[index_nn0, ii])[_mask]
-
-        yy = yp[index_nn0, icl]
-        for mm in range(nn1 - 1):
-            for ii in range(nn1 - mm - 1):
-                rtmp0 = xp[index_nn0, ii] - xp[index_nn0, ii + mm + 1]
-                rtmp1 = (cc[index_nn0, ii + 1] - dd[index_nn0, ii]) / rtmp0
-                cc[index_nn0, ii] = (xp[index_nn0, ii] - rr) * rtmp1
-                dd[index_nn0, ii] = (xp[index_nn0, ii + mm + 1] - rr) * rtmp1
-            if (2 * icl < nn1 - mm - 1).any():
-                _mask = 2 * icl < nn1 - mm - 1
-                yy[_mask] = (yy + cc[index_nn0, icl])[_mask]
-            else:
-                _mask = 2 * icl >= nn1 - mm - 1
-                yy[_mask] = (yy + dd[index_nn0, icl - 1])[_mask]
-                icl[_mask] = icl[_mask] - 1
-        return yy

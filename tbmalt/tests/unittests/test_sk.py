@@ -130,17 +130,17 @@ def test_repulsive_auorg():
 
 
 def test_repulsive_hdf():
-    """Test repulsive of mio."""
+    """Test repulsive of hdf (originally from auorg)."""
     sk = IntegralGenerator.from_dir('./skf.hdf', elements=['C', 'H'],
                                     repulsive=True, sk_type='h5py')
     assert sk.get_repulsive()[(6, 6, 'n_repulsive')] == 48
     assert sk.get_repulsive()[(6, 1, 'rep_cutoff')] == 3.5
     assert torch.max(abs(
-        sk.get_repulsive()[(6, 6, 'rep_table')][5] - torch.tensor(
+        sk.get_repulsive()[(6, 6, 'rep_table')][4] - torch.tensor(
             [2.251634, -5.614025888725752, 6.723138065482665,
              -4.85914618348724]))) < 1E-14, 'Tolerance check'
     assert torch.max(abs(
-        sk.get_repulsive()[(1, 1, 'rep_grid')][4] - torch.tensor(
+        sk.get_repulsive()[(1, 1, 'rep_grid')][3] - torch.tensor(
             [1.32]))) < 1E-14, 'Tolerance check'
     assert torch.max(abs(
         sk.get_repulsive()[(6, 1, 'rep_long_c')] -
