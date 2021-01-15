@@ -421,28 +421,39 @@ class LoadSKF:
         """Generate integral from h5py binary data."""
         repulsive = kwargs.get('repulsive', False)
 
+        element_ij = element_pair[0] + element_pair[1]
         if not os.path.isfile(path):
             raise FileExistsError('dataset %s do not exist' % path)
 
         kwd = {}  # create empty dict
         with h5py.File(path, 'r') as f:
-            hs_grid = f[element_pair[0] + element_pair[1] + '/hs_grid'][()]
-            hs_cutoff = f[element_pair[0] + element_pair[1] + '/hs_cutoff'][()]
-            hamiltonian = torch.from_numpy(f[element_pair[0] + element_pair[1]
-                                             + '/hamiltonian'][()])
-            overlap = torch.from_numpy(f[element_pair[0] + element_pair[1]
-                                         + '/overlap'][()])
+            hs_grid = f[element_ij + '/hs_grid'][()]
+            hs_cutoff = f[element_ij + '/hs_cutoff'][()]
+            hamiltonian = torch.from_numpy(f[element_ij + '/hamiltonian'][()])
+            overlap = torch.from_numpy(f[element_ij + '/overlap'][()])
 
             # return hamiltonian, overlap, and related data
             pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
 
             # homo SKF files
             if element_pair[0] == element_pair[1]:
-                onsite = torch.from_numpy(f[element_pair[0] + element_pair[1]
-                                            + '/onsite'][()])
-                U = torch.from_numpy(f[element_pair[0] + element_pair[1]
-                                       + '/U'][()])
+                onsite = torch.from_numpy(f[element_ij + '/onsite'][()])
+                U = torch.from_numpy(f[element_ij + '/U'][()])
                 kwd.update({'onsite': onsite, 'U': U})
+
+            if repulsive:
+                nrep = f[element_ij + '/n_repulsive'][()]
+                rep = f[element_ij + '/rep_table'][()]
+                r_grid = f[element_ij + '/rep_grid'][()]
+                r_short = f[element_ij + '/rep_short'][()]
+                r_long_grid = f[element_ij + '/rep_long_grid'][()]
+                r_long_c = f[element_ij + '/rep_long_c'][()]
+                r_cutoff = f[element_ij + '/rep_cutoff'][()]
+                kwd.update({'n_repulsive': nrep, 'rep_table': rep,
+                            'rep_grid': r_grid, 'rep_short': r_short,
+                            'rep_long_grid': r_long_grid, 'repulsive': True,
+                            'rep_cutoff': r_cutoff, 'rep_long_c': r_long_c})
+
         return cls(*pos, **kwd)
 
     @classmethod

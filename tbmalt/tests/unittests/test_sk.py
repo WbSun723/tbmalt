@@ -46,7 +46,6 @@ def test_repulsive_mio():
     """Test repulsive of mio."""
     sk = IntegralGenerator.from_dir('./slko/mio-1-1',
                                     elements=['C', 'N', 'O', 'H'], repulsive=True)
-    # sk.get_repulsive(torch.tensor([1, 6, 7, 8]))
     assert sk.get_repulsive()[(1, 1, 'n_repulsive')] == 16
     assert sk.get_repulsive()[(1, 6, 'rep_cutoff')] == 3.5
     assert torch.max(abs(
@@ -115,7 +114,6 @@ def test_repulsive_auorg():
     """Test repulsive of mio."""
     sk = IntegralGenerator.from_dir('./slko/auorg-1-1',
                                     elements=['C', 'Au'], repulsive=True)
-    # sk.get_repulsive(torch.tensor([1, 6, 7, 8]))
     assert sk.get_repulsive()[(79, 79, 'n_repulsive')] == 51
     assert sk.get_repulsive()[(79, 6, 'rep_cutoff')] == 6.69486306644
     assert torch.max(abs(
@@ -129,6 +127,26 @@ def test_repulsive_auorg():
         sk.get_repulsive()[(79, 6, 'rep_long_c')] -
         torch.tensor([0.000185721978564, -0.00081275078063, 0.00133311038379,
                       -12.9871430346, 395.316431054, -3186.4064968]))) < 1E-14
+
+
+def test_repulsive_hdf():
+    """Test repulsive of mio."""
+    sk = IntegralGenerator.from_dir('./skf.hdf', elements=['C', 'H'],
+                                    repulsive=True, sk_type='h5py')
+    assert sk.get_repulsive()[(6, 6, 'n_repulsive')] == 48
+    assert sk.get_repulsive()[(6, 1, 'rep_cutoff')] == 3.5
+    assert torch.max(abs(
+        sk.get_repulsive()[(6, 6, 'rep_table')][5] - torch.tensor(
+            [2.251634, -5.614025888725752, 6.723138065482665,
+             -4.85914618348724]))) < 1E-14, 'Tolerance check'
+    assert torch.max(abs(
+        sk.get_repulsive()[(1, 1, 'rep_grid')][4] - torch.tensor(
+            [1.32]))) < 1E-14, 'Tolerance check'
+    assert torch.max(abs(
+        sk.get_repulsive()[(6, 1, 'rep_long_c')] -
+        torch.tensor([-0.01, 0.02007634639672507, -0.008500295606269857,
+                      0.1099349367199619, -0.2904128801769102,
+                      0.1912556086105955]))) < 1E-14
 
 
 def test_read_skf_h5py(device):
