@@ -292,6 +292,27 @@ def test_sk_ase_batch_cubic(device):
                      ) < 1E-9, 'Tolerance check'
 
 
+def test_sk_interpolation(device):
+    """Test SK interpolation with random distance."""
+    sktable = IntegralGenerator.from_dir('slko/mio-1-1/', elements=['C', 'H'])
+    ch_00 = sktable(torch.tensor([2.0591670220427729]), torch.tensor([6, 1]),
+                    torch.tensor([0, 0]), hs_type='H')
+    assert abs(ch_00 - -0.33103366295265063) < 1E-14, 'distance < leng'
+    cc_01 = sktable(torch.tensor([1.6365507123010095]), torch.tensor([6, 6]),
+                    torch.tensor([0, 1]), hs_type='H')
+    assert abs(cc_01 - 0.45308093203471983) < 1E-14, 'distance < leng'
+    hc_00 = sktable(torch.tensor([10.473924558726461]), torch.tensor([1, 6]),
+                    torch.tensor([0, 0]), hs_type='H')
+
+    # second derivative: y2 + y0 - 2.0 * y1 is smaller than 1E-14, but
+    # delta ** 2 will result in the difference > 1E-14, seems not bug
+    assert abs(hc_00 - 8.066100641653708e-06) < 1E-11, 'distance < leng'
+    hc_00_b = sktable(torch.tensor([10.473924558726461, 10.584152656903393]),
+                      torch.tensor([1, 6]), torch.tensor([0, 0]), hs_type='H')
+    assert torch.max(abs(hc_00_b - torch.tensor(
+        [[8.066100641653708e-06], [4.4433154052067092E-006]]))) < 1E-11
+
+
 def get_matrix(filename):
     """Read DFTB+ hamsqr1.dat and oversqr.dat."""
     text = ''.join(open(filename, 'r').readlines())

@@ -266,27 +266,26 @@ class SKInterpolation:
     """Interpolation of SK tables.
 
     Arguments:
-        x: Grid points of distances.
-        y: integral tables.
+        xx: Grid points of distances.
+        yy: Integral tables.
     """
 
-    def __init__(self, x, y):
-        self.incr = x[1] - x[0]
-        self.y = y
-        self.ngridpoint = len(x)
+    def __init__(self, xx: Tensor, yy: Tensor):
+        self.incr = xx[1] - xx[0]
+        self.yy = yy
+        self.ngridpoint = len(xx)
 
-    def __call__(self, rr, ninterp=8, delta_r=1E-5, ntail=5):
+    def __call__(self, rr: Tensor, ninterp=8, delta_r=1E-5, tail=1):
         """Interpolation SKF according to distance from integral tables.
 
         Arguments:
-            rr: interpolation points
-            ngridpoint: number of total grid points
-            distance between atoms
-            ninterp: interpolate from up and lower SKF grid points number
-
+            rr: interpolation points for batch.
+            ninterp: Number of total interpolation grid points.
+            delta_r: delta distance for 1st, 2nd derivative.
+            tail: distance to smooth the tail, bohr.
         """
-        tail = ntail * self.incr
-        rmax = (self.ngridpoint + ntail - 1) * self.incr
+        ntail = int(tail / self.incr)
+        rmax = (self.ngridpoint - 1) * self.incr + tail
         ind = (rr / self.incr).int()
         result = torch.zeros(rr.shape)
 
@@ -307,23 +306,31 @@ class SKInterpolation:
             ind_last[ind_last > self.ngridpoint] = self.ngridpoint
             ind_last[ind_last < ninterp] = ninterp
 
-            xa = (ind_last.unsqueeze(1) - ninterp + torch.arange(ninterp)) * self.incr
-            yb = torch.stack([self.y[ii - ninterp - 1: ii - 1] for ii in ind_last])
+            xa = (ind_last.unsqueeze(1) - ninterp + torch.arange(ninterp)
+                  ) * self.incr  # get the interpolation gird points
+            yb = torch.stack([self.yy[ii - ninterp - 1: ii - 1]
+                              for ii in ind_last])  # grid point values
             result[_mask] = self.poly_interp_2d(xa, yb, rr)
 
         # Beyond the grid => extrapolation with polynomial of 5th order
-        elif (self.ngridpoint < ind < self.ngridpoint + ntail - 1).any():
-            dr = rr - rmax
+        elif torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).nelement() != 0:
+            _mask = torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).ne(0)
+            dr = rr[_mask] - rmax
             ilast = self.ngridpoint
+
+            # get grid points and grid point values
             xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
-            yb = self.y[ilast - ninterp - 1: ilast - 1]
-            y0 = self.poly_interp_2d(xa, yb, xa[ninterp - 1] - delta_r)
-            y2 = self.poly_interp_2d(xa, yb, xa[ninterp - 1] + delta_r)
-            ya = self.y[ilast - ninterp - 1: ilast - 1]
-            y1 = ya[ninterp - 1]
+            yb = self.yy[ilast - ninterp - 1: ilast - 1]
+            xa = xa.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
+            yb = yb.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
+
+            # get derivative
+            y0 = self.poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
+            y2 = self.poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
+            y1 = self.yy[ilast - 2]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            dd = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+            result[_mask] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
         return result
 
     def poly5_zero(self, y0, y0p, y0pp, xx, dx):
