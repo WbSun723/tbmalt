@@ -25,6 +25,17 @@ class SKT:
 
     Returns:
         HS: A tensor holding Hamiltonian or Overlap matrices associated.
+
+    Examples:
+        >>> from ase.build import molecule as molecule_database
+        >>> from tbmalt.common.structures.system import System
+        >>> from tbmalt.io.loadskf import IntegralGenerator
+        >>> from tbmalt.tb.sk import SKT
+        >>> system = System.from_ase_atoms([molecule_database('CH4')])
+        >>> sktable = IntegralGenerator.from_dir('../tests/unittests/slko//mio-1-1', system)
+        >>> skt = SKT(system, sktable)
+        >>> skt.H.shape
+        >>> torch.Size([1, 8, 8])
     """
 
     def __init__(self, system: object, sktable: object, **kwargs):

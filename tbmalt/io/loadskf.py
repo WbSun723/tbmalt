@@ -17,12 +17,24 @@ class IntegralGenerator:
     system object. Then return integrals according to parameters, such as
     distance, l_pair, etc.
 
-    Argument:
+    Arguments:
         sktable_dict: This should be a dictionary of scipy splines keyed by a
             tuple of strings of the form: (z_1, z_2, ℓ_1, ℓ_2, b, O), where the
             ℓ's are the azimuthal quantum numbers, the z's are the atomic
             numbers, b is the bond type, & O is the operator which the spline
             represents i.e. S or H.
+
+    Examples:
+        >>> from ase.build import molecule as molecule_database
+        >>> from tbmalt.common.structures.system import System
+        >>> from tbmalt.io.loadskf import IntegralGenerator
+        >>> molecule = molecule_database('CH4')
+        >>> system = System.from_ase_atoms(molecule)
+        >>> sk = IntegralGenerator.from_dir('./slko/mio-1-1', system)
+        >>> atom_pair = torch.tensor([6, 6])  # Carbon-Carbon pair
+        >>> distance = torch.tensor([2.0])
+        >>> sk(distance, atom_pair, torch.tensor([1, 1]), hs_type='H')
+        >>> tensor([[ 0.329381666662100, -0.263189996289000]])
     """
 
     def __init__(self, sktable_dict):
