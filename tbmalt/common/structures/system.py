@@ -60,7 +60,19 @@ class System:
             (isolated molecules), & an array of booleans will only enact
             PBC on a subset of cell dimensions (slab). The first two can
             be auto-inferred from the presence of the ``cell`` parameter.
-            (`bool`, `array_like` [`bool`], optional)
+            (`bool`, `array_like` [`bool`], optional).
+
+    Examples:
+        >>> from ase.build import molecule as molecule_database
+        >>> from tbmalt.common.structures.system import System
+        >>> molecule = molecule_database('CH4')
+        >>> system = System.from_ase_atoms(molecule)
+        >>> system.numbers
+        >>> tensor([[6, 1, 1, 1, 1]])
+        >>> system = System(torch.tensor([1, 1]), torch.tensor([
+            [0., 0., 0.], [0.5, 0.5, 0.5]]))
+        >>> system.distances
+        >>> tensor([[[0.0000, 1.6366], [1.6366, 0.0000]]])
 
     Todo:
         Add periodic boundaries.
