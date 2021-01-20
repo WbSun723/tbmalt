@@ -6,13 +6,25 @@ from tbmalt.common.batch import pack
 class Basis:
     """Contains data relating to the basis set.
 
-    This class is of most use when converting from orbital to atom resolved
-    data; i.e. orbital resolved mulliken charges to atom resolve. All the code
-    is designed for batch.
+    This class is of most use when converting from orbital to atom, block and
+    orbital resolved data, i.e. orbital/block resolved quantum number l
+    matrix (azimuthal_matrix); Atom/orbital/block resolved atom numbers, etc.
+    All the code is designed for batch calculations.
 
     Arguments:
         system: The class which contains geometry and orbital information.
 
+    Examples:
+        >>> from ase.build import molecule as molecule_database
+        >>> from tbmalt.common.structures.system import System
+        >>> from tbmalt.common.structures.basis import Basis
+        >>> molecule = molecule_database('CH4')
+        >>> system = System.from_ase_atoms(molecule)
+        >>> basis = Basis(system)
+        >>> subblock = basis._sub_blocks()
+        >>> subblock
+        >>> [[tensor([[True, True], [True, True]]), tensor([[True]]),
+              tensor([[True]]), tensor([[True]]), tensor([[True]])]]
     """
 
     def __init__(self, system: object):
@@ -57,11 +69,11 @@ class Basis:
         """Get the azimuthal quantum numbers.
 
         Arguments:
-            block: if it is block wise or full block.
-            sort: sort the l number in the last dimension.
-            mask: return mask.
-            char: Switch the dtype of to satisfy torch indices tensor type.
-            mask_on_site: Return mask on the onsite or not.
+            block: If return block wise or full block matrix.
+            sort: Sort the quantum number l in the last dimension.
+            mask: Return mask or not.
+            char: Switch the dtype to satisfy PyTorch indices type.
+            mask_on_site: Return mask on the onsite part or not.
             mask_diag: Return diagonal mask or not.
 
         Returns:
