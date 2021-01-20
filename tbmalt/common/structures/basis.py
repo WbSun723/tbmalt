@@ -14,6 +14,17 @@ class Basis:
     Arguments:
         system: The class which contains geometry and orbital information.
 
+    Examples:
+        >>> from ase.build import molecule as molecule_database
+        >>> from tbmalt.common.structures.system import System
+        >>> from tbmalt.common.structures.basis import Basis
+        >>> molecule = molecule_database('CH4')
+        >>> system = System.from_ase_atoms(molecule)
+        >>> basis = Basis(system)
+        >>> subblock = basis._sub_blocks()
+        >>> subblock
+        >>> [[tensor([[True, True], [True, True]]), tensor([[True]]),
+              tensor([[True]]), tensor([[True]]), tensor([[True]])]]
     """
 
     def __init__(self, system: object):
