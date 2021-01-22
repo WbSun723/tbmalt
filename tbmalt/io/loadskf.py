@@ -308,12 +308,12 @@ class LoadSKF:
         """
         sk_type = kwargs.get('sk_type', 'normal')
         if sk_type == 'normal':
-            path = os.path.join(path, element[0] + '-' + element[1] + '.skf')
-            return cls.read_normal(path, element_number, **kwargs)
+            return cls.read_normal(path, element, element_number, **kwargs)
         elif sk_type == 'h5py':
             return cls.read_hdf(path, element, element_number, **kwargs)
         elif sk_type == 'compression_radii':
-            return cls.read_compression_radii(path, **kwargs)
+            return cls.read_compression_radii(
+                path, element, element_number, **kwargs)
 
     @classmethod
     def _get_version_number(cls, file: str, lines: list) -> str:
@@ -331,7 +331,8 @@ class LoadSKF:
             for ii in xx])
 
     @classmethod
-    def read_normal(cls, path_to_skf: str, element_number: list, **kwargs):
+    def read_normal(cls, path: str, element: list,
+                    element_number: list, **kwargs):
         """Read in a skf file and returns an SKF_File instance.
 
         File names should follow the naming convention X-Y.skf where X and
@@ -346,6 +347,12 @@ class LoadSKF:
         # alias for common code structure
         lmf = lambda xx: list(map(float, xx.split()))
         _asterisk = lambda xx: list(map(str.strip, xx.split()))
+
+        if 'path_to_skf' in kwargs:
+            path_to_skf = kwargs.get('path_to_skf')
+        else:
+            path_to_skf = os.path.join(
+                path, element[0] + '-' + element[1] + '.skf')
 
         file = open(path_to_skf, 'r').read()
         lines = file.split('\n')
@@ -428,8 +435,8 @@ class LoadSKF:
         return cls(*pos, **kwd)
 
     @classmethod
-    def read_hdf(cls, path: str, element_pair: list, element_number: list,
-                 **kwargs):
+    def read_hdf(cls, path: str, element_pair: list,
+                 element_number: list, **kwargs):
         """Generate integral from h5py binary data."""
         repulsive = kwargs.get('repulsive', False)
 
@@ -448,7 +455,7 @@ class LoadSKF:
             pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
 
             # homo SKF files
-            if element_pair[0] == element_pair[1]:
+            if element_number[0] == element_number[1]:
                 onsite = torch.from_numpy(f[element_ij + '/onsite'][()])
                 U = torch.from_numpy(f[element_ij + '/U'][()])
                 kwd.update({'onsite': onsite, 'U': U})
