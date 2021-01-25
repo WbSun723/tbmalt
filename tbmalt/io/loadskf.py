@@ -5,7 +5,7 @@ import torch
 import h5py
 from scipy.interpolate import CubicSpline
 from tbmalt.common.batch import pack
-from tbmalt.common.maths.interpolator import SKInterpolation as SKInterp
+from tbmalt.common.maths.interpolator import SKInterpolation, BicubInterp
 Tensor = torch.Tensor
 _orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 15: 'p', 16: 'p', 79: 'd'}
 
@@ -64,7 +64,7 @@ class IntegralGenerator:
         if kwargs.get('orbital_resolve', False):
             raise NotImplementedError('Not implement orbital resolved U.')
 
-        sk_interp = kwargs.get('sk_interpolation', 'dftb_interpolation')
+        sk_interp = kwargs.get('sk_interpolation', 'SKInterpolation')
 
         # The interactions: ddσ, ddπ, ddδ, ...
         interactions = [(2, 2, 0), (2, 2, 1), (2, 2, 2), (1, 2, 0), (1, 2, 1),
@@ -86,9 +86,15 @@ class IntegralGenerator:
         elif system is None and element is None:
             raise ValueError('At least one of system and element is not None')
 
+        if sk_interp == 'SKInterpolation':
+            interpolator = SKInterpolation
+        elif sk_interp == 'BicubInterp':
+            interpolator = BicubInterp
+        else:
+            interpolator = CubicSpline
+
         # loop of all global element pairs
         for ielement, ielement_number in zip(element_pair, element_number_pair):
-            interpolator = SKInterp if sk_interp == 'dftb_interpolation' else CubicSpline
 
             # read skf files
             skf = LoadSKF.read(path, ielement, ielement_number, **kwargs)
@@ -268,7 +274,7 @@ class LoadSKF:
             self.elements = elements
 
         # homo or hetero
-        self.homo = self.elements[0] == self.elements[1]
+        self.homo = kwargs.get('homo', self.elements[0] == self.elements[1])
         if self.homo:
             self.onsite = kwargs['onsite']
             self.U = kwargs['U']
@@ -276,6 +282,8 @@ class LoadSKF:
         self.hamiltonian = hamiltonian
         self.overlap = overlap
         self.hs_grid = hs_grid
+        self.g_step = kwargs['g_step']
+        self.n_points = kwargs['n_points']
 
         # Repulsion properties
         self.hs_cutoff = hs_cutoff
@@ -290,7 +298,7 @@ class LoadSKF:
             self.rep_long_c = kwargs['rep_long_c']
 
         # for polynomial representation of
-        self.rep_poly = kwargs.get('r_poly', None)
+        self.rep_poly = kwargs.get('rep_poly', None)
 
         # identify the skf specification version
         if 'version' in kwargs:
@@ -343,6 +351,7 @@ class LoadSKF:
             element_number: Input element number pair.
         """
         repulsive = kwargs.get('repulsive', False)
+        homo = kwargs.get('homo', element_number[0] == element_number[1])
 
         # alias for common code structure
         lmf = lambda xx: list(map(float, xx.split()))
@@ -361,7 +370,7 @@ class LoadSKF:
         lines = lines[1:] if ver in ['1.0e'] else lines
 
         # Get atomic numbers & identify if this is the homo case
-        homo = element_number[0] == element_number[1]
+        # homo = element_number[0] == element_number[1]
         is_asterisk = '*' in lines[2] or '*' in lines[2 + homo]
 
         if homo:
@@ -406,7 +415,6 @@ class LoadSKF:
 
             r_tab = torch.tensor([lmf(line) for line in
                                   lines[start + 2: start + 1 + nrep]])
-
             rep = r_tab[:, 2:]  # -> repulsive tables
             r_grid = torch.tensor([*r_tab[:, 0], r_tab[-1, 1]])
 
@@ -420,7 +428,8 @@ class LoadSKF:
         pos = (element_number, hamiltonian, overlap, hs_grid, cutoff)
 
         # Those that are passed by keyword
-        kwd = {'version': ver, 'r_poly': r_poly}
+        kwd = {'version': ver, 'rep_poly': r_poly, 'homo': homo,
+               'g_step': g_step, 'n_points': n_points}
 
         if homo:  # Passed only if homo case
             kwd.update({'mass': mass, 'onsite': onsite, 'U': U,
@@ -435,12 +444,12 @@ class LoadSKF:
         return cls(*pos, **kwd)
 
     @classmethod
-    def read_hdf(cls, path: str, element_pair: list,
+    def read_hdf(cls, path: str, element: list,
                  element_number: list, **kwargs):
         """Generate integral from h5py binary data."""
         repulsive = kwargs.get('repulsive', False)
 
-        element_ij = element_pair[0] + element_pair[1]
+        element_ij = element[0] + element[1]
         if not os.path.isfile(path):
             raise FileExistsError('dataset %s do not exist' % path)
 
@@ -451,11 +460,20 @@ class LoadSKF:
             hamiltonian = torch.from_numpy(f[element_ij + '/hamiltonian'][()])
             overlap = torch.from_numpy(f[element_ij + '/overlap'][()])
 
+            ver = torch.from_numpy(f[element_ij + '/version'][()])
+            rep_poly = torch.from_numpy(f[element_ij + '/rep_poly'][()])
+            g_step = torch.from_numpy(f[element_ij + '/g_step'][()])
+            n_points = torch.from_numpy(f[element_ij + '/n_points'][()])
+
             # return hamiltonian, overlap, and related data
             pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
 
+            homo = element_number[0] == element_number[1]
+            kwd = {'version': ver, 'rep_poly': rep_poly, 'homo': homo,
+                   'g_step': g_step, 'n_points': n_points}
+
             # homo SKF files
-            if element_number[0] == element_number[1]:
+            if homo:
                 onsite = torch.from_numpy(f[element_ij + '/onsite'][()])
                 U = torch.from_numpy(f[element_ij + '/U'][()])
                 kwd.update({'onsite': onsite, 'U': U})
@@ -479,5 +497,3 @@ class LoadSKF:
     def read_compression_radii(cls, path, **kwargs):
         """Read in a skf file and returns an SKF_File instance."""
         raise NotImplementedError()
-
-
