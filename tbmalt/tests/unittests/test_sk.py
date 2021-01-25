@@ -46,18 +46,34 @@ def test_repulsive_mio():
     """Test repulsive of mio."""
     sk = IntegralGenerator.from_dir('./slko/mio-1-1',
                                     elements=['C', 'N', 'O', 'H'], repulsive=True)
-    assert sk.get_repulsive()[(1, 1, 'n_repulsive')] == 16
-    assert sk.get_repulsive()[(1, 6, 'rep_cutoff')] == 3.5
+    assert sk.sktable_dict[(1, 1, 'n_repulsive')] == 16
+    assert sk.sktable_dict[(1, 6, 'rep_cutoff')] == 3.5
     assert torch.max(abs(
-        sk.get_repulsive()[(6, 6, 'rep_table')][0] - torch.tensor(
+        sk.sktable_dict[(6, 6, 'rep_table')][0] - torch.tensor(
             [3.344853000000000, -8.185615473079642, 8.803750000000022,
              1.681545674779360]))) < 1E-14, 'Tolerance check'
     assert torch.max(abs(
-        sk.get_repulsive()[(6, 7, 'rep_table')][-1] - torch.tensor(
+        sk.sktable_dict[(6, 7, 'rep_table')][-1] - torch.tensor(
             [0.05220000000000001, -0.07188183228314954, 0.01604256322595639,
              0.005489302378575448]))) < 1E-14, 'Tolerance check'
-    assert torch.max(abs(sk.get_repulsive()[(8, 8, 'rep_long_grid')] -
+    assert torch.max(abs(sk.sktable_dict[(8, 8, 'rep_long_grid')] -
                          torch.tensor([3.28, 4.2]))) < 1E-14, 'Tolerance check'
+
+
+def test_other_params():
+    """Test other parameters except HS, onsite, U and repulsive."""
+    sk = IntegralGenerator.from_dir('./slko/mio-1-1',
+                                    elements=['C', 'H'], repulsive=True)
+    assert sk.sktable_dict[(1, 6, 'g_step')] == 0.02
+    assert sk.sktable_dict[(1, 6, 'n_points')] == 500
+    assert sk.sktable_dict[(1, 1, 'hs_cutoff')] == 500 * 0.02
+    assert (sk.sktable_dict[(6, 6, 'hs_grid')] == torch.arange(
+        1, 500 + 1) * 0.02).all()
+    sk2 = IntegralGenerator.from_dir('./slko/auorg-1-1',
+                                     elements=['C', 'H'], repulsive=True)
+    assert sk2.sktable_dict[(1, 6, 'version')] == '0.9'
+    assert sk2.sktable_dict[(1, 6, 'g_step')] == 0.02
+    assert sk2.sktable_dict[(6, 1, 'hs_cutoff')] == 500 * 0.02
 
 
 def test_sk_mio_ase_single(device):
@@ -114,17 +130,17 @@ def test_repulsive_auorg():
     """Test repulsive of mio."""
     sk = IntegralGenerator.from_dir('./slko/auorg-1-1',
                                     elements=['C', 'Au'], repulsive=True)
-    assert sk.get_repulsive()[(79, 79, 'n_repulsive')] == 51
-    assert sk.get_repulsive()[(79, 6, 'rep_cutoff')] == 6.69486306644
+    assert sk.sktable_dict[(79, 79, 'n_repulsive')] == 51
+    assert sk.sktable_dict[(79, 6, 'rep_cutoff')] == 6.69486306644
     assert torch.max(abs(
-        sk.get_repulsive()[(6, 79, 'rep_table')][-2] - torch.tensor(
+        sk.sktable_dict[(6, 79, 'rep_table')][-2] - torch.tensor(
             [0.000281334224069, -0.00110975431978, 0.00164091609277,
              -0.00105262626385]))) < 1E-14, 'Tolerance check'
     assert torch.max(abs(
-        sk.get_repulsive()[(79, 79, 'rep_grid')][-1] - torch.tensor(
+        sk.sktable_dict[(79, 79, 'rep_grid')][-1] - torch.tensor(
             [7.19486306644]))) < 1E-14, 'Tolerance check'
     assert torch.max(abs(
-        sk.get_repulsive()[(79, 6, 'rep_long_c')] -
+        sk.sktable_dict[(79, 6, 'rep_long_c')] -
         torch.tensor([0.000185721978564, -0.00081275078063, 0.00133311038379,
                       -12.9871430346, 395.316431054, -3186.4064968]))) < 1E-14
 
@@ -133,17 +149,17 @@ def test_repulsive_hdf():
     """Test repulsive of hdf (originally from auorg)."""
     sk = IntegralGenerator.from_dir('./skf.hdf', elements=['C', 'H'],
                                     repulsive=True, sk_type='h5py')
-    assert sk.get_repulsive()[(6, 6, 'n_repulsive')] == 48
-    assert sk.get_repulsive()[(6, 1, 'rep_cutoff')] == 3.5
+    assert sk.sktable_dict[(6, 6, 'n_repulsive')] == 48
+    assert sk.sktable_dict[(6, 1, 'rep_cutoff')] == 3.5
     assert torch.max(abs(
-        sk.get_repulsive()[(6, 6, 'rep_table')][4] - torch.tensor(
+        sk.sktable_dict[(6, 6, 'rep_table')][4] - torch.tensor(
             [2.251634, -5.614025888725752, 6.723138065482665,
              -4.85914618348724]))) < 1E-14, 'Tolerance check'
     assert torch.max(abs(
-        sk.get_repulsive()[(1, 1, 'rep_grid')][3] - torch.tensor(
+        sk.sktable_dict[(1, 1, 'rep_grid')][3] - torch.tensor(
             [1.32]))) < 1E-14, 'Tolerance check'
     assert torch.max(abs(
-        sk.get_repulsive()[(6, 1, 'rep_long_c')] -
+        sk.sktable_dict[(6, 1, 'rep_long_c')] -
         torch.tensor([-0.01, 0.02007634639672507, -0.008500295606269857,
                       0.1099349367199619, -0.2904128801769102,
                       0.1912556086105955]))) < 1E-14

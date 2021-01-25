@@ -101,6 +101,7 @@ class IntegralGenerator:
 
             # generate skf files dict
             sktable_dict = _get_hs_dict(sktable_dict, interpolator, interactions, skf)
+            sktable_dict = _get_other_params_dict(sktable_dict, skf)
 
             if skf.homo:
                 # return onsite
@@ -162,10 +163,6 @@ class IntegralGenerator:
         """
         return torch.cat([self.sktable_dict[
             (*[ii.tolist(), ii.tolist()], 'U')] for ii in atom_number])
-
-    def get_repulsive(self) -> dict:
-        """Return repulsive parameter."""
-        return self.sktable_dict
 
 
 def _get_element_info(elements: list):
@@ -248,6 +245,16 @@ def _get_repulsive_dict(sktable_dict: dict, skf: object) -> dict:
     return sktable_dict
 
 
+def _get_other_params_dict(sktable_dict: dict, skf: object) -> dict:
+    """Return other parameters except HS, onsite, U and repulsive."""
+    sktable_dict[(*skf.elements.tolist(), 'g_step')] = skf.g_step
+    sktable_dict[(*skf.elements.tolist(), 'n_points')] = skf.n_points
+    sktable_dict[(*skf.elements.tolist(), 'hs_cutoff')] = skf.hs_cutoff
+    sktable_dict[(*skf.elements.tolist(), 'hs_grid')] = skf.hs_grid
+    sktable_dict[(*skf.elements.tolist(), 'version')] = skf.version
+    return sktable_dict
+
+
 class LoadSKF:
     """Get integrals for given systems.
 
@@ -301,8 +308,7 @@ class LoadSKF:
         self.rep_poly = kwargs.get('rep_poly', None)
 
         # identify the skf specification version
-        if 'version' in kwargs:
-            self.version = kwargs['version']
+        self.version = kwargs['version']
 
     @classmethod
     def read(cls, path: str, element: list, element_number: list, **kwargs):
@@ -405,6 +411,8 @@ class LoadSKF:
         else:
             mass, *r_poly, cutoff = torch.tensor(lmf(lines[2 + homo]))[:10]
 
+        hs_cutoff = hs_grid[-1]
+
         # Check if there is a spline representation
         if 'Spline' in file and repulsive:
             start = lines.index('Spline') + 1  # Identify spline section start
@@ -425,7 +433,7 @@ class LoadSKF:
             r_long_c = r_long_tab[2:]
 
         # Build the parameter lists to pass to the in_grid_pointst method
-        pos = (element_number, hamiltonian, overlap, hs_grid, cutoff)
+        pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
 
         # Those that are passed by keyword
         kwd = {'version': ver, 'rep_poly': r_poly, 'homo': homo,
@@ -460,10 +468,10 @@ class LoadSKF:
             hamiltonian = torch.from_numpy(f[element_ij + '/hamiltonian'][()])
             overlap = torch.from_numpy(f[element_ij + '/overlap'][()])
 
-            ver = torch.from_numpy(f[element_ij + '/version'][()])
-            rep_poly = torch.from_numpy(f[element_ij + '/rep_poly'][()])
-            g_step = torch.from_numpy(f[element_ij + '/g_step'][()])
-            n_points = torch.from_numpy(f[element_ij + '/n_points'][()])
+            ver = f[element_ij + '/version'][()]
+            rep_poly = f[element_ij + '/rep_poly'][()]
+            g_step = f[element_ij + '/g_step'][()]
+            n_points = f[element_ij + '/n_points'][()]
 
             # return hamiltonian, overlap, and related data
             pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
