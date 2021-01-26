@@ -66,14 +66,14 @@ def test_other_params():
                                     elements=['C', 'H'], repulsive=True)
     assert sk.sktable_dict[(1, 6, 'g_step')] == 0.02
     assert sk.sktable_dict[(1, 6, 'n_points')] == 500
-    assert sk.sktable_dict[(1, 1, 'hs_cutoff')] == 500 * 0.02
+    assert sk.sktable_dict[(1, 1, 'hs_cutoff')] == (500 - 1) * 0.02
     assert (sk.sktable_dict[(6, 6, 'hs_grid')] == torch.arange(
         1, 500 + 1) * 0.02).all()
     sk2 = IntegralGenerator.from_dir('./slko/auorg-1-1',
                                      elements=['C', 'H'], repulsive=True)
     assert sk2.sktable_dict[(1, 6, 'version')] == '0.9'
     assert sk2.sktable_dict[(1, 6, 'g_step')] == 0.02
-    assert sk2.sktable_dict[(6, 1, 'hs_cutoff')] == 500 * 0.02
+    assert sk2.sktable_dict[(6, 1, 'hs_cutoff')] == (500 - 1) * 0.02
 
 
 def test_sk_mio_ase_single(device):
