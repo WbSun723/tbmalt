@@ -411,7 +411,7 @@ class LoadSKF:
         else:
             mass, *r_poly, cutoff = torch.tensor(lmf(lines[2 + homo]))[:10]
 
-        hs_cutoff = hs_grid[-1]
+        hs_cutoff = (n_points - 1) * g_step
 
         # Check if there is a spline representation
         if 'Spline' in file and repulsive:
