@@ -14,36 +14,25 @@ _atom_name = ["H", "He",
               "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb",
               "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W ", "Re", "Os",
               "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At"]
-_val_elect = [1, "He",
+
+_val_elect = [1, 2,
               1, 2, 3, 4, 5, 6, 7, "Ne",
               1, 2, 3, 4, 5, 6, 7, "Ar",
-              1, "Ca", "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu",
+              1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
               "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr",
               "Rb", "Sr", "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag",
               "Cd", "In", "Sn", "Sb", "Te", "I", "Xe",
               "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb",
               "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W ", "Re", "Os",
-              "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At"]
+              "Ir", "Pt", 11, "Hg", "Tl", "Pb", "Bi", "Po", "At"]
 
-_l_num = {"H": 0, "He": 0,
-          "Li": 0, "Be": 0,
-          "B": 1, "C": 1, "N": 1, "O": 1, "F": 1, "Ne": 1,
-          "Na": 0, "Mg": 0,
-          "Al": 1, "Si": 1, "P": 1, "S": 1, "Cl": 1, "Ar": 1,
-          "K": 0, "Ca": 0,
-          "Sc": 2, "Ti": 2, "V": 2, "Cr": 2, "Mn": 2, "Fe": 2, "Co": 2,
-          "Ni": 2, "Cu": 2, "Zn": 2,
-          "Ga": 1, "Ge": 1, "As": 1, "Se": 1, "Br": 1, "Kr": 1,
-          "Rb": 0, "Sr": 0,
-          "Y": 2, "Zr": 2, "Nb": 2, "Mo": 2, "Tc": 2, "Ru": 2, "Rh": 2,
-          "Pd": 2, "Ag": 2, "Cd": 2,
-          "In": 1, "Sn": 1, "Sb": 1, "Te": 1, "I": 1, "Xe": 1,
-          "Cs": 0, "Ba": 0,
-          "La": 3, "Ce": 3, "Pr": 3, "Nd": 3, "Pm": 3, "Sm": 3, "Eu": 3,
-          "Gd": 3, "Tb": 3, "Dy": 3, "Ho": 3, "Er": 3, "Tm": 3, "Yb": 3, "Lu": 3,
-          "Hf": 2, "Ta": 2, "W": 2, "Re": 2, "Os": 2, "Ir": 2, "Pt": 2,
-          "Au": 2, "Hg": 2,
-          "Tl": 1, "Pb": 1, "Bi": 1, "Po": 1, "At": 1}
+_l_num = [0, 0,
+          0, 0, 1, 1, 1, 1, 1, 1,
+          0, 0, 1, 1, 1, 1, 1, 1,
+          0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1,
+          0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1,
+          0, 0, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+          2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1]
 
 
 class System:
@@ -92,9 +81,9 @@ class System:
     def __init__(self, numbers: Union[Tensor, List[Tensor]],
                  positions: Union[Tensor, List[Tensor]],
                  lattice=None, **kwargs):
-        self.unit = kwargs['unit'] if 'unit' in kwargs else 'angstrom'
         self.pbc = kwargs['pbc'] if 'pbc' in kwargs else lattice is not None
-        self.positions, self.numbers, self.batch = self._check(numbers, positions)
+        self.positions, self.numbers, self.batch = self._check(
+            numbers, positions, **kwargs)
 
         # size of each system
         self.size_system = self._get_size()
@@ -108,15 +97,18 @@ class System:
         # size of batch size, size of each system (number of atoms)
         self.size_batch = len(self.numbers)
 
-        # get max l of each atom, number of orbitals of each atom
-        # number of orbitals of each system
+        # get max l of each atom, number of orbitals (l + 1) ** 2 of each atom
+        # number of total orbitals of each system in batch
         self.l_max, self.atom_orbitals, self.system_orbitals = \
             self._get_l_orbital()
 
-        # get Hamiltonian, overlap shape in batch
+        # get Hamiltonian, overlap shape in batch of each system and batch
         self.shape, self.hs_shape = self._get_hs_shape()
 
-    def _check(self, numbers, positions):
+    def _check(self, numbers, positions, **kwargs):
+        """Check the type and dimension of numbers, positions."""
+        unit = kwargs['unit'] if 'unit' in kwargs else 'angstrom'
+
         # sequences of tensor
         if type(numbers) is list:
             numbers = pack(numbers)
@@ -130,7 +122,12 @@ class System:
             positions = positions.unsqueeze(0)
 
         # transfer positions from angstrom to bohr
-        positions = positions / _bohr if self.unit == 'angstrom' else positions
+        if unit in ('angstrom', 'Angstrom'):
+            positions = positions / _bohr
+        elif unit in ('bohr', 'Bohr'):
+            positions = positions
+        else:
+            raise ValueError('Please select either angstrom or bohr')
 
         assert positions.shape[0] == numbers.shape[0]
         batch_ = True if numbers.shape[0] != 1 else False
@@ -149,11 +146,6 @@ class System:
         return [[_atom_name[ii - 1] for ii in inu[inu.ne(0.)]]
                 for inu in self.numbers]
 
-    def get_positions_vec(self):
-        """Return positions vector between atoms."""
-        return pack([ipo.unsqueeze(-3) - ipo.unsqueeze(-2)
-                     for ipo in self.positions])
-
     def _get_size(self):
         """Get each system size (number of atoms) in batch."""
         return [len(inum[inum.ne(0.)]) for inum in self.numbers]
@@ -161,12 +153,13 @@ class System:
     def _get_l_orbital(self):
         """Return the number of orbitals associated with each atom."""
         # max l for each atom
-        l_max = [[_l_num[ii] for ii in isym] for isym in self.symbols]
+        l_max = pack([torch.tensor([_l_num[ii - 1] for ii in inum[inum.ne(0)]])
+                      for inum in self.numbers], value=-1)
 
         # max valence orbital number for each atom and each system
         atom_orbitals = pack([torch.tensor([(ii + 1) ** 2 for ii in lm])
                               for lm in l_max])
-        system_orbitals = [sum(iao) for iao in atom_orbitals]
+        system_orbitals = pack([sum(iao) for iao in atom_orbitals])
 
         return l_max, atom_orbitals, system_orbitals
 
@@ -177,6 +170,11 @@ class System:
         hs_shape = torch.Size([self.size_batch, maxorb, maxorb])
         return shape, hs_shape
 
+    def get_positions_vec(self):
+        """Return positions vector between atoms."""
+        return pack([ipo.unsqueeze(-2) - ipo.unsqueeze(-3)
+                     for ipo in self.positions])
+
     def get_valence_electrons(self, dtype=torch.int64):
         """Return the number of orbitals associated with each atom."""
         # max l for each atom
@@ -184,34 +182,38 @@ class System:
                                    for ii in inum[inum.ne(0)]], dtype=dtype)
                      for inum in self.numbers])
 
-
     def get_global_species(self):
-        """Get species for single or multi systems according to numbers."""
+        """Get global element species for single or multi systems."""
         numbers_ = torch.unique(self.numbers)
         numbers = numbers_[numbers_.ne(0.)]
         element_name = [_atom_name[ii - 1] for ii in numbers]
         element_number, nn = numbers.tolist(), len(numbers)
         element_name_pair = [[iel, jel] for iel, jel in zip(
             sorted(element_name * nn), element_name * nn)]
-        element_number_pair = [[_atom_name.index(ii[0]) + 1,
-                                _atom_name.index(ii[1]) + 1] for ii in element_name_pair]
+        element_number_pair = [
+            [_atom_name.index(ii[0]) + 1, _atom_name.index(ii[1]) + 1]
+            for ii in element_name_pair]
         return element_name, element_number, element_name_pair, element_number_pair
 
     def get_resolved_orbital(self):
         """Return resolved orbitals and accumulated orbitals."""
-        orbital_resolved = [[torch.arange(lm + 1, dtype=torch.int8).repeat_interleave(
-            2 * torch.arange(lm + 1) + 1) for lm in ilm] for ilm in self.l_max]
-        return orbital_resolved
+        return pack([torch.cat([torch.arange(
+            lm + 1, dtype=torch.int8).repeat_interleave(2 * torch.arange(
+                lm + 1) + 1) for lm in ilm]) for ilm in self.l_max], value=-1)
 
     @classmethod
-    def to_element_number(cls, element):
+    def to_element_number(cls, element: list):
         """Return element number from element."""
-        return torch.tensor([_atom_name.index(iele) + 1 for iele in element])
+        element = [element] if type(element[0]) is not list else element
+        return pack([torch.tensor([_atom_name.index(ii) + 1 for ii in iele])
+                     for iele in element])
 
     @classmethod
-    def to_element(cls, element_number):
+    def to_element(cls, number: Union[Tensor, List[Tensor]]):
         """Return elements number from elements."""
-        return [_atom_name[iele - 1] for iele in element_number]
+        if type(number) is Tensor:
+            number = number.unsqueeze(0) if number.dim() == 1 else number
+        return [[_atom_name[ii - 1] for ii in inum[inum.ne(0)]] for inum in number]
 
     @classmethod
     def from_ase_atoms(cls, atoms):
@@ -249,7 +251,7 @@ class System:
         add_data('positions', data=self.positions.numpy())
 
     @staticmethod
-    def from_hd5(source):
+    def from_hd5(source, **kwargs):
         """Convert an hdf5.Groups entity to a Systems instance.
 
         Arguments:
@@ -269,4 +271,4 @@ class System:
         # & return the result.
         return System(
             torch.tensor(source['numbers']),
-            torch.tensor(source['positions'], dtype=dtype))
+            torch.tensor(source['positions'], dtype=dtype), **kwargs)
