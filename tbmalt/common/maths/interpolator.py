@@ -295,7 +295,7 @@ class SKInterpolation:
             yb = torch.stack([self.yy[ii - ninterp - 1: ii - 1]
                               for ii in ind_last])  # grid point values
 
-            result[_mask] = self.poly_interp_2d(xa, yb, rr)
+            result[_mask] = self.poly_interp_2d(xa, yb, rr[_mask])
 
         # Beyond the grid => extrapolation with polynomial of 5th order
         elif torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).nelement() != 0:
@@ -341,9 +341,7 @@ class SKInterpolation:
         nn0, nn1 = xp.shape[0], xp.shape[1]
         index_nn0 = torch.arange(nn0)
         icl = torch.zeros(nn0).long()
-        cc, dd = torch.zeros(yp.shape), torch.zeros(yp.shape)
-
-        cc[:], dd[:] = yp[:], yp[:]
+        cc, dd = yp.clone(), yp.clone()
         dxp = abs(rr - xp[index_nn0, icl])
 
         # find the most close point to rr (single atom pair or multi pairs)
