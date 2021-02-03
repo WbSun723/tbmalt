@@ -151,8 +151,15 @@ def test_from_ase_batch(device):
     assert sys.get_global_species()[2] == [['C', 'H'], ['C', 'C'],
                                            ['H', 'H'], ['H', 'C']]
     assert sys.get_global_species()[3] == [[6, 1], [6, 6], [1, 1], [1, 6]]
-    assert (sys.get_resolved_orbital() == torch.tensor(
-        [[0, 1, 1, 1, 0, 0, 0, 0], [0, 0, -1, -1, -1, -1, -1, -1]])).all()
+    # assert (sys.get_resolved_orbital() == torch.tensor(
+    #     [[0, 1, 1, 1, 0, 0, 0, 0], [0, 0, -1, -1, -1, -1, -1, -1]])).all()
+    orb_res = [[torch.tensor([0, 1, 1, 1]), torch.tensor([0]),
+                torch.tensor([0]), torch.tensor([0]), torch.tensor([0])],
+               [torch.tensor([0]), torch.tensor([0]), torch.tensor([]),
+                torch.tensor([]), torch.tensor([])]]
+    sys_orb = sys.get_resolved_orbital()
+    assert pack([pack([(ii == jj[jj.ge(0)]).all() for ii, jj in zip(ior, jor)])
+                 for ior, jor in zip(orb_res, sys_orb)]).all()
 
 
 def test_au_batch(device):
@@ -176,9 +183,14 @@ def test_au_batch(device):
     assert sys.get_global_species()[2] == [['Au', 'O'], ['Au', 'Au'],
                                            ['O', 'O'], ['O', 'Au']]
     assert sys.get_global_species()[3] == [[79, 8], [79, 79], [8, 8], [8, 79]]
-    assert (sys.get_resolved_orbital() == torch.tensor(
-        [[0, 1, 1, 1, 2, 2, 2, 2, 2, 0, 1, 1, 1, -1, -1, -1, -1, -1],
-         [0, 1, 1, 1, 2, 2, 2, 2, 2, 0, 1, 1, 1, 2, 2, 2, 2, 2]])).all()
+    orb_res = [[torch.tensor([0, 1, 1, 1, 2, 2, 2, 2, 2]),
+                torch.tensor([0, 1, 1, 1])],
+               [torch.tensor([0, 1, 1, 1, 2, 2, 2, 2, 2]),
+                torch.tensor([0, 1, 1, 1, 2, 2, 2, 2, 2])]]
+    sys_orb = sys.get_resolved_orbital()
+    assert pack([pack([
+        (ii == jj[jj.ge(0)]).all() for ii, jj in zip(ior, jor)])
+        for ior, jor in zip(orb_res, sys_orb)]).all()
 
 
 def test_classmethod(device):

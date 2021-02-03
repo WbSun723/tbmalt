@@ -197,9 +197,8 @@ class System:
 
     def get_resolved_orbital(self):
         """Return resolved orbitals and accumulated orbitals."""
-        return pack([torch.cat([torch.arange(
-            lm + 1, dtype=torch.int8).repeat_interleave(2 * torch.arange(
-                lm + 1) + 1) for lm in ilm]) for ilm in self.l_max], value=-1)
+        return [[torch.arange(lm + 1, dtype=torch.int8).repeat_interleave(
+            2 * torch.arange(lm + 1) + 1) for lm in ilm] for ilm in self.l_max]
 
     @classmethod
     def to_element_number(cls, element: list):

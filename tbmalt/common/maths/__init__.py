@@ -4,7 +4,7 @@
 This module contains a collection of batch-operable, back-propagatable
 mathematical functions.
 """
-from typing import Tuple, Union, Literal, Optional
+from typing import Tuple, Union, Optional
 import torch
 import numpy as np
 Tensor = torch.Tensor
@@ -387,8 +387,8 @@ def _eig_sort_out(w: Tensor, v: Tensor, ghost: bool = True
 
 def eighb(a: Tensor,
           b: Tensor = None,
-          scheme: Literal['chol', 'lowd'] = 'chol',
-          broadening_method: Optional[Literal['cond', 'lorn']] = 'cond',
+          scheme='chol',
+          broadening_method='cond',
           factor: float = 1E-12,
           sort_out: bool = True,
           aux: bool = True,
