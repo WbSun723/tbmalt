@@ -176,13 +176,13 @@ class Basis:
         """
         # Construct the first NxN slice of the matrix
         if index_type == 'orbital':
-            i_mat = [torch.arange(len(il)).repeat_interleave(
-                (torch.tensor(il) + 1) ** 2).expand(isu)
+            i_mat = [torch.arange(len(il[il.ge(0)])).repeat_interleave(
+                (il[il.ge(0)] + 1) ** 2).expand(isu)
                 for il, isu in zip(self.l_max, self.shape)]
 
         elif index_type == 'block':
-            i_mat = [torch.arange(len(il)).repeat_interleave(
-                torch.tensor(il) + 1).expand(isu)
+            i_mat = [torch.arange(len(il[il.ge(0)])).repeat_interleave(
+                il[il.ge(0)] + 1).expand(isu)
                 for il, isu in zip(self.l_max, self.subshape)]
 
         elif index_type == 'atom':
