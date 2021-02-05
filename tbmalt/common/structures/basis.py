@@ -4,7 +4,7 @@ from tbmalt.common.batch import pack
 
 
 class Basis:
-    """Contains data relating to the basis set.
+    """Generate orbital, atomic, block information.
 
     This class is of most use when converting from orbital to atom, block and
     orbital resolved data, i.e. orbital/block resolved quantum number l

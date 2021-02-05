@@ -5,8 +5,6 @@ The skf include normal skf files or skf with a list of compression radii.
 import h5py
 import torch
 import numpy as np
-from collections import Counter
-from tbmalt.io.loadskf import LoadSKF
 from tbmalt.io.loadhdf import LoadHdf
 from tbmalt.utils.ase.ase_aims import AseAims
 from tbmalt.utils.ase.ase_dftbplus import AseDftb
@@ -21,7 +19,6 @@ class CalReference:
         reference_type: The type of reference, such as FHI-aims, DFTB+.
 
     Keyword Args:
-        mode: a: append, w: write into new output file.
         path_to_skf: Joint path and SKF files if reference is DFTB+.
         path_to_aims_specie: Joint path and FHI-aims specie files if reference
             is FHI-aims.
@@ -29,30 +26,29 @@ class CalReference:
 
     def __init__(self, path_to_input: str, input_type: str, size: int,
                  reference_type='dftbplus', **kwargs):
-        """Read skf, smooth the tail, write to hdf."""
-        self.path_in = path_to_input
-        self.in_type = input_type
-        self.mode = kwargs.get('mode', 'a')
-
+        """Calculate and write reference properties from DFT(B)."""
+        self.path_input = path_to_input
+        self.input_type = input_type
         self.reference_type = reference_type
+
         if self.reference_type == 'dftbplus':
             self.path_to_dftbplus = kwargs.get('path_to_dftbplus', './dftb+')
             self.path_to_skf = kwargs.get('path_to_skf', './')
+
         elif self.reference_type == 'aims':
             self.path_to_aims = kwargs.get('path_to_aims', './aims.x')
             self.path_to_aims_specie = kwargs.get('path_to_aims_specie', './')
 
-        in_instance = self._load_input(size)
-        if self.in_type == 'ANI-1':
-            self.numbers = in_instance.numbers
-            self.positions = in_instance.positions
-            self.symbols = in_instance.symbols
-            self.atom_specie_global = in_instance.atom_specie_global
+        dataset = self._load_input(size)
+        self.numbers = dataset.numbers
+        self.positions = dataset.positions
+        self.symbols = dataset.symbols
+        self.atom_specie_global = dataset.atom_specie_global
 
     def _load_input(self, size):
         """Load."""
-        if self.in_type == 'ANI-1':
-            return LoadHdf(self.path_in, size, self.in_type)
+        if self.input_type == 'ANI-1':
+            return LoadHdf(self.path_input, size, self.input_type)
 
     def __call__(self, properties: list, **kwargs):
         """Call WriteSK.
@@ -65,8 +61,9 @@ class CalReference:
 
         """
         if self.reference_type == 'aims':
-            aims = AseAims(self.path_to_aims, self.path_to_aims_specie)
+            aims = AseAims(self.path_to_aims, self.path_to_aims_specie, **kwargs)
             result = aims.run_aims(self.positions, self.symbols, properties)
+
         elif self.reference_type == 'dftbplus':
             dftb = AseDftb(self.path_to_dftbplus, self.path_to_skf,
                            properties, **kwargs)
@@ -74,8 +71,8 @@ class CalReference:
         return result
 
     @classmethod
-    def to_hdf(cls, results: dict, numbers: list, symbols: list,
-               positions: list, properties: list, **kwargs):
+    def to_hdf(cls, results: dict, cal_reference: object,
+               properties: list, **kwargs):
         """Generate reference results to binary hdf file.
 
         Arguments:
@@ -86,11 +83,14 @@ class CalReference:
         Keyword Args:
             mode: a: append, w: write into new output file.
         """
-        output = kwargs.get('output', 'reference.hdf')
+        numbers = cal_reference.numbers
+        symbols = cal_reference.symbols
+        positions = cal_reference.positions
+        atom_specie_global = cal_reference.atom_specie_global
+        output_name = kwargs.get('output_name', 'reference.hdf')
         mode = kwargs.get('mode', 'a')  # -> if override output file
-        atom_specie_global = kwargs.get('atom_specie_global', None)
 
-        with h5py.File(output, mode) as f:
+        with h5py.File(output_name, mode) as f:
 
             # write global parameters
             gg = f['global_group'] if 'global_group' in f else \
@@ -126,9 +126,7 @@ class CalReference:
                 n_system = g.attrs['n_molecule']  # each molecule specie number
                 g.attrs['n_molecule'] = n_system + 1
                 g.create_dataset(str(n_system + 1) + 'position', data=positions[ii])
-                print(g.attrs['specie'], g.attrs['numbers'], positions[ii])
 
                 for iproperty in properties:
                     iname = str(n_system + 1) + iproperty
-                    print("results[iproperty]", iname, results[iproperty][ii])
                     g.create_dataset(iname, data=results[iproperty][ii])
