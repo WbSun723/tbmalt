@@ -159,7 +159,7 @@ class LoadHdf:
 
             # add atom species in each molecule specie
             _specie.append(data['species'])
-            _number.append(System.to_element_number(data['species']))
+            _number.append(System.to_element_number(data['species']).squeeze())
 
         for ispe, isize in enumerate(n_molecule):
             # get symbols of each atom
@@ -228,8 +228,16 @@ class LoadHdf:
         """Get general information from 'global_group' of h5py type dataset."""
         with h5py.File(dataset, 'r') as f:
             g = f['global_group']
-            if 'molecule_specie_global' in g:
-                print('molecule_specie_global is', g['molecule_specie_global'])
+            if 'molecule_specie_global' in g.attrs.keys():
+
+                # print each subgroup information
+                for imol in g.attrs['molecule_specie_global']:
+                    print('molecule type:', imol)
+                    print('numbers:', f[imol].attrs['numbers'])
+                    print('number of molecules:', f[imol].attrs['n_molecule'])
+
+            if 'atom_specie_global' in g.attrs.keys():
+                print('global atom specie:', g.attrs['atom_specie_global'])
 
 
 class LoadJson:

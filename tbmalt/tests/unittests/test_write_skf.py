@@ -1,4 +1,5 @@
 """Write SKF files to binary files."""
+import os
 import pytest
 import torch
 from tbmalt.utils.skf.write_skf import WriteSK
@@ -7,6 +8,7 @@ from ase.build import molecule as molecule_database
 from tbmalt.common.structures.system import System
 torch.set_default_dtype(torch.float64)
 torch.set_printoptions(15)
+os.system('cp -r /home/gz_fan/Public/tbmalt/slko .')
 
 
 def test_write_normal_skf_to_hdf():
@@ -47,7 +49,6 @@ def test_repulsive_hdf():
                                     repulsive=True, sk_type='h5py')
     assert sk.sktable_dict[(6, 6, 'n_repulsive')] == 48
     assert sk.sktable_dict[(6, 1, 'rep_cutoff')] == 3.5
-    print('5th', sk.sktable_dict[(6, 6, 'rep_table')][0])
     assert torch.max(abs(
         sk.sktable_dict[(6, 6, 'rep_table')][4] - torch.tensor(
             [2.251634, -5.614025888725752, 6.723138065482665,

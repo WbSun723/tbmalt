@@ -3,6 +3,7 @@
 # -*- coding: utf-8 -*-
 import re
 import os
+import torch
 import numpy as np
 import torch as t
 from ase import Atoms
@@ -18,25 +19,25 @@ HIRSH_VOL = {"H": 10.31539447, "C": 38.37861207, "N": 29.90025370,
 
 
 class AseAims:
-    """RunASEAims will run FHI-aims with both batch or single calculations.
+    """Run ASEAims will return FHI-aims with both batch or single calculations.
 
     Arguments:
         path_to_aims: Joint path and executable binary FHI-aims.
         aims_specie: path to species_defaults.
-        """
+    """
 
-    def __init__(self, path_to_aims, aims_specie):
+    def __init__(self, path_to_aims, aims_specie, **kwargs):
         self.aims = path_to_aims
         self.aims_specie = aims_specie
-
-        # check if aims exists
-        if not os.path.isfile(self.aims):
-            raise FileNotFoundError('%s not found' % self.aims)
 
         self.set_env()  # set environment before calculations
 
     def set_env(self):
         """Set the environment before DFTB calculations with ase."""
+        # check if aims exists
+        if not os.path.isfile(self.aims):
+            raise FileNotFoundError('%s not found' % self.aims)
+
         # copy binary to current path
         os.system('cp ' + self.aims + ' ./aims.x')
 
@@ -56,25 +57,25 @@ class AseAims:
             results[iproperty] = []
 
         for iposition, isymbol in zip(positions, symbols):
-            print('ibatch', 'self.symbols[ibatch]', isymbol)
-
             # run each molecule in batches
-            self.ase_iaims(iposition, isymbol)
+            self.symbol, self.position = isymbol, iposition
             self.nat = len(iposition)
 
-            # process each result (overmat, eigenvalue, eigenvect, dipole)
+            self.ase_iaims()
+
+            # process each property: energy, homo lumo, eigenvect, dipole...
             for iproperty in properties:
                 func = getattr(AseAims, iproperty)
-                results[iproperty].append(func(self, isymbol))
+                results[iproperty].append(func(self))
 
-        # remove DFTB files        self.remove()
+        self.remove()  # remove all FHI-aims related files
+
         return results
 
-    def ase_iaims(self, position, symbol):
+    def ase_iaims(self):
         """Build Aims input by ASE."""
         # set Atoms with molecule specie and coordinates
-        # print("moleculespecie", moleculespecie, 'coor', coor)
-        mol = Atoms(symbol, positions=position)
+        mol = Atoms(self.symbol, positions=self.position)
 
         cal = Aims(xc='PBE',
                    output=['dipole', 'mulliken'],
@@ -93,17 +94,18 @@ class AseAims:
             mol.calc.__dict__["parameters"]['Options_WriteHS'] = 'No'
             mol.get_potential_energy()
 
-    def homo_lumo(self, symbol):
-        """read homo and lumo"""
+    def homo_lumo(self):
+        """Read homo and lumo."""
         commh = "grep 'Highest occupied state (VBM) at' " + \
             self.aimsout + " | tail -n 1 | awk '{print $6}'"
         self.homo = subprocess.check_output(commh, shell=True).decode('utf-8')
         comml = "grep 'Lowest unoccupied state (CBM) at' " + \
             self.aimsout + " | tail -n 1 | awk '{print $6}'"
         self.lumo = subprocess.check_output(comml, shell=True).decode('utf-8')
-        return np.asarray([float(self.homo), float(self.lumo)])
+        return torch.from_numpy(np.asarray(
+            [float(self.homo), float(self.lumo)]))
 
-    def dipole(self, symbol):
+    def dipole(self):
         """Read dipole."""
         commdip = "grep 'Total dipole moment' "
         cdx = commdip + self.aimsout + " | awk '{print $7}'"
@@ -112,125 +114,64 @@ class AseAims:
         idipx = float(subprocess.check_output(cdx, shell=True).decode('utf-8'))
         idipy = float(subprocess.check_output(cdy, shell=True).decode('utf-8'))
         idipz = float(subprocess.check_output(cdz, shell=True).decode('utf-8'))
-        return np.asarray([idipx, idipy, idipz])
+        return torch.from_numpy(np.asarray([idipx, idipy, idipz]))
 
-    def total_energy(self, symbol):
-        """get total energy, formation energy."""
+    def energy(self):
+        """Get total energy."""
         comme = "grep 'Total energy                  :' " + self.aimsout + \
             " | tail -n 1 | awk '{print $5}'"
-        self.E_tot = float(
+        return float(
             subprocess.check_output(comme, shell=True).decode('utf-8'))
-        return self.cal_optfor_energy(self.E_tot, symbol)
 
-    def alpha_mbd(self, symbol):
+    def formation_energy(self):
+        """Return formation energy."""
+        energy = self.energy()
+        return self.get_formation_energy(energy, self.symbol)
+
+    def alpha_mbd(self):
         """Read polarizability."""
         commp = "grep -A " + str(self.nat + 1) + \
             " 'C6 coefficients and polarizabilities' " + self.aimsout + \
                 " | tail -n " + str(self.nat) + " | awk '{print $6}'"
         ipol = subprocess.check_output(commp, shell=True).decode('utf-8')
-        return np.asarray([float(i) for i in ipol.split('\n')[:-1]])
+        return torch.from_numpy(np.asarray([float(i)
+                                            for i in ipol.split('\n')[:-1]]))
 
-    def charge(self, symbol):
+    def charge(self):
         """Read charges."""
         commc = "grep -A " + str(self.nat) + \
             " 'atom       electrons          charge' " + self.aimsout + \
                 " | tail -n " + str(self.nat) + " | awk '{print $3}'"
         icharge = subprocess.check_output(commc, shell=True).decode('utf-8')
-        charge = np.asarray([float(i) for i in icharge.split('\n')[:-1]])
-        return self.remove_core_charge(charge, symbol)
+        charge = torch.from_numpy(
+            np.asarray([float(i) for i in icharge.split('\n')[:-1]]))
+        return self.remove_core_charge(charge, self.symbol)
 
-    def hirshfeld_volume(self, symbol):
+    def hirshfeld_volume(self):
         """Read Hirshfeld volume."""
         cvol = "grep 'Hirshfeld volume        :' " + self.aimsout + \
             " | awk '{print $5}'"
         ivol = subprocess.check_output(cvol, shell=True).decode('utf-8')
-        return np.asarray([float(i) for i in ivol.split('\n')[:-1]])
+        return torch.from_numpy(
+            np.asarray([float(i) for i in ivol.split('\n')[:-1]]))
 
-    def hirshfeld_volume_ratio(self, symbol):
+    def hirshfeld_volume_ratio(self):
         """Read Hirshfeld volume ratio."""
-        hirshfeld_volume = self.hirshfeld_volume(symbol)
-        return np.array([hirshfeld_volume[ia] / HIRSH_VOL[symbol[ia]]
-                         for ia in range(self.nat)])
+        hirshfeld_volume = self.hirshfeld_volume()
+        return torch.from_numpy(np.array(
+            [hirshfeld_volume[ia] / HIRSH_VOL[self.symbol[ia]]
+             for ia in range(self.nat)]))
 
-    def remove(self):
-        """Remove all DFTB data after calculations."""
-        os.system('rm aims.out control.in geometry.in Mulliken.out parameters.ase')
-
-    def cal_optfor_energy(self, energy, symbol):
+    def get_formation_energy(self, energy, symbol):
         """Calculate formation energy."""
         return energy - sum([AIMS_ENERGY[symbol[ia]] for ia in range(self.nat)])
 
     def remove_core_charge(self, charge, symbol):
         """Calculate formation energy."""
-        return np.array([charge[ia] - core_charge[symbol[ia]]
-                         for ia in range(self.nat)])
+        return torch.from_numpy(np.array([charge[ia] - core_charge[symbol[ia]]
+                                          for ia in range(self.nat)]))
 
-
-def get_matrix(filename):
-    """Read DFTB+ hamsqr1.dat and oversqr.dat."""
-    text = ''.join(open(filename, 'r').readlines())
-    string = re.search('(?<=MATRIX\n).+(?=\n)', text, flags = re.DOTALL).group(0)
-    out = np.array([[float(i) for i in row.split()] for row in string.split('\n')])
-    return t.from_numpy(out)
-
-
-def get_eigenvec(filename):
-    """Read DFTB+ eigenvec.out."""
-    string = []
-    text = ''.join(open(filename, 'r').readlines())
-
-    # only read float
-    string_ = re.findall(r"[-+]?\d*\.\d+", text)
-
-    # delete even column
-    del string_[1::2]
-    [string.append(float(ii)) for ii in string_]
-    nstr = int(np.sqrt(len(string)))
-
-    # transfer list to ==> numpy(float64) ==> torch
-    eigenvec = np.asarray(string).reshape(nstr, nstr)
-    return t.from_numpy(eigenvec).T
-
-
-def get_eigenvalue(filename):
-    """Read DFTB+ band.out."""
-    text = ''.join(open(filename, 'r').readlines())
-
-    # only read float
-    string = re.findall(r"[-+]?\d*\.\d+", text)
-
-    # delete even column
-    eigenval_ = [float(ii) for ii in string[1::2]]
-    occ_ = [float(ii) for ii in string[0::2]][1:]  # remove the first value
-
-    # transfer list to ==> numpy(float64) ==> torch
-    eigenval = t.from_numpy(np.asarray(eigenval_))
-    occ = t.from_numpy(np.asarray(occ_))
-    humolumo = np.asarray([eigenval[np.where(occ != 0)[0]][-1],
-                           eigenval[np.where(occ == 0)[0]][0]])
-    return eigenval, occ, humolumo
-
-
-def read_detailed_out(natom):
-    """Read DFTB+ output file detailed.out."""
-    qatom, dip = [], []
-    text = ''.join(open('detailed.out', 'r').readlines())
-    E_tot_ = re.search('(?<=Total energy:).+(?=\n)',
-                       text, flags=re.DOTALL | re.MULTILINE).group(0)
-    E_tot = re.findall(r"[-+]?\d*\.\d+", E_tot_)[0]
-
-    # read charge
-    text2 = re.search('(?<=Atom       Population\n).+(?=\n)',
-                      text, flags=re.DOTALL | re.MULTILINE).group(0)
-    qatom_ = re.findall(r"[-+]?\d*\.\d+", text2)[:natom]
-    [qatom.append(float(ii)) for ii in qatom_]
-
-    # read dipole (Debye)
-    text3 = re.search('(?<=Dipole moment:).+(?=\n)',
-                      text, flags=re.DOTALL | re.MULTILINE).group(0)
-    # if tail is [-3::], read Debye dipole, [:3] will read au dipole
-    dip_ = re.findall(r"[-+]?\d*\.\d+", text3)[:3]
-    [dip.append(float(ii)) for ii in dip_]
-
-    return float(E_tot), \
-        t.from_numpy(np.asarray(qatom)), t.from_numpy(np.asarray(dip))
+    def remove(self):
+        """Remove all DFTB data after calculations."""
+        os.system('rm aims.x aims.out control.in geometry.in')
+        os.system('rm Mulliken.out parameters.ase')
