@@ -2,9 +2,9 @@
 import torch
 import numpy as np
 Tensor = torch.Tensor
-distFudge = 1.0
+distfudge = 1.0
 
-def get_cell_translations_3d(latvec: Tensor, sk_cutoff, posExt=1, negExt=1):
+def get_cell_translations_3d(latvec: Tensor, sk_cutoff: float, posExt=1, negExt=1):
     """Calculate the translation vectors for cells for 3D periodic boundary condition.
     
     Arguments:
@@ -20,10 +20,32 @@ def get_cell_translations_3d(latvec: Tensor, sk_cutoff, posExt=1, negExt=1):
         cellvec: Cell translation vectors in relative coordinates.
         rcellvec: Cell translation vectors in absolute units.
         ncell: Number of lattice cells.
-        
+    
+    Examples:
+        >>> from periodic import get_cell_translations_3d
+        >>> import torch
+        >>> _bohr = 0.529177249
+        >>> latvec = torch.tensor([[0, 8, 0], [4, 0, 0], [0, 0, 4]]) / _bohr
+        >>> sk_cutoff = 499 * 0.02
+        >>> cutoff, cellvol, reccellvol, cellvec, rcellvec, ncell = get_cell_translations_3d(latvec, sk_cutoff)
+        >>> print(ncell)
+        75
+        >>> print(cellvec)
+        tensor([[-1., -2., -2.],
+                [-1., -2., -1.],
+                [-1., -2.,  0.],
+                [-1., -2.,  1.],
+                [-1., -2.,  2.],
+                      ...
+                [ 1.,  2., -2.],
+                [ 1.,  2., -1.],
+                [ 1.,  2.,  0.],
+                [ 1.,  2.,  1.],
+                [ 1.,  2.,  2.]])
+    
     """
     # Global cutoff for the diatomic interactions
-    cutoff = sk_cutoff + distFudge
+    cutoff = sk_cutoff + distfudge
     
     # Unit cell volume
     cellvol = abs(torch.det(latvec))
@@ -47,14 +69,8 @@ def get_cell_translations_3d(latvec: Tensor, sk_cutoff, posExt=1, negExt=1):
     ranges[0] = torch.stack([-(negExt + iTmp[ii]) for ii in range(3)])
     ranges[1] = torch.stack([(posExt + iTmp[ii]) for ii in range(3)])
     
-    # Length of the first column in ranges
-    leng1 = ranges[1, 0] - ranges[0, 0] + 1
-    
-    # Length of the second column in ranges
-    leng2 = ranges[1, 1] - ranges[0, 1] + 1
-    
-    # Length of the third column in ranges
-    leng3 = ranges[1, 2] - ranges[0, 2] + 1
+    # Length of the first, second and third column in ranges
+    leng1, leng2, leng3 = ranges[1, :] - ranges[0, :] + 1
     
     # Number of lattice cells
     ncell = leng1 * leng2 * leng3
@@ -80,7 +96,7 @@ def get_cell_translations_3d(latvec: Tensor, sk_cutoff, posExt=1, negExt=1):
     
     return cutoff, cellvol, reccellvol, cellvec, rcellvec, ncell
 
-def get_neighbour(coord0: Tensor, species0: Tensor, rcellvec: Tensor, natom, ncell, cutoff):
+def get_neighbour(coord0: Tensor, species0: Tensor, rcellvec: Tensor, natom: int, ncell: int, cutoff: float):
     """Obtain neighbour list and species according to periodic boundary condition.
     
     Arguments:
@@ -103,7 +119,27 @@ def get_neighbour(coord0: Tensor, species0: Tensor, rcellvec: Tensor, natom, nce
         neighdist2 is a 1D tensor. With three additional indices, i.e. iposcentcell, img2centcell 
         and icellvec, information of the interacting atoms for each element in neighdist2 can be 
         clearly defined.
-        
+    
+    Examples:
+        >>> from periodic import get_cell_translations_3d
+        >>> from periodic import get_neighbour
+        >>> import torch
+        >>> _bohr = 0.529177249
+        >>> latvec = torch.tensor([[0, 8, 0], [4, 0, 0], [0, 0, 4]]) / _bohr
+        >>> coord0 = torch.tensor([[0, 0, 0], [0, 4, 0]]) / _bohr
+        >>> species0 = torch.tensor([[1], [1]])
+        >>> sk_cutoff = 499 * 0.02
+        >>> cutoff, cellvol, reccellvol, cellvec, rcellvec, ncell = get_cell_translations_3d(latvec, sk_cutoff)
+        >>> neighdist2, iposcentcell, img2centcell, icellvec, nallatom, species = get_neighbour(
+                                                          coord0, species0, rcellvec, natom, ncell, cutoff)
+        >>> print(neighdist2)
+        tensor([114.2741, 114.2741,  57.1370, 114.2741, 114.2741, 114.2741, 114.2741,
+         57.1370, 114.2741, 114.2741,  57.1370, 114.2741, 114.2741,  57.1370,
+        114.2741, 114.2741,  57.1370,   0.0000,  57.1370,  57.1370,   0.0000,
+         57.1370, 114.2741, 114.2741,  57.1370, 114.2741, 114.2741,  57.1370,
+        114.2741, 114.2741,  57.1370, 114.2741, 114.2741, 114.2741, 114.2741,
+         57.1370, 114.2741, 114.2741])
+
     """
     # Square of the diatomic interaction cutoff
     cutoff2 = cutoff ** 2
@@ -124,7 +160,7 @@ def get_neighbour(coord0: Tensor, species0: Tensor, rcellvec: Tensor, natom, nce
     icell = torch.stack([torch.cat(natom * [torch.tensor([ii])]) for ii in range(ncell)])
     cc = torch.unsqueeze(icell, -1)
     
-    # Index of positon for atoms in central cell
+    # Index of position for atoms in central cell
     iposiall = torch.tensor([])
     
     # Loop over all atoms in central cell
@@ -147,16 +183,16 @@ def get_neighbour(coord0: Tensor, species0: Tensor, rcellvec: Tensor, natom, nce
     
     # Squared distance between atoms in central cell and other cells 
     # The position of atom in central is described by iposcentcell
-    neighdist2 = torch.masked_select(dist2[:, :, :], mask_dist2[:, :, :])
+    neighdist2 = torch.masked_select(dist2, mask_dist2)
     
     # Index of position for atoms in central cell
-    iposcentcell = torch.masked_select(iposiall[:, :, :], mask_dist2[:, :, :]).int()
+    iposcentcell = torch.masked_select(iposiall, mask_dist2).int()
     
     # Mapping index of atoms in translated cells onto the atoms in central cell
-    img2centcell = torch.masked_select(imapall[:, :, :], mask_dist2[:, :, :]).int()
+    img2centcell = torch.masked_select(imapall, mask_dist2).int()
     
     # Index of cell vector for each atom
-    icellvec = torch.masked_select(icellall[:, :, :], mask_dist2[:, :, :]).int()
+    icellvec = torch.masked_select(icellall, mask_dist2).int()
     
     # Count of all atoms interacting with each atom in central cell
     nallatom = neighdist2.size(0)
