@@ -44,33 +44,33 @@ class Scc:
         self.parameter = parameter
 
         self.ham, self.over = skt.H, skt.S
-        self._init_scc()
+        self._init_scc(**kwargs)
 
         self._scc_npe()
 
         self.properties = Properties(properties, self.system, self.qzero,
                                      self.charge, self.over, self.rho)
 
-    def _init_scc(self):
+    def _init_scc(self, **kwargs):
         """Initialize parameters for (non-) SCC DFTB calculations."""
         # basic DFTB parameters
         self.scc = self.parameter.scc
-        self.maxiter = self.parameter.maxiter
+        self.maxiter = self.parameter.maxiter if self.scc == 'scc' else 1
         self.mask = torch.tensor([True]).repeat(self.ham.shape[0])
         self.atom_orbitals = self.system.atom_orbitals
         self.size_system = self.system.size_system  # -> atoms in each system
 
         # intial charges
-        self.qatom = self.system.get_valence_electrons(self.ham.dtype)
-        self.qzero, self.charge = self.qatom.clone(), self.qatom.clone()
-        self.nelectron = self.qatom.sum(axis=1)
+        self.qzero = self.system.get_valence_electrons(self.ham.dtype)
+        self.charge = kwargs.get('charge') if self.scc == 'xlbomd' else self.qzero.clone()
+        self.nelectron = self.qzero.sum(axis=1)
 
         # get the mixer
         self.mix = self.parameter.mix
         if self.mix in ('Anderson', 'anderson'):
-            self.mixer = Anderson(self.qzero, return_convergence=True)
+            self.mixer = Anderson(self.charge, return_convergence=True)
         elif self.mix in ('Simple', 'simple'):
-            self.mixer = Simple(self.qzero, return_convergence=True)
+            self.mixer = Simple(self.charge, return_convergence=True)
 
     def _scc_npe(self, ibatch=[0]):
         """SCF for non-periodic-ML system with scc.
@@ -78,10 +78,10 @@ class Scc:
         atomind is the number of atom, for C, lmax is 2, therefore
         we need 2**2 orbitals (s, px, py, pz), then define atomind2
         """
-        if self.scc:
+        if self.scc in ('scc', 'xlbomd'):
             gamma = Gamma(self.skt.U, self.system.distances).gamma
         else:
-            gamma = torch.zeros(*self.qatom.shape)
+            gamma = torch.zeros(*self.qzero.shape)
 
         for iiter in range(self.maxiter):
             shift_ = torch.stack(
@@ -115,12 +115,14 @@ class Scc:
 
             # last mixed charge is the current step now
             self.qmix, self.converge = self.mixer(q_new)
-            self._update_charge(iiter, self.qmix)
+            self._update_charge(self.qmix)
+            if self.scc == 'xlbomd':
+                print(self.scc, self.charge)
 
             if (self.converge == True).all():
                 break  # -> all system reach convergence
 
-    def _update_charge(self, iiter, qmix):
+    def _update_charge(self, qmix):
         """Update charge according to convergence in last step."""
         self.charge[self.mask] = qmix
         self.mask = ~self.converge

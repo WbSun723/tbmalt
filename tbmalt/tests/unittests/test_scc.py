@@ -34,7 +34,7 @@ def test_nonscc_ase():
     skt = SKT(molecule, sktable)
     parameter = Parameter()
     scc = Scc(molecule, skt, parameter)
-    print('charge batch', scc.charge, scc.qatom)
+    print('charge batch', scc.charge, scc.qzero)
 
 
 def test_scc_property():

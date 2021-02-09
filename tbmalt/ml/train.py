@@ -37,8 +37,11 @@ class Train():
     def __loss__(self, train_property):
         self.loss = 0
         if 'dipole' in self.properties:
-            self.loss = self.criterion(train_property.properties.dipole,
-                                       self.reference['dipole'])
+            self.loss = self.loss + self.criterion(
+                train_property.properties.dipole, self.reference['dipole'])
+        if 'charge' in self.properties:
+            self.loss = self.loss + self.criterion(
+                train_property.charge, self.reference['charge'])
 
 
 class Integal(Train):
@@ -70,3 +73,18 @@ class CompressionRadii(Train):
         self.optimizer.zero_grad()
         self.loss.backward(retain_graph=True)
         self.optimizer.step()
+
+
+class Charge(Train):
+    def __init__(self, system, reference, variable, parameter, sk, **kwargs):
+        super().__init__(system, reference, variable, parameter, **kwargs)
+        self.sk = sk
+
+    def __call__(self, properties):
+        super().__call__(properties)
+        for istep in range(self.steps):
+            self._update_train()
+
+    def _update_train(self):
+        skt = SKT(self.system, self.sk)
+        scc = Scc(self.system, skt, self.params, properties=self.properties)

@@ -11,7 +11,7 @@ from tbmalt.tb.sk import SKT
 from tbmalt.common.parameter import Parameter
 from tbmalt.io.loadskf import IntegralGenerator
 from tbmalt.io.loadhdf import LoadHdf
-from tbmalt.ml.train import CompressionRadii
+from tbmalt.ml.train import CompressionRadii, Charge
 torch.set_default_dtype(torch.float64)
 torch.set_printoptions(15)
 
@@ -25,7 +25,7 @@ os.system('cp -r /home/gz_fan/Public/tbmalt/reference.hdf .')
 
 def test_read_compr(device):
     """Test SKF data with various compression radii."""
-    properties = ['dipole']
+    properties = ['dipole', 'charge']
     # sys = System.from_ase_atoms([molecule_database('CH4')])
     compression_radii_grid = torch.tensor([
         01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
@@ -43,6 +43,7 @@ def test_read_compr(device):
 
     train = CompressionRadii(sys, reference, variable, params, sk)
     train(properties)
+
 
 def test_read_compr_batch(device):
     """Test SKF data with various compression radii."""
@@ -64,6 +65,33 @@ def test_read_compr_batch(device):
 
     skt = SKT(molecule, sk, compression_radii=compression_r, fix_onsite=True,
               fix_U=True)
+
+
+def test_xlbomd():
+    """Test."""
+    # -> define all input parameters
+    properties = ['dipole', 'charge']
+    reference_size = 1000
+    params = Parameter()
+
+    # load the the generated dataset
+    numbers, positions, data_nonscc = LoadHdf.load_reference(
+        'nonscc.hdf', reference_size, properties)
+    # load the the generated dataset
+    _, _, data = LoadHdf.load_reference('scc.hdf', reference_size, properties)
+
+    sys = System(numbers, positions)
+
+    molecule = System(numbers, positions)
+    sk = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
+
+    variable = _get_charge(sys)
+    train = CompressionRadii(sys, data, variable, params, sk)
+    train(properties)
+
+
+def _get_charge(system):
+    pass
 
 
 # def test_sk_ase_batch(device):

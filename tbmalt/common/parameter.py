@@ -12,8 +12,8 @@ class Parameter:
 
     def __init__(self):
         self.mix = 'Anderson'  # -> Anderson, Simple
-        self.scc = True  # -> if True, run SCC DFTB
-        self.maxiter = 10  # -> max SCC loop
+        self.scc = 'scc'  # 'scc', 'nonscc', 'xlbomd'
+        self.maxiter = 60  # -> max SCC loop
 
     @classmethod
     def get_ml_params(cls):
