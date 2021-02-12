@@ -1,6 +1,11 @@
 """Deal with periodic conditions."""
 import torch
 import numpy as np
+from tbmalt.common.structures.system import System
+from tbmalt.io.loadskf import IntegralGenerator
+from tbmalt.tb.sk import SKT
+torch.set_default_dtype(torch.float64)
+torch.set_printoptions(precision=15)
 Tensor = torch.Tensor
 distfudge = 1.0
 
@@ -113,7 +118,7 @@ def get_neighbour(coord0: Tensor, species0: Tensor, rcellvec: Tensor, natom: int
         img2centcell: Mapping index of atoms in translated cells onto the atoms in central cell.
         icellvec: Index of cell vector for each atom.
         nallatom: Count of all atoms interacting with each atom in central cell.
-        species: Species of all interacting atoms
+        species: Species of atoms in translated cells for all interacting atom pairs.
     
     Notes: 
         neighdist2 is a 1D tensor. With three additional indices, i.e. iposcentcell, img2centcell 
@@ -197,7 +202,102 @@ def get_neighbour(coord0: Tensor, species0: Tensor, rcellvec: Tensor, natom: int
     # Count of all atoms interacting with each atom in central cell
     nallatom = neighdist2.size(0)
     
-    # Species of all interacting atoms
-    species = torch.cat([(species0[img2centcell[ii]]) for ii in range(nallatom)])
+    # Species of atoms in translated cells for all interacting atom pairs
+    species = torch.cat([(species0[ii]) for ii in zip(img2centcell)])
     
     return neighdist2, iposcentcell, img2centcell, icellvec, nallatom, species
+
+def build_periodic_nonscc_HS(coord0, species0, rcellvec, iorb, natom, neighdist2, iposcentcell, img2centcell, icellvec, nallatom, species):
+    """Build Hamiltonian and Overlap matrices for nonscc calculation with periodic boundary condition.
+    
+    Based on existing tbmalt code, obtain integral values for all interacting atom pairs in periodic
+    system and construct Hamiltonian and Overlap matrices.
+    
+    Arguments:
+        coord0: Coordinates of the atoms in central cell.
+        species0: Species of the atoms in central cell.
+        rcellvec: Cell translation vectors in absolute units.
+        iorb: Index of orbitals for atoms in central cell.
+        natom: NUmber of the atoms in central cell.
+        neighdist2: Squared distance between atoms in central cell and other cells. 
+        iposcentcell: Index of position for atoms in central cell.
+        img2centcell: Mapping index of atoms in translated cells onto the atoms in central cell.
+        icellvec: Index of cell vector for each atom.
+        nallatom: Count of all atoms interacting with each atom in central cell.
+        species: Species of all interacting atoms in translated cells
+    
+    Return:
+        H: Hamiltonian matrix for nonscc calculation with periodic boundary condition.
+        S: Overlap matrices for nonscc calculation with periodic boundary condition.
+    
+    To do: Consider Kpoints for building H and S matrices.
+        
+    """
+    # Coordinates of atoms within cutoff distance in all translated cells
+    coordall = torch.stack([coord0[ii] + rcellvec[jj] for ii, jj in zip(img2centcell, icellvec)])
+    
+    # Species of atoms in central cell for all interacting atom pairs
+    species2 = torch.cat([(species0[ii]) for ii in zip(iposcentcell)])
+    
+    # Total number of orbitals in central cell
+    norb = torch.sum(iorb)
+    
+    # Index of start position for atom in H and S matrices
+    iorbtem = torch.cat((torch.tensor([0]), iorb), dim=0)
+    iatomstart = torch.cat([torch.tensor([sum(iorbtem[ : ii + 1])]) for ii in range(natom + 1)])
+    
+    # Build H, S
+    H = torch.zeros(1, norb, norb)
+    S = torch.zeros(1, norb, norb)
+    
+    # Loop over all atomparis in neighbour list
+    for ii in range(nallatom):
+        # When distance between two atoms is not zero, read integral values for orbitals needed
+        if neighdist2[ii] != 0:
+            
+            # Directly build an atom pair using atom species from central and translated cell
+            atompair = torch.tensor([species2[ii], species[ii]])
+            
+            # Position of two atoms
+            position = torch.stack((coord0[iposcentcell[ii]], coordall[ii]))
+            
+            # Build atom pair
+            molecule = System(atompair, position, unit='Bohr')
+            
+            # Obtain orbitals of the atom pair
+            atomorb = molecule.atom_orbitals
+            
+            # Read integral values
+            sktable = IntegralGenerator.from_dir('/home/wenbo/dftb_pe/slakos/mio/mio-1-1', molecule)
+            skt = SKT(molecule, sktable)
+            h = skt.H[0, 0:atomorb[0, 0], atomorb[0, 0]:atomorb[0, 0]+atomorb[0, 1]]
+            s = skt.S[0, 0:atomorb[0, 0], atomorb[0, 0]:atomorb[0, 0]+atomorb[0, 1]]
+        
+        # When distance between two atoms is zero, read on-site values
+        if neighdist2[ii] == 0:
+            
+            # Directly build an atom pair using atom species from central and translated cell
+            atompair = torch.tensor([species2[ii], species[ii]])
+            
+            # Using an imaginary atom as the second atom
+            position = torch.stack((coord0[iposcentcell[ii]], coord0[iposcentcell[ii]] + rcellvec[icellvec[0]]))
+            
+            # Build atom pair
+            molecule = System(atompair, position, unit='Bohr')
+            
+            # Obtain orbitals of the atom pair
+            atomorb = molecule.atom_orbitals
+            
+            # Read on-site values
+            sktable = IntegralGenerator.from_dir('/home/wenbo/dftb_pe/slakos/mio/mio-1-1', molecule)
+            skt = SKT(molecule, sktable)
+            h = skt.H[0, 0:atomorb[0, 0], 0:atomorb[0, 0]]
+            s = skt.S[0, 0:atomorb[0, 0], 0:atomorb[0, 0]]
+        
+        # Build H, S
+        H[0, iatomstart[iposcentcell[ii]]:iatomstart[iposcentcell[ii] + 1], iatomstart[img2centcell[ii]]:iatomstart[img2centcell[ii] + 1]] = \
+            H[0, iatomstart[iposcentcell[ii]]:iatomstart[iposcentcell[ii] + 1], iatomstart[img2centcell[ii]]:iatomstart[img2centcell[ii] + 1]] + h
+        S[0, iatomstart[iposcentcell[ii]]:iatomstart[iposcentcell[ii] + 1], iatomstart[img2centcell[ii]]:iatomstart[img2centcell[ii] + 1]] = \
+            S[0, iatomstart[iposcentcell[ii]]:iatomstart[iposcentcell[ii] + 1], iatomstart[img2centcell[ii]]:iatomstart[img2centcell[ii] + 1]] + s
+    
+    return H, S
