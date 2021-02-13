@@ -116,8 +116,6 @@ class Scc:
             # last mixed charge is the current step now
             self.qmix, self.converge = self.mixer(q_new)
             self._update_charge(self.qmix)
-            if self.scc == 'xlbomd':
-                print(self.scc, self.charge)
 
             if (self.converge == True).all():
                 break  # -> all system reach convergence

@@ -38,8 +38,10 @@ class SKT:
         >>> torch.Size([1, 8, 8])
     """
 
-    def __init__(self, system: object, sktable: object, **kwargs):
+    def __init__(self, system: object, sktable: object, periodic=None,
+                 kpoint=None, **kwargs):
         self.system = system
+        self.periodic = periodic
         self.H = torch.zeros(self.system.hs_shape)
         self.S = torch.zeros(self.system.hs_shape)
 
@@ -56,10 +58,7 @@ class SKT:
         # atom indices and atomic numbers
         i_mat_b = basis.index_matrix('block')
         an_mat_a = basis.atomic_number_matrix('atom')
-
-        vec_mat_a = self.system.positions.unsqueeze(-3) - \
-            self.system.positions.unsqueeze(-2)
-        vec_mat_a = torch.nn.functional.normalize(vec_mat_a, p=2, dim=-1)
+        vec_mat_a = self._position_vec()
 
         # Loop over each type of azimuthal-pair interaction
         for l_pair, f in zip(_SK_interactions, _SK_functions):
@@ -76,16 +75,9 @@ class SKT:
 
             # gather atomic numbers, distances, directional cosigns
             gathered_an = an_mat_a[index_mask_a]
-            gathered_dists = system.distances[index_mask_a]
-            gathered_vecs = vec_mat_a[index_mask_a]
-
-            if compr is not None:  # Construct compression radii pair
-                compr = compr if compr.dim() == 2 else compr.unsqueeze(0)
-                compr_pair = torch.stack([
-                    compr[index_mask_a[0], index_mask_a[1]],
-                    compr[index_mask_a[0], index_mask_a[2]]]).T
-            else:
-                compr_pair = None
+            gathered_dists = self._select_distance(index_mask_a)
+            gathered_vecs = self._select_position_vec(vec_mat_a, index_mask_a)
+            compr_pair = self._get_compr_pair(compr, index_mask_a)
 
             # request integrals from the integrals
             gathered_h, gathered_s = integral_retrieve(
@@ -106,6 +98,8 @@ class SKT:
                                        for group in groups_h])
             s_data_shaped = torch.cat([group.transpose(1, 0).flatten()
                                        for group in groups_s])
+            h_data_shaped, s_data_shaped = self._reshape_hs(
+                h_data_shaped, s_data_shaped, self.periodic, kpoint, index_mask_a[0])
 
             # Create the full size index mask which will assign the results
             index_mask_f = torch.where((l_mat_f == l_pair).all(dim=-1))
@@ -129,6 +123,70 @@ class SKT:
         self.U = U_retrieve(an_mat_a, sktable, self.system.numbers.shape,
                             **kwargs)
 
+    def _select_distance(self, index_mask_a):
+        """Gather distance."""
+        if self.periodic is None:  # -> molecule
+            return self.system.distances[index_mask_a]
+        else:  # -> solid, first dim is batch, second is cell
+            return self.periodic.periodic_distances.permute(0, 2, 3, 1)[index_mask_a].T
+
+    def _position_vec(self):
+        if self.periodic is None:
+            vec_mat_a = self.system.positions.unsqueeze(-3) - \
+                self.system.positions.unsqueeze(-2)
+            return torch.nn.functional.normalize(vec_mat_a, p=2, dim=-1)
+        else:
+            vec_mat_a = self.periodic.positions_vec
+            return torch.nn.functional.normalize(vec_mat_a, p=2, dim=-1)
+
+    def _select_position_vec(self, vec_mat_a, index_mask_a):
+        if self.periodic is None:
+            return vec_mat_a[index_mask_a]
+        else:
+            # permute to transfer cell dimension to the last to match mask
+            _vec_selec = vec_mat_a.permute(0, 2, 3, 4, 1)[index_mask_a]
+            return _vec_selec.permute(2, 0, 1).reshape(-1, _vec_selec.shape[1])
+
+    def _select_kpoint(self, kpoint, periodic, mask):
+        """Select kpoint for each interactions."""
+        if kpoint is None:
+            batch_size = periodic.periodic_distances.shape[0]
+            cell_vec = periodic.cellvec
+            kpoint = np.pi * torch.ones(batch_size, 1, 3)
+
+            # 1st dim of returned dot_product(kpoint, cellvec) is cellvec size
+            return torch.bmm(kpoint[mask], cell_vec[mask]).squeeze(1).T
+        else:
+            cell_vec = periodic.cellvec
+            return torch.bmm(kpoint.unsqueeze(1)[mask], cell_vec[mask]).squeeze(1).T
+
+    def _get_compr_pair(self, compr, index_mask_a):
+        """Return compression radii pair."""
+        if compr is not None:  # Construct compression radii pair
+            compr = compr if compr.dim() == 2 else compr.unsqueeze(0)
+            return torch.stack([
+                compr[index_mask_a[0], index_mask_a[1]],
+                compr[index_mask_a[0], index_mask_a[2]]]).T
+        else:
+            return None
+
+    def _reshape_hs(self, h_data_shaped, s_data_shaped, periodic, kpoint, mask):
+        """Reshape periodic H and S and sum over cell dimension."""
+        if periodic is None:
+            return h_data_shaped, s_data_shaped
+        else:
+            cell_size = periodic.periodic_distances.shape[1]
+            phase = torch.exp((0. + 1j) * self._select_kpoint(kpoint, periodic, mask)).real
+
+            # repeat if there are p, d orbitals
+            phase = phase.repeat_interleave(int(h_data_shaped.reshape(
+                cell_size, -1).shape[1] / phase.shape[1]), 1)
+
+            # sum along cell vector dimension
+            _h = (phase * h_data_shaped.reshape(cell_size, -1)).sum(0)
+            _s = (phase * s_data_shaped.reshape(cell_size, -1)).sum(0)
+            return _h, _s
+
 
 def split_by_size(tensor: Tensor, split_sizes: Tensor, dim=0):
     """Splits tensor according to chunks of split_sizes.
@@ -147,8 +205,12 @@ def split_by_size(tensor: Tensor, split_sizes: Tensor, dim=0):
 
     # Ensure the tensor is large enough to satisfy the chunk declaration.
     if tensor.size(dim) != split_sizes.sum():
-        raise KeyError(
-            'Sum of split sizes fails to match tensor length along specified dim')
+        if tensor.size(dim) % split_sizes.sum().numpy() == 0:
+            expand = int(tensor.size(dim) / split_sizes.sum().numpy())
+            split_sizes = split_sizes.repeat(expand)
+        else:
+            raise KeyError(
+                'split_sizes fails to match tensor length along specified dim')
 
     # Identify the slice positions
     splits = torch.cumsum(torch.Tensor([0, *split_sizes]), dim=0)[:-1]
@@ -161,8 +223,14 @@ def split_by_size(tensor: Tensor, split_sizes: Tensor, dim=0):
 def integral_retrieve(distances: Tensor, atom_pairs: Tensor, integral: object,
                       l_pair: Tensor, compression_radii=None):
     """Integral retrieval operation."""
-    sktable_h = torch.zeros(len(atom_pairs), l_pair.min() + 1)
-    sktable_s = torch.zeros(len(atom_pairs), l_pair.min() + 1)
+    if distances.dim() == 2:  # -> periodic
+        atom_pairs = atom_pairs.repeat(distances.shape[0], 1)
+        sktable_h = torch.zeros(len(atom_pairs), l_pair.min() + 1)
+        sktable_s = torch.zeros(len(atom_pairs), l_pair.min() + 1)
+        distances = distances.flatten()
+    else:
+        sktable_h = torch.zeros(len(atom_pairs), l_pair.min() + 1)
+        sktable_s = torch.zeros(len(atom_pairs), l_pair.min() + 1)
     unique_atom_pairs = atom_pairs.unique(dim=0)
 
     # loop over each of the unique atom_pairs

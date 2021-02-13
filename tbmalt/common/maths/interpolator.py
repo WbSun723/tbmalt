@@ -267,7 +267,7 @@ class SKInterpolation:
             delta_r: Delta distance for 1st, 2nd derivative.
             tail: Distance to smooth the tail, unit is bohr.
         """
-        ntail = int(tail / self.incr)
+        max_ind = self.ngridpoint - 1 + int(tail / self.incr)
         rmax = (self.ngridpoint - 1) * self.incr + tail
         ind = (rr / self.incr).int()
         result = torch.zeros(rr.shape) if self.yy.dim() == 1 else torch.zeros(
@@ -277,12 +277,8 @@ class SKInterpolation:
         if self.ngridpoint < ninterp + 1:
             raise ValueError("Not enough grid points for interpolation!")
 
-        # distance beyond grid points in SKF
-        if (rr >= rmax).any():
-            result[rr >= rmax] = 0.
-
         # => polynomial fit
-        elif (ind <= self.ngridpoint).any():
+        if (ind <= self.ngridpoint).any():
             _mask = ind <= self.ngridpoint
 
             # get the index of rr in grid points
@@ -298,16 +294,16 @@ class SKInterpolation:
             result[_mask] = self.poly_interp_2d(xa, yb, rr[_mask])
 
         # Beyond the grid => extrapolation with polynomial of 5th order
-        elif torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).nelement() != 0:
-            _mask = torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).ne(0)
-            dr = rr[_mask] - rmax
+        is_tail = ind.masked_fill(ind.ge(self.ngridpoint) * ind.le(max_ind), -1).eq(-1)
+        if is_tail.any():
+            dr = rr[is_tail] - rmax
             ilast = self.ngridpoint
 
             # get grid points and grid point values
             xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
             yb = self.yy[ilast - ninterp - 1: ilast - 1]
-            xa = xa.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
-            yb = yb.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
+            xa = xa.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
+            yb = yb.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
 
             # get derivative
             y0 = self.poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
@@ -315,7 +311,8 @@ class SKInterpolation:
             y1 = self.yy[ilast - 2]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            result[_mask] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+            result[is_tail] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+
         return result
 
     def poly5_zero(self, y0: Tensor, y0p: Tensor, y0pp: Tensor, xx: Tensor,

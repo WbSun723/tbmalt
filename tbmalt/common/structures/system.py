@@ -1,7 +1,10 @@
 """Structural and orbital information."""
 import torch
+import numpy as np
 from typing import Union, List
 from tbmalt.common.batch import pack
+from tbmalt.common.structures.cell import Cell
+from tbmalt.common.structures.periodic import Periodic
 _bohr = 0.529177249
 Tensor = torch.Tensor
 _atom_name = ["H", "He",
@@ -55,6 +58,8 @@ class System:
             The lattice vectors of the cell, if applicable. This should be
             a 3x3 matrix. While a 1x3 vector can be specified it will be
             auto parsed into a 3x3 vector.
+
+    Keyword Args:
         pbc: True will enact periodic boundary conditions (PBC) along all
             cell dimensions (buck systems), False will fully disable PBC
             (isolated molecules), & an array of booleans will only enact
@@ -74,16 +79,24 @@ class System:
         >>> system.distances
         >>> tensor([[[0.0000, 1.6366], [1.6366, 0.0000]]])
 
-    Todo:
-        Add periodic boundaries.
     """
 
     def __init__(self, numbers: Union[Tensor, List[Tensor]],
                  positions: Union[Tensor, List[Tensor]],
-                 lattice=None, **kwargs):
-        self.pbc = kwargs['pbc'] if 'pbc' in kwargs else lattice is not None
-        self.positions, self.numbers, self.batch = self._check(
-            numbers, positions, **kwargs)
+                 cell=None, pbc=None, **kwargs):
+        self.cell = cell
+        self.pbc = pbc
+
+        # bool tensor is_periodic defines which is solid and which is molecule
+        if self.cell is not None:
+            self.cell, self.pbc, self.is_periodic = self._cell()
+            self.periodic = True if True in self.is_periodic else False
+            self.positions, self.numbers, self.batch, self.is_periodic = \
+                self._check(numbers, positions, self.is_periodic, **kwargs)
+        else:
+            self.periodic = False  # no system is solid
+            self.positions, self.numbers, self.batch, self.is_periodic = \
+                self._check(numbers, positions, **kwargs)
 
         # size of each system
         self.size_system = self._get_size()
@@ -105,9 +118,9 @@ class System:
         # get Hamiltonian, overlap shape in batch of each system and batch
         self.shape, self.hs_shape = self._get_hs_shape()
 
-    def _check(self, numbers, positions, **kwargs):
+    def _check(self, numbers, positions, is_periodic=None, **kwargs):
         """Check the type and dimension of numbers, positions."""
-        unit = kwargs['unit'] if 'unit' in kwargs else 'angstrom'
+        unit = kwargs.get('unit', 'angstrom')
 
         # sequences of tensor
         if type(numbers) is list:
@@ -121,18 +134,17 @@ class System:
         elif type(positions) is torch.Tensor and positions.dim() == 2:
             positions = positions.unsqueeze(0)
 
-        # transfer positions from angstrom to bohr
+        if is_periodic is None:
+            is_periodic = torch.zeros(numbers.shape[0], dtype=torch.bool)
+
+        # transfer positions from angstrom to bohr only for molecule
         if unit in ('angstrom', 'Angstrom'):
-            positions = positions / _bohr
-        elif unit in ('bohr', 'Bohr'):
-            positions = positions
-        else:
-            raise ValueError('Please select either angstrom or bohr')
+            positions[~is_periodic] = positions[~is_periodic] / _bohr
 
         assert positions.shape[0] == numbers.shape[0]
         batch_ = True if numbers.shape[0] != 1 else False
 
-        return positions, numbers, batch_
+        return positions, numbers, batch_, is_periodic
 
     def _get_distances(self):
         """Return distances between a list of atoms for each system."""
@@ -170,6 +182,11 @@ class System:
         hs_shape = torch.Size([self.size_batch, maxorb, maxorb])
         return shape, hs_shape
 
+    def _cell(self):
+        """Return cell information."""
+        _cell = Cell(self.cell, self.pbc)
+        return _cell.cell, _cell.pbc, _cell.is_periodic
+
     def get_positions_vec(self):
         """Return positions vector between atoms."""
         return pack([ipo.unsqueeze(-2) - ipo.unsqueeze(-3)
@@ -200,6 +217,25 @@ class System:
         return [[torch.arange(lm + 1, dtype=torch.int8).repeat_interleave(
             2 * torch.arange(lm + 1) + 1) for lm in ilm] for ilm in self.l_max]
 
+    def _periodic(cls):
+        """Return periodic class."""
+        system = System()
+        Periodic(system)
+
+    @property
+    def get_reciprocal_cell(self):
+        """Get the three reciprocal lattice vectors as a 3x3 ndarray.
+
+        Note that the commonly used factor of 2 pi for Fourier
+        transforms is not included here."""
+        return self.cell.reciprocal()
+
+    @property
+    def _pbc(self):
+        """Reference to pbc-flags for in-place manipulations."""
+        return self._pbc
+
+
     @classmethod
     def to_element_number(cls, element: list):
         """Return element number from element."""
@@ -215,7 +251,7 @@ class System:
         return [[_atom_name[ii - 1] for ii in inum[inum.ne(0)]] for inum in number]
 
     @classmethod
-    def from_ase_atoms(cls, atoms):
+    def from_ase_atoms(cls, atoms, **kwargs):
         """Instantiate a System instance from an ase.Atoms object.
 
         Arguments:
@@ -225,14 +261,19 @@ class System:
             System : System object.
 
         """
-        if isinstance(atoms, list):  # If multiple atoms objects supplied:
+        if isinstance(atoms, list):  # If multiple atoms objects supplied
             # Recursively call from_ase_atoms and return the result
             numbers = [torch.from_numpy(iat.numbers) for iat in atoms]
             positions = [torch.from_numpy(iat.positions) for iat in atoms]
-            return System(numbers, positions)
+            cell = [torch.from_numpy(np.asarray(iat.cell)) for iat in atoms]
+            pbc = [torch.from_numpy(np.asarray(iat.pbc)) for iat in atoms]
+            return System(numbers, positions, cell, pbc, **kwargs)
 
-        return System(torch.from_numpy(atoms.numbers),
-                      torch.torch.from_numpy(atoms.positions))
+        elif isinstance(atoms, object):  # If single atoms objects supplied
+            return System(torch.from_numpy(atoms.numbers),
+                          torch.torch.from_numpy(atoms.positions),
+                          torch.from_numpy(np.asarray(atoms.cell)),
+                          torch.from_numpy(np.asarray(atoms.pbc)), **kwargs)
 
     def to_hd5(self, target):
         """Convert the System instance to a set of hdf5 datasets.

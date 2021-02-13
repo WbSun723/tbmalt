@@ -64,9 +64,9 @@ def test_symtem_ase_byhand_single(device):
     # deal with input by hand
     positions = torch.from_numpy(ch4.positions)
     numbers = torch.from_numpy(ch4.numbers)
+    distance_ref = _calculate_distance(numbers, positions / _bohr)
 
     sys = System(numbers, positions)
-    distance_ref = _calculate_distance(numbers, positions / _bohr)
 
     assert torch.max(abs(sys.distances - distance_ref)) < 1E-14
     assert sys.symbols == [['C', 'H', 'H', 'H', 'H']]
@@ -216,7 +216,7 @@ def test_hdf5(device):
     numbers = torch.from_numpy(ch4.numbers)
 
     with h5py.File('test.hdf5', 'w') as f:
-        System(numbers, positions).to_hd5(f)
+        System(numbers, positions.clone()).to_hd5(f)
 
     with h5py.File('test.hdf5', 'r') as f:
         sys = System.from_hd5(f, unit='bohr')

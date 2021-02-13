@@ -86,6 +86,7 @@ class IntegralGenerator:
 
         # create a blank dict for integrals
         sktable_dict = {}
+        sk_cutoff = []
         assert elements is not None or system is not None
 
         # get global element species and all corresponding SKF files
@@ -112,6 +113,7 @@ class IntegralGenerator:
 
             # read skf files
             skf = LoadSKF.read(path, ielement, ielement_number, **kwargs)
+            sk_cutoff.append(skf.hs_cutoff)
 
             # generate skf files dict
             sktable_dict = _get_hs_dict(sktable_dict, interpolator, interactions, skf, **kwargs)
@@ -128,6 +130,9 @@ class IntegralGenerator:
 
             if repulsive:
                 sktable_dict = _get_repulsive_dict(sktable_dict, skf)
+
+        sktable_dict['sk_cutoff_element_pair'] = sk_cutoff
+        sktable_dict['sk_cutoff'] = max(sk_cutoff)  # return the max cutoff
 
         return cls(sktable_dict)
 
@@ -196,6 +201,15 @@ class IntegralGenerator:
             return torch.cat([_U[
                 (*[ii.tolist(), ii.tolist()], 'U')] for ii in atom_number])
 
+    @property
+    def cutoff(self):
+        """Return cutoff from SK input."""
+        return self.sktable_dict['sk_cutoff']
+
+    @property
+    def cutoff_element_pair(self):
+        """Return cutoff for all atom pairs."""
+        return self.sktable_dict['sk_cutoff_element_pair']
 
 
 def _get_element_info(elements: list):
