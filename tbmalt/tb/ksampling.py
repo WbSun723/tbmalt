@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from tbmalt.common.batch import pack
 Tensor = torch.Tensor
+_bohr = 0.529177249
 tol = 1e-4
 minlim = - tol
 maxlim = 1 - tol
@@ -143,9 +144,65 @@ def reduce_supercell(nkpoints: Tensor, kpoints: Tensor, kweights: Tensor):
     # K-points for periodic system after reducing
     kpoints_re = torch.clone(kpoints[mask_kpoint])
     
-    # The weights of each K-point after reducing.
+    # The weights of each K-point after reducing
     kweights_re = torch.clone(kweights[mask_kpoint])
     
     return nkpoints_re, kpoints_re, kweights_re
     
+def specify_kpoint(kpointsandweights: Tensor, latvec: Tensor, **kwargs):
+    """Explicitly specify K-points for the periodic system.
     
+    Arguments:
+        kpointsandweights: The coordinates and weights of K-points.
+        latvec: Lattice vector describing the geometry of periodic system.
+    
+    Return:
+        nkpoints: Number of the K-points.
+        kpoints: K-points for periodic system.
+        kweights: The weights of each K-point.
+        
+    """
+    if kpointsandweights.dim() != 2:
+        raise ValueError('Specified kpointsandweights dimension should be 2')
+    
+    if kpointsandweights.size(1) != 4:
+        raise ValueError('Please use 4 values to specify the coordinates and weights of K-points')
+    
+    # Default coordinate of K-points is fraction coordinate
+    coor = kwargs.get('coor', 'fraction')
+    
+    # Default unit of K-points is bohr
+    unit = kwargs.get('unit', 'bohr')
+    
+    # Number of K-points
+    nkpoints = torch.tensor([kpointsandweights.size(0)])
+    
+    # Read input coordinates of K-points
+    kpoints = kpointsandweights[:, :3]
+    
+    # Normalize the input weights of K-points
+    kweights = torch.unsqueeze((1. / sum(kpointsandweights[:, 3])) * kpointsandweights[:, 3], dim=-1)
+    
+    if unit in ('angstrom', 'Angstrom'):
+        kpoints = kpoints / _bohr
+        latvec = latvec / _bohr
+    elif unit not in ('bohr', 'Bohr'):
+        raise ValueError('Unit is either angstrom or bohr')
+    
+    if coor in ('absolute', 'Absolute'):
+        kpoints = absolute_to_fraction(kpoints, latvec)
+    elif coor not in('fraction', 'Fraction'):
+        raise ValueError('Coordinate is either absolute or fraction')
+    
+    return nkpoints, kpoints, kweights
+    
+def fraction_to_absolute(kpoints: Tensor, invlatvec: Tensor):
+    """Transfer K-points in fraction coordinates to absolute space."""
+    return torch.stack([torch.matmul(invlatvec, kpoints[ikp]) 
+                        for ikp in range(kpoints.size(0))])
+    
+def absolute_to_fraction(kpoints: Tensor, latvec: Tensor):
+    """Transfer K-points in absolute space to fraction coordinates."""
+    return torch.stack([torch.matmul(latvec, kpoints[ikp].double()) 
+                        for ikp in range(kpoints.size(0))])
+        
