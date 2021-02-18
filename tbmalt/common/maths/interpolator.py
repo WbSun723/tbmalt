@@ -295,7 +295,7 @@ class SKInterpolation:
             yb = torch.stack([self.yy[ii - ninterp - 1: ii - 1]
                               for ii in ind_last])  # grid point values
 
-            result[_mask] = self.poly_interp_2d(xa, yb, rr[_mask])
+            result[_mask] = poly_interp_2d(xa, yb, rr[_mask])
 
         # Beyond the grid => extrapolation with polynomial of 5th order
         elif torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).nelement() != 0:
@@ -310,68 +310,105 @@ class SKInterpolation:
             yb = yb.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
 
             # get derivative
-            y0 = self.poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
-            y2 = self.poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
+            y0 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
+            y2 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
             y1 = self.yy[ilast - 2]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            result[_mask] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+            result[_mask] = poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+
         return result
 
-    def poly5_zero(self, y0: Tensor, y0p: Tensor, y0pp: Tensor, xx: Tensor,
-                   dx: Tensor) -> Tensor:
-        """Get integrals if beyond the grid range with 5th polynomial."""
-        dx1 = y0p * dx
-        dx2 = y0pp * dx * dx
-        dd = 10.0 * y0 - 4.0 * dx1 + 0.5 * dx2
-        ee = -15.0 * y0 + 7.0 * dx1 - 1.0 * dx2
-        ff = 6.0 * y0 - 3.0 * dx1 + 0.5 * dx2
-        xr = xx / dx
-        yy = ((ff * xr + ee) * xr + dd) * xr * xr * xr
-        return yy
 
-    def poly_interp_2d(self, xp: Tensor, yp: Tensor, rr: Tensor) -> Tensor:
-        """Interpolate from DFTB+ (lib_math) with uniform grid.
+def smooth_tail_batch(xx: Tensor, yy: Tensor, n_grid: Tensor, ninterp=8,
+                      delta_r=1E-5, tail=1.0):
+    """Smooth the tail with input xx and yy."""
+    assert xx.dim() == 2
+    assert yy.dim() == 3
+    assert n_grid.shape[0] == xx.shape[0]
 
-        Arguments:
-            xp: 2D tensor, 1st dimension if batch size, 2nd is grid points.
-            yp: 2D tensor of integrals.
-            rr: interpolation points.
-        """
-        nn0, nn1 = xp.shape[0], xp.shape[1]
-        index_nn0 = torch.arange(nn0)
-        icl = torch.zeros(nn0).long()
-        cc, dd = yp.clone(), yp.clone()
-        dxp = abs(rr - xp[index_nn0, icl])
+    ilast = n_grid.clone()
+    incr = xx[0, 1] - xx[0, 0]
 
-        # find the most close point to rr (single atom pair or multi pairs)
-        _mask, ii = torch.zeros(len(rr)) == 0, 0
-        dxNew = abs(rr - xp[index_nn0, 0])
-        while (dxNew < dxp).any():
-            ii += 1
-            assert ii < nn1 - 1  # index ii range from 0 to nn1 - 1
-            _mask = dxNew < dxp
-            icl[_mask] = ii
-            dxp[_mask] = abs(rr - xp[index_nn0, ii])[_mask]
+    # get grid points and grid point values
+    xa = (ilast.unsqueeze(1) - ninterp + torch.arange(ninterp)) * incr
+    yb = torch.stack([yy[ii, il - ninterp - 1: il - 1]
+                      for ii, il in enumerate(ilast)])
 
-        yy = yp[index_nn0, icl]
+    # return smooth grid points in the tail for each SKF
+    dr = -torch.linspace(4, 0, 5) * incr
 
-        for mm in range(nn1 - 1):
-            for ii in range(nn1 - mm - 1):
-                rtmp0 = xp[index_nn0, ii] - xp[index_nn0, ii + mm + 1]
+    # get derivative
+    y0 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
+    y2 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
+    y1 = yy[torch.arange(yy.shape[0]), ilast - 2]
+    y1p = (y2 - y0) / (2.0 * delta_r)
+    y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
+    # dr = dr.unsqueeze(1).unsqueeze(2).repeat(1, y0.shape[0], y0.shape[1])
+    integral_tail = poly5_zero(
+        y1.unsqueeze(-1), y1p.unsqueeze(-1), y1pp.unsqueeze(-1), dr, -tail).permute(0, 2, 1)
 
-                # use transpose to realize div: (N, M, K) / (N)
-                rtmp1 = ((cc[index_nn0, ii + 1] - dd[index_nn0, ii]).transpose(
-                    0, -1) / rtmp0).transpose(0, -1)
-                cc[index_nn0, ii] = ((xp[index_nn0, ii] - rr) *
-                                     rtmp1.transpose(0, -1)).transpose(0, -1)
-                dd[index_nn0, ii] = ((xp[index_nn0, ii + mm + 1] - rr) *
-                                     rtmp1.transpose(0, -1)).transpose(0, -1)
-            if (2 * icl < nn1 - mm - 1).any():
-                _mask = 2 * icl < nn1 - mm - 1
-                yy[_mask] = (yy + cc[index_nn0, icl])[_mask]
-            else:
-                _mask = 2 * icl >= nn1 - mm - 1
-                yy[_mask] = (yy + dd[index_nn0, icl - 1])[_mask]
-                icl[_mask] = icl[_mask] - 1
-        return yy
+    for ii, iy in enumerate(yy):  # -> add tail
+        yy[ii, n_grid[ii]: n_grid[ii] + 5] = integral_tail[ii]
+
+    return yy
+
+
+def poly5_zero(y0: Tensor, y0p: Tensor, y0pp: Tensor, xx: Tensor,
+               dx: Tensor) -> Tensor:
+    """Get integrals if beyond the grid range with 5th polynomial."""
+    dx1 = y0p * dx
+    dx2 = y0pp * dx * dx
+    dd = 10.0 * y0 - 4.0 * dx1 + 0.5 * dx2
+    ee = -15.0 * y0 + 7.0 * dx1 - 1.0 * dx2
+    ff = 6.0 * y0 - 3.0 * dx1 + 0.5 * dx2
+    xr = xx / dx
+    yy = ((ff * xr + ee) * xr + dd) * xr * xr * xr
+    return yy
+
+
+def poly_interp_2d(xp: Tensor, yp: Tensor, rr: Tensor) -> Tensor:
+    """Interpolate from DFTB+ (lib_math) with uniform grid.
+
+    Arguments:
+        xp: 2D tensor, 1st dimension if batch size, 2nd is grid points.
+        yp: 2D tensor of integrals.
+        rr: interpolation points.
+    """
+    nn0, nn1 = xp.shape[0], xp.shape[1]
+    index_nn0 = torch.arange(nn0)
+    icl = torch.zeros(nn0).long()
+    cc, dd = yp.clone(), yp.clone()
+    dxp = abs(rr - xp[index_nn0, icl])
+
+    # find the most close point to rr (single atom pair or multi pairs)
+    _mask, ii = torch.zeros(len(rr)) == 0, 0
+    dxNew = abs(rr - xp[index_nn0, 0])
+    while (dxNew < dxp).any():
+        ii += 1
+        assert ii < nn1 - 1  # index ii range from 0 to nn1 - 1
+        _mask = dxNew < dxp
+        icl[_mask] = ii
+        dxp[_mask] = abs(rr - xp[index_nn0, ii])[_mask]
+
+    yy = yp[index_nn0, icl]
+
+    for mm in range(nn1 - 1):
+        for ii in range(nn1 - mm - 1):
+            rtmp0 = xp[index_nn0, ii] - xp[index_nn0, ii + mm + 1]
+
+            # use transpose to realize div: (N, M, K) / (N)
+            rtmp1 = ((cc[index_nn0, ii + 1] - dd[index_nn0, ii]).transpose(
+                0, -1) / rtmp0).transpose(0, -1)
+            cc[index_nn0, ii] = ((xp[index_nn0, ii] - rr) *
+                                 rtmp1.transpose(0, -1)).transpose(0, -1)
+            dd[index_nn0, ii] = ((xp[index_nn0, ii + mm + 1] - rr) *
+                                 rtmp1.transpose(0, -1)).transpose(0, -1)
+        if (2 * icl < nn1 - mm - 1).any():
+            _mask = 2 * icl < nn1 - mm - 1
+            yy[_mask] = (yy + cc[index_nn0, icl])[_mask]
+        else:
+            _mask = 2 * icl >= nn1 - mm - 1
+            yy[_mask] = (yy + dd[index_nn0, icl - 1])[_mask]
+            icl[_mask] = icl[_mask] - 1
+    return yy

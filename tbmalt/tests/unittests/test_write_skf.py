@@ -6,6 +6,7 @@ from tbmalt.utils.skf.write_skf import WriteSK
 from tbmalt.io.loadskf import IntegralGenerator
 from ase.build import molecule as molecule_database
 from tbmalt.common.structures.system import System
+from tbmalt.tb.sk import SKT
 torch.set_default_dtype(torch.float64)
 torch.set_printoptions(15)
 os.system('cp -r /home/gz_fan/Public/tbmalt/slko .')
@@ -19,8 +20,7 @@ def test_write_normal_skf_to_hdf():
     element = ['C', 'N', 'O', 'H']
 
     # generate h5py skf data
-    skf = WriteSK(path, element, sk_type='normal')
-    skf(repulsive=True)
+    WriteSK(path, element, sk_type='normal', repulsive=True)
 
     # read sk from generated h5py file and test tolerance
     path = './skf.hdf'
@@ -65,6 +65,21 @@ def test_repulsive_hdf():
 
 def test_write_compr_skf_to_hdf():
     """Test writing h5py binary file with various compression radii."""
-    path = '../slko/auorg-1-1/'
+    path = './slko/compr/'
     element = ['C', 'N', 'O', 'H']
-    WriteSK(path, element, sk_type='compression_radii')
+    WriteSK(path, element, sk_type='compression_radii', homo=False)
+
+
+def test_hdf_compr():
+    """Test repulsive of hdf."""
+    molecule = System.from_ase_atoms([molecule_database('CH4')])
+    compression_r = torch.tensor([3., 3.1, 3.2, 3.3, 3.4])
+    compression_radii_grid = torch.tensor([
+        01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
+        04.50, 05.00, 05.50, 06.00, 07.00, 08.00, 09.00, 10.00])
+    sk = IntegralGenerator.from_dir(
+        './skf.hdf', elements=['C', 'H'], sk_type='h5py',
+        interpolation='BicubInterp', homo=False,
+        compression_radii_grid=compression_radii_grid)
+    skt = SKT(molecule, sk, compression_radii=compression_r, fix_onsite=True,
+              fix_U=True)

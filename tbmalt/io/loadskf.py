@@ -5,7 +5,7 @@ import torch
 import h5py
 from scipy.interpolate import CubicSpline
 from tbmalt.common.batch import pack
-from tbmalt.common.maths.interpolator import SKInterpolation, BicubInterp
+from tbmalt.common.maths.interpolator import SKInterpolation, BicubInterp, smooth_tail_batch
 Tensor = torch.Tensor
 _orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 15: 'p', 16: 'p', 79: 'd'}
 _onsite = {(1, 1, 'onsite'): torch.tensor([-2.386005440483E-01]),
@@ -220,9 +220,10 @@ def _get_hs_dict(sktable_dict: dict, interpolator: object,
         interactions: orbital interactions, e.g. (0, 0, 0) for ss0 orbital.
         skf: object with SKF integrals data.
     """
-    sk_type = kwargs.get('sk_type', 'normal')
+    sk_interp = kwargs.get('interpolation', 'SKInterpolation')
 
-    if sk_type != 'compression_radii':
+    # if sk_type != 'compression_radii':
+    if sk_interp != 'BicubInterp':
 
         for ii, name in enumerate(interactions):
             sktable_dict[(*skf.elements.tolist(), *name, 'H')] = \
@@ -230,7 +231,7 @@ def _get_hs_dict(sktable_dict: dict, interpolator: object,
             sktable_dict[(*skf.elements.tolist(), *name, 'S')] = \
                 interpolator(skf.hs_grid, skf.overlap.T[ii])
 
-    elif sk_type == 'compression_radii':
+    elif sk_interp == 'BicubInterp':
         compr_grid = kwargs.get('compression_radii_grid')
 
         for ii, name in enumerate(interactions):
@@ -501,6 +502,7 @@ class LoadSKF:
                  element_number: list, **kwargs):
         """Generate integral from h5py binary data."""
         repulsive = kwargs.get('repulsive', False)
+        homo = kwargs.get('homo', element_number[0] == element_number[1])
 
         element_ij = element[0] + element[1]
         if not os.path.isfile(path):
@@ -520,8 +522,6 @@ class LoadSKF:
 
             # return hamiltonian, overlap, and related data
             pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
-
-            homo = element_number[0] == element_number[1]
             kwd = {'version': ver, 'rep_poly': rep_poly, 'homo': homo,
                    'g_step': g_step, 'n_points': n_points}
 
@@ -569,9 +569,9 @@ class LoadSKF:
             n_rep, rep_cutoff, rep_table, rep_grid = [], [], [], []
             rep_short, rep_long_c, rep_long_grid = [], [], []
 
-        for ii, iname in enumerate(filenamelist):
-            row = int(ii // n_compr)
-            col = int(ii % n_compr)
+        for icp, iname in enumerate(filenamelist):
+            row = int(icp // n_compr)
+            col = int(icp % n_compr)
 
             iname = os.path.join(path, iname)
             # call the normal read function
@@ -597,10 +597,24 @@ class LoadSKF:
         g_step = skf.g_step  # g_step should be all the same
         hs_grid = torch.arange(1, int(max(n_points) + 5) + 1) * g_step
 
-        hamiltonian = pack([pack([ham[ii * n_compr + jj] for jj in
-                                  range(n_compr)]) for ii in range(n_compr)])
-        overlap = pack([pack([over[ii * n_compr + jj] for jj in
-                              range(n_compr)]) for ii in range(n_compr)])
+        hamiltonian = torch.zeros(n_compr, n_compr, max(n_points) + 5, 10)
+        overlap = torch.zeros(n_compr, n_compr, max(n_points) + 5, 10)
+        hamiltonian[:, :, :int(max(n_points))] = pack([pack(
+            [ham[icp * n_compr + jj] for jj in range(n_compr)])
+            for icp in range(n_compr)])
+        overlap[:, :, :int(max(n_points))] = pack([pack(
+            [over[icp * n_compr + jj] for jj in range(n_compr)])
+            for icp in range(n_compr)])
+
+        # smooth the tail
+        hamiltonian = smooth_tail_batch(
+            hs_grid.repeat(icp + 1, 1), hamiltonian.reshape(
+                icp + 1, -1, hamiltonian.shape[-1]), torch.tensor(n_points)
+            ).reshape(hamiltonian.shape[0], hamiltonian.shape[1], hamiltonian.shape[2], -1)
+        overlap = smooth_tail_batch(
+            hs_grid.repeat(icp + 1, 1), overlap.reshape(icp + 1, -1, overlap.shape[-1]),
+            torch.tensor(n_points)).reshape(overlap.shape[0], overlap.shape[1],
+                                            overlap.shape[2], -1)
 
         # Build the parameter lists to pass to the in_grid_pointst method
         pos = (element_number, hamiltonian, overlap, hs_grid, cutoff)
