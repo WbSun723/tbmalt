@@ -300,7 +300,7 @@ def test_sk_ase_batch_cubic(device):
         molecule_database('H2O'), molecule_database('CN'),
         molecule_database('CO2'), molecule_database('CH3CHO')])
     sktable = IntegralGenerator.from_dir(
-        './slko/auorg-1-1/', molecule, sk_interpolation='cubic_interpolation')
+        './slko/auorg-1-1/', molecule, sk_interpolation='numpy_interpolation')
     skt = SKT(molecule, sktable)
     assert torch.max(abs(skt.H[0][:h_h2.shape[0], :h_h2.shape[1]] - h_h2)
                      ) < 1E-9, 'Tolerance check'

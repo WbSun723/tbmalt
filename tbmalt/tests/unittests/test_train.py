@@ -11,13 +11,12 @@ from tbmalt.tb.sk import SKT
 from tbmalt.common.parameter import Parameter
 from tbmalt.io.loadskf import IntegralGenerator
 from tbmalt.io.loadhdf import LoadHdf
-from tbmalt.ml.train import CompressionRadii, Charge
+from tbmalt.ml.train import CompressionRadii, Charge, Integal
 torch.set_default_dtype(torch.float64)
 torch.set_printoptions(15)
 
 
 # copy from public directory
-os.system('cp /home/gz_fan/Public/tbmalt/skf.hdf .')
 os.system('cp -r /home/gz_fan/Public/tbmalt/slko .')
 os.system('cp -r /home/gz_fan/Public/tbmalt/sk .')
 os.system('cp -r /home/gz_fan/Public/tbmalt/reference.hdf .')
@@ -32,62 +31,88 @@ def test_read_compr(device):
         04.50, 05.00, 05.50, 06.00, 07.00, 08.00, 09.00, 10.00])
 
     numbers, positions, reference = LoadHdf.load_reference(
-        './reference.hdf', 6, properties)
+        './reference.hdf', 3, properties)
     sys = System(numbers, positions)
     variable = torch.ones(sys.positions.shape[0], sys.positions.shape[1]) * 3
     params = Parameter()
+    # sk = IntegralGenerator.from_dir(
+    #     './slko/compr', sys, repulsive=True,
+    #     sk_type='compression_radii', homo=False, interpolation='bicubic_interpolation',
+    #     compression_radii_grid=compression_radii_grid)
     sk = IntegralGenerator.from_dir(
-        './slko/compr', sys, repulsive=True,
-        sk_type='compression_radii', homo=False, interpolation='BicubInterp',
+        './slko/skf.hdf.compr', sys, repulsive=False,
+        sk_type='h5py', homo=False, interpolation='bicubic_interpolation',
         compression_radii_grid=compression_radii_grid)
 
     train = CompressionRadii(sys, reference, variable, params, sk)
     train(properties)
 
 
-def test_read_compr_batch(device):
+def test_read_integral(device):
     """Test SKF data with various compression radii."""
-    molecule = System.from_ase_atoms([molecule_database('CH4'),
-                                      molecule_database('NH3'),
-                                      molecule_database('C2H6'),
-                                      molecule_database('CH3CH2O')])
-    compression_radii_grid = torch.tensor([
-        01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
-        04.50, 05.00, 05.50, 06.00, 07.00, 08.00, 09.00, 10.00])
-    compression_r = torch.tensor([[3., 3.1, 3.2, 3.3, 3.4, 0, 0, 0],
-                                  [3., 3., 3., 3., 0., 0., 0., 0],
-                                  [3., 3., 3., 3., 3., 3.5, 3.5, 4.],
-                                  [3., 3., 3., 3., 3., 3.5, 3.5, 4.]])
-    sk = IntegralGenerator.from_dir(
-        './slko/compr', molecule, repulsive=True,
-        sk_type='compression_radii', homo=False, interpolation='BicubInterp',
-        compression_radii_grid=compression_radii_grid)
-
-    skt = SKT(molecule, sk, compression_radii=compression_r, fix_onsite=True,
-              fix_U=True)
-
-
-def test_xlbomd():
-    """Test."""
-    # -> define all input parameters
+    import time
+    time0 = time.time()
     properties = ['dipole', 'charge']
-    reference_size = 1000
-    params = Parameter()
-
-    # load the the generated dataset
-    numbers, positions, data_nonscc = LoadHdf.load_reference(
-        'nonscc.hdf', reference_size, properties)
-    # load the the generated dataset
-    _, _, data = LoadHdf.load_reference('scc.hdf', reference_size, properties)
-
+    numbers, positions, reference = LoadHdf.load_reference(
+        './reference.hdf', 3, properties)
     sys = System(numbers, positions)
+    params = Parameter()
+    # sk = IntegralGenerator.from_dir(
+    #     './slko/mio-1-1', sys, repulsive=False, interpolation='spline', with_variable=True)
+    sk = IntegralGenerator.from_dir(
+        './slko/skf.hdf.mio', sys, repulsive=False, interpolation='spline',
+        sk_type='h5py', with_variable=True)
+    variable = sk.sktable_dict['variable']
 
-    molecule = System(numbers, positions)
-    sk = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
-
-    variable = _get_charge(sys)
-    train = CompressionRadii(sys, data, variable, params, sk)
+    train = Integal(sys, reference, variable, params, sk)
     train(properties)
+    time1 = time.time()
+    print('time', time1 - time0)
+
+
+# def test_read_compr_batch(device):
+#     """Test SKF data with various compression radii."""
+#     molecule = System.from_ase_atoms([molecule_database('CH4'),
+#                                       molecule_database('NH3'),
+#                                       molecule_database('C2H6'),
+#                                       molecule_database('CH3CH2O')])
+#     compression_radii_grid = torch.tensor([
+#         01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
+#         04.50, 05.00, 05.50, 06.00, 07.00, 08.00, 09.00, 10.00])
+#     compression_r = torch.tensor([[3., 3.1, 3.2, 3.3, 3.4, 0, 0, 0],
+#                                   [3., 3., 3., 3., 0., 0., 0., 0],
+#                                   [3., 3., 3., 3., 3., 3.5, 3.5, 4.],
+#                                   [3., 3., 3., 3., 3., 3.5, 3.5, 4.]])
+#     sk = IntegralGenerator.from_dir(
+#         './slko/compr', molecule, repulsive=True,
+#         sk_type='compression_radii', homo=False, interpolation='bicubic_interpolation',
+#         compression_radii_grid=compression_radii_grid)
+
+#     skt = SKT(molecule, sk, compression_radii=compression_r, fix_onsite=True,
+#               fix_U=True)
+
+
+# def test_xlbomd():
+#     """Test."""
+#     # -> define all input parameters
+#     properties = ['dipole', 'charge']
+#     reference_size = 1000
+#     params = Parameter()
+
+#     # load the the generated dataset
+#     numbers, positions, data_nonscc = LoadHdf.load_reference(
+#         'nonscc.hdf', reference_size, properties)
+#     # load the the generated dataset
+#     _, _, data = LoadHdf.load_reference('scc.hdf', reference_size, properties)
+
+#     sys = System(numbers, positions)
+
+#     molecule = System(numbers, positions)
+#     sk = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
+
+#     variable = _get_charge(sys)
+#     train = CompressionRadii(sys, data, variable, params, sk)
+#     train(properties)
 
 
 def _get_charge(system):

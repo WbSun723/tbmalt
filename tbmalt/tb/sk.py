@@ -44,6 +44,7 @@ class SKT:
         self.S = torch.zeros(self.system.hs_shape)
 
         compr = kwargs.get('compression_radii', None)
+
         if compr is not None:
             compr = compr if compr.dim() == 2 else compr.unsqueeze(0)
 
@@ -89,7 +90,7 @@ class SKT:
 
             # request integrals from the integrals
             gathered_h, gathered_s = integral_retrieve(
-                gathered_dists, gathered_an, sktable, l_pair, compr_pair)
+                gathered_dists, gathered_an, sktable, l_pair, compr_pair, **kwargs)
 
             # call relevant Slater-Koster function to get the sk-block
             h_data = f(gathered_vecs, gathered_h)
@@ -159,11 +160,12 @@ def split_by_size(tensor: Tensor, split_sizes: Tensor, dim=0):
 
 
 def integral_retrieve(distances: Tensor, atom_pairs: Tensor, integral: object,
-                      l_pair: Tensor, compression_radii=None):
+                      l_pair: Tensor, compr_pair=None, **kwargs):
     """Integral retrieval operation."""
     sktable_h = torch.zeros(len(atom_pairs), l_pair.min() + 1)
     sktable_s = torch.zeros(len(atom_pairs), l_pair.min() + 1)
     unique_atom_pairs = atom_pairs.unique(dim=0)
+    with_variable = kwargs.get('with_variable', False)
 
     # loop over each of the unique atom_pairs
     for atom_pair in unique_atom_pairs:
@@ -171,19 +173,25 @@ def integral_retrieve(distances: Tensor, atom_pairs: Tensor, integral: object,
         # index mask for gather & scatter operations
         index_mask = torch.where((atom_pairs == atom_pair).all(1))
 
-        if compression_radii is None:
+        if compr_pair is None and not with_variable:
             sktable_h[index_mask] = integral(distances[index_mask], atom_pair,
                                              l_pair, hs_type='H')
             sktable_s[index_mask] = integral(distances[index_mask], atom_pair,
                                              l_pair, hs_type='S')
 
-        elif compression_radii is not None:
-            sktable_h[index_mask] = integral(compression_radii[index_mask],
+        elif compr_pair is not None and not with_variable:
+            sktable_h[index_mask] = integral(compr_pair[index_mask],
                                              atom_pair, l_pair, hs_type='H',
                                              input2=distances[index_mask])
-            sktable_s[index_mask] = integral(compression_radii[index_mask],
+            sktable_s[index_mask] = integral(compr_pair[index_mask],
                                              atom_pair, l_pair, hs_type='S',
                                              input2=distances[index_mask])
+
+        elif with_variable:  # Hamiltonian as ML variable
+            sktable_h[index_mask] = integral(
+                distances[index_mask], atom_pair, l_pair, hs_type='H', get_abcd='abcd')
+            sktable_s[index_mask] = integral(
+                distances[index_mask], atom_pair, l_pair, hs_type='S', get_abcd='abcd')
 
     return sktable_h, sktable_s
 

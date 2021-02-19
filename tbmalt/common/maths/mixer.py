@@ -16,7 +16,7 @@ class _Mixer(ABC):
 
     """
 
-    def __init__(self, q_init: Tensor, mix_param=0.1, tolerance=1E-6, **kwargs):
+    def __init__(self, q_init: Tensor, mix_param=0.1, tolerance=1E-8, **kwargs):
         self.return_convergence = kwargs.get('return_convergence', False)
         self.generations = kwargs.get('generations', 3)
         q_init = q_init.unsqueeze(0) if q_init.dim() == 0 else q_init  # H atom

@@ -5,7 +5,7 @@ import torch
 import h5py
 from scipy.interpolate import CubicSpline
 from tbmalt.common.batch import pack
-from tbmalt.common.maths.interpolator import SKInterpolation, BicubInterp
+from tbmalt.common.maths.interpolator import SKInterpolation, BicubInterp, Spline1d, smooth_tail_batch
 Tensor = torch.Tensor
 _orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 15: 'p', 16: 'p', 79: 'd'}
 _onsite = {(1, 1, 'onsite'): torch.tensor([-2.386005440483E-01]),
@@ -74,11 +74,12 @@ class IntegralGenerator:
             orbital_resolve: If each orbital is resolved for U.
         """
         repulsive = kwargs.get('repulsive', False)
+        with_variable = kwargs.get('with_variable', False)
 
         if kwargs.get('orbital_resolve', False):
             raise NotImplementedError('Not implement orbital resolved U.')
 
-        sk_interp = kwargs.get('interpolation', 'SKInterpolation')
+        sk_interp = kwargs.get('interpolation', 'sk_interpolation')
 
         # The interactions: ddσ, ddπ, ddδ, ...
         interactions = [(2, 2, 0), (2, 2, 1), (2, 2, 2), (1, 2, 0), (1, 2, 1),
@@ -86,6 +87,7 @@ class IntegralGenerator:
 
         # create a blank dict for integrals
         sktable_dict = {}
+        sktable_dict['variable'] = [] if with_variable else None
         assert elements is not None or system is not None
 
         # get global element species and all corresponding SKF files
@@ -100,12 +102,14 @@ class IntegralGenerator:
         elif system is None and element is None:
             raise ValueError('At least one of system and element is not None')
 
-        if sk_interp == 'SKInterpolation':
+        if sk_interp == 'sk_interpolation':
             interpolator = SKInterpolation
-        elif sk_interp == 'BicubInterp':
+        elif sk_interp == 'bicubic_interpolation':
             interpolator = BicubInterp
-        else:
+        elif sk_interp == 'numpy_interpolation':
             interpolator = CubicSpline
+        elif sk_interp == 'spline':
+            interpolator = Spline1d
 
         # loop of all global element pairs
         for ielement, ielement_number in zip(element_pair, element_number_pair):
@@ -149,6 +153,7 @@ class IntegralGenerator:
             raise NotImplementedError('Not implement orbital resolved U.')
         hs_type = kwargs.get('hs_type', 'H')
         input2 = kwargs.get('input2', None)
+        get_abcd = kwargs.get('get_abcd', None)
 
         # retrieve the appropriate splines
         splines = [self.sktable_dict[(
@@ -156,10 +161,15 @@ class IntegralGenerator:
             for il in range(min(l_pair) + 1)]
 
         # call the interpolator
-        if input2 is None:
+        if input2 is None and get_abcd is None:
             list_integral = [spline(input1) for spline in splines]
-        else:
+        elif input2 is not None:
             list_integral = [spline(input1, input2) for spline in splines]
+        elif get_abcd is not None:
+            abcd = [self.sktable_dict[(
+                *atom_pair.tolist(), *l_pair.tolist(), il, hs_type, 'abcd')]
+                for il in range(min(l_pair) + 1)]
+            list_integral = [spline(input1, iabcd) for spline, iabcd in zip(splines, abcd)]
 
         if type(list_integral[0]) == np.ndarray:
             list_integral = [torch.from_numpy(ii) for ii in list_integral]
@@ -197,7 +207,6 @@ class IntegralGenerator:
                 (*[ii.tolist(), ii.tolist()], 'U')] for ii in atom_number])
 
 
-
 def _get_element_info(elements: list):
     """Generate element pair information."""
     _elements_dict = {"H": 1, "Li": 3, "B": 5, "C": 6, "N": 7, "O": 8, "F": 9,
@@ -220,9 +229,12 @@ def _get_hs_dict(sktable_dict: dict, interpolator: object,
         interactions: orbital interactions, e.g. (0, 0, 0) for ss0 orbital.
         skf: object with SKF integrals data.
     """
-    sk_type = kwargs.get('sk_type', 'normal')
+    sk_interp = kwargs.get('interpolation', 'sk_interpolation')
+    with_variable = kwargs.get('with_variable', False)
+    # sktable_dict['variable'] = [] if with_variable else None
 
-    if sk_type != 'compression_radii':
+    # if sk_type != 'compression_radii':
+    if sk_interp in ('sk_interpolation', 'numpy_interpolation'):
 
         for ii, name in enumerate(interactions):
             sktable_dict[(*skf.elements.tolist(), *name, 'H')] = \
@@ -230,7 +242,7 @@ def _get_hs_dict(sktable_dict: dict, interpolator: object,
             sktable_dict[(*skf.elements.tolist(), *name, 'S')] = \
                 interpolator(skf.hs_grid, skf.overlap.T[ii])
 
-    elif sk_type == 'compression_radii':
+    elif sk_interp == 'bicubic_interpolation':
         compr_grid = kwargs.get('compression_radii_grid')
 
         for ii, name in enumerate(interactions):
@@ -238,6 +250,21 @@ def _get_hs_dict(sktable_dict: dict, interpolator: object,
                 interpolator(compr_grid, skf.hamiltonian[..., ii], skf.hs_grid)
             sktable_dict[(*skf.elements.tolist(), *name, 'S')] = \
                 interpolator(compr_grid, skf.overlap[..., ii], skf.hs_grid)
+
+    elif sk_interp == 'spline':
+        for ii, name in enumerate(interactions):
+            _h = interpolator(skf.hs_grid, skf.hamiltonian.T[ii], **kwargs)
+            _s = interpolator(skf.hs_grid, skf.overlap.T[ii], **kwargs)
+            sktable_dict[(*skf.elements.tolist(), *name, 'H')] = _h
+            sktable_dict[(*skf.elements.tolist(), *name, 'S')] = _s
+
+            if with_variable:  # get ML optimizer variable
+                sktable_dict[(*skf.elements.tolist(), *name, 'H', 'abcd')] = _h.abcd
+                sktable_dict[(*skf.elements.tolist(), *name, 'S', 'abcd')] = _s.abcd
+                sktable_dict['variable'].append(
+                    sktable_dict[(*skf.elements.tolist(), *name, 'H', 'abcd')].requires_grad_(True))
+                sktable_dict['variable'].append(
+                    sktable_dict[(*skf.elements.tolist(), *name, 'S', 'abcd')].requires_grad_(True))
 
     return sktable_dict
 
@@ -353,7 +380,7 @@ class LoadSKF:
         self.rep_poly = kwargs.get('rep_poly', None)
 
         # identify the skf specification version
-        self.version = kwargs['version']
+        self.version = kwargs.get('version', 'unclear')
 
     @classmethod
     def read(cls, path: str, element: list, element_number: list, **kwargs):
@@ -381,6 +408,8 @@ class LoadSKF:
             return '1.0e'
         elif len(lines[0].split()) == 2 and lines[0].split()[1].isnumeric():
             return '0.9'  # If no comment line; this must be version 0.9
+        else:
+            return 'unclear'
 
     @classmethod
     def _asterisk_to_repeat_tensor(cls, xx: list) -> Tensor:
@@ -501,6 +530,7 @@ class LoadSKF:
                  element_number: list, **kwargs):
         """Generate integral from h5py binary data."""
         repulsive = kwargs.get('repulsive', False)
+        homo = kwargs.get('homo', element_number[0] == element_number[1])
 
         element_ij = element[0] + element[1]
         if not os.path.isfile(path):
@@ -508,20 +538,19 @@ class LoadSKF:
 
         kwd = {}  # create empty dict
         with h5py.File(path, 'r') as f:
-            hs_grid = f[element_ij + '/hs_grid'][()]
+            hs_grid = torch.from_numpy(f[element_ij + '/hs_grid'][()])
             hs_cutoff = f[element_ij + '/hs_cutoff'][()]
             hamiltonian = torch.from_numpy(f[element_ij + '/hamiltonian'][()])
             overlap = torch.from_numpy(f[element_ij + '/overlap'][()])
 
-            ver = f[element_ij + '/version'][()]
+            # ver = f[element_ij + '/version'][()]
+            ver = f[element_ij].attrs['version']
             rep_poly = f[element_ij + '/rep_poly'][()]
             g_step = f[element_ij + '/g_step'][()]
             n_points = f[element_ij + '/n_points'][()]
 
             # return hamiltonian, overlap, and related data
             pos = (element_number, hamiltonian, overlap, hs_grid, hs_cutoff)
-
-            homo = element_number[0] == element_number[1]
             kwd = {'version': ver, 'rep_poly': rep_poly, 'homo': homo,
                    'g_step': g_step, 'n_points': n_points}
 
@@ -569,9 +598,9 @@ class LoadSKF:
             n_rep, rep_cutoff, rep_table, rep_grid = [], [], [], []
             rep_short, rep_long_c, rep_long_grid = [], [], []
 
-        for ii, iname in enumerate(filenamelist):
-            row = int(ii // n_compr)
-            col = int(ii % n_compr)
+        for icp, iname in enumerate(filenamelist):
+            row = int(icp // n_compr)
+            col = int(icp % n_compr)
 
             iname = os.path.join(path, iname)
             # call the normal read function
@@ -597,10 +626,24 @@ class LoadSKF:
         g_step = skf.g_step  # g_step should be all the same
         hs_grid = torch.arange(1, int(max(n_points) + 5) + 1) * g_step
 
-        hamiltonian = pack([pack([ham[ii * n_compr + jj] for jj in
-                                  range(n_compr)]) for ii in range(n_compr)])
-        overlap = pack([pack([over[ii * n_compr + jj] for jj in
-                              range(n_compr)]) for ii in range(n_compr)])
+        hamiltonian = torch.zeros(n_compr, n_compr, max(n_points) + 5, 10)
+        overlap = torch.zeros(n_compr, n_compr, max(n_points) + 5, 10)
+        hamiltonian[:, :, :int(max(n_points))] = pack([pack(
+            [ham[icp * n_compr + jj] for jj in range(n_compr)])
+            for icp in range(n_compr)])
+        overlap[:, :, :int(max(n_points))] = pack([pack(
+            [over[icp * n_compr + jj] for jj in range(n_compr)])
+            for icp in range(n_compr)])
+
+        # smooth the tail
+        hamiltonian = smooth_tail_batch(
+            hs_grid.repeat(icp + 1, 1), hamiltonian.reshape(
+                icp + 1, -1, hamiltonian.shape[-1]), torch.tensor(n_points)
+            ).reshape(hamiltonian.shape[0], hamiltonian.shape[1], hamiltonian.shape[2], -1)
+        overlap = smooth_tail_batch(
+            hs_grid.repeat(icp + 1, 1), overlap.reshape(icp + 1, -1, overlap.shape[-1]),
+            torch.tensor(n_points)).reshape(overlap.shape[0], overlap.shape[1],
+                                            overlap.shape[2], -1)
 
         # Build the parameter lists to pass to the in_grid_pointst method
         pos = (element_number, hamiltonian, overlap, hs_grid, cutoff)

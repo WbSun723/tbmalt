@@ -84,7 +84,8 @@ class AseAims:
                    sc_accuracy_rho=1e-6,
                    sc_accuracy_forces=1e-4,
                    many_body_dispersion=' ',
-                   command="mpirun aims.x > aims.out")
+                   # command="mpirun aims.x > aims.out")
+                   command="./aims.x > aims.out")
 
         # get calculators
         mol.calc = cal

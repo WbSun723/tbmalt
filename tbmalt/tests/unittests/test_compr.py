@@ -28,7 +28,7 @@ def test_read_compr(device):
     compression_r = torch.tensor([3., 3.1, 3.2, 3.3, 3.4])
     sk = IntegralGenerator.from_dir(
         './slko/compr', elements=['C', 'H'], repulsive=True,
-        sk_type='compression_radii', homo=False, interpolation='BicubInterp',
+        sk_type='compression_radii', homo=False, interpolation='bicubic_interpolation',
         compression_radii_grid=compression_radii_grid)
 
     skt = SKT(molecule, sk, compression_radii=compression_r, fix_onsite=True,
@@ -50,7 +50,7 @@ def test_read_compr_batch(device):
                                   [3., 3., 3., 3., 3., 3.5, 3.5, 4.]])
     sk = IntegralGenerator.from_dir(
         './slko/compr', molecule, repulsive=True,
-        sk_type='compression_radii', homo=False, interpolation='BicubInterp',
+        sk_type='compression_radii', homo=False, interpolation='bicubic_interpolation',
         compression_radii_grid=compression_radii_grid)
 
     skt = SKT(molecule, sk, compression_radii=compression_r, fix_onsite=True,
