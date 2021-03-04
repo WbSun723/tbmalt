@@ -99,6 +99,17 @@ class Coulomb:
                           distance_extention=0, unit='Bohr')
         return update._get_periodic_distance()[1], update.neighbour
     
+    def update_shift(self, charge, qzero):
+        """Update potential shifts for scc calculation."""
+        deltaq_atom = charge - qzero
+        shiftperatom = torch.stack([torch.matmul(iinvr, idq) 
+                                    for iinvr, idq in zip(self.invrmat, deltaq_atom)])
+        return deltaq_atom, shiftperatom
+    
+    def add_energy(self, shiftperatom, deltaq_atom, escc):
+        """Add contribution from coulombic interaction to scc energy."""
+        return escc + 0.5 * shiftperatom * deltaq_atom
+    
     def invr_periodic(self):
         """Calculate the 1/R matrix for the periodic system.""" 
         # Extra contribution for self interaction
