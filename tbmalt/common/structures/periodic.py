@@ -1,303 +1,178 @@
 """Deal with periodic conditions."""
 import torch
 import numpy as np
-from tbmalt.common.structures.system import System
-from tbmalt.io.loadskf import IntegralGenerator
-from tbmalt.tb.sk import SKT
-torch.set_default_dtype(torch.float64)
-torch.set_printoptions(precision=15)
+from typing import Union, List
+from tbmalt.common.batch import pack
 Tensor = torch.Tensor
-distfudge = 1.0
+_bohr = 0.529177249
 
-def get_cell_translations_3d(latvec: Tensor, sk_cutoff: float, posExt=1, negExt=1):
+
+class Periodic:
     """Calculate the translation vectors for cells for 3D periodic boundary condition.
-    
+
     Arguments:
-        latvec: Lattice vector describing the geometry of periodic system, with Bohr as unit.
-        sk_cutoff: Interaction cutoff distance for reading  SK table.
-        posExt: Extension for the positive lattice vectors.
-        negEXt: Extension for the negative lattice vectors.
-    
+        latvec: Lattice vector describing the geometry of periodic system,
+            with Bohr as unit.
+        cutoff: Interaction cutoff distance for reading  SK table.
+
+    Keyword Args:
+        distance_extention: Extention of cutoff in SK tables to smooth the tail.
+        positive_extention: Extension for the positive lattice vectors.
+        negative_extention: Extension for the negative lattice vectors.
+
     Return:
-        cutoff: Global cutoff for the diatomic interactions
+        cutoff: Global cutoff for the diatomic interactions, unit is Bohr.
         cellvol: Volume of the unit cell.
         reccellvol: Volume of the reciprocal lattice unit cell.
         cellvec: Cell translation vectors in relative coordinates.
         rcellvec: Cell translation vectors in absolute units.
         ncell: Number of lattice cells.
-    
+
     Examples:
-        >>> from periodic import get_cell_translations_3d
+        >>> from periodic import Periodic
         >>> import torch
-        >>> _bohr = 0.529177249
-        >>> latvec = torch.tensor([[0, 8, 0], [4, 0, 0], [0, 0, 4]]) / _bohr
-        >>> sk_cutoff = 499 * 0.02
-        >>> cutoff, cellvol, reccellvol, cellvec, rcellvec, ncell = get_cell_translations_3d(latvec, sk_cutoff)
-        >>> print(ncell)
-        75
-        >>> print(cellvec)
-        tensor([[-1., -2., -2.],
-                [-1., -2., -1.],
-                [-1., -2.,  0.],
-                [-1., -2.,  1.],
-                [-1., -2.,  2.],
-                      ...
-                [ 1.,  2., -2.],
-                [ 1.,  2., -1.],
-                [ 1.,  2.,  0.],
-                [ 1.,  2.,  1.],
-                [ 1.,  2.,  2.]])
-    
     """
-    # Global cutoff for the diatomic interactions
-    cutoff = sk_cutoff + distfudge
-    
-    # Unit cell volume
-    cellvol = abs(torch.det(latvec))
-    
-    # Inverse lattice vectors (reciprocal lattice vectors in units of 2 pi, column)
-    invlatvec = torch.inverse(latvec)
-    
-    # Reciprocal lattice vectors in units of 2 pi
-    recvec2p = torch.transpose(invlatvec, 0, 1)
-    
-    # Reciprocal lattice vectors
-    recvec = 2.0 * np.pi * recvec2p
-    
-    # Reciprocal lattice unit cell volume
-    reccellvol = abs(torch.det(recvec))
-    
-    # Get ranges of periodic boundary condition
-    ranges = torch.zeros((2, 3), dtype = torch.int)
-    iTmp = torch.stack([torch.floor(cutoff *
-                        torch.sqrt(sum(invlatvec[:, ii] ** 2))) for ii in range (3)])
-    ranges[0] = torch.stack([-(negExt + iTmp[ii]) for ii in range(3)])
-    ranges[1] = torch.stack([(posExt + iTmp[ii]) for ii in range(3)])
-    
-    # Length of the first, second and third column in ranges
-    leng1, leng2, leng3 = ranges[1, :] - ranges[0, :] + 1
-    
-    # Number of lattice cells
-    ncell = leng1 * leng2 * leng3
-    
-    # Cell translation vectors in relative coordinates
-    cellvec = torch.zeros((ncell, 3))
-    col3 = torch.linspace(ranges[0, 2], ranges[1, 2], leng3)
-    col2 = torch.linspace(ranges[0, 1], ranges[1, 1], leng2)
-    col1 = torch.linspace(ranges[0, 0], ranges[1, 0], leng1)
-    cellvec[:, 2] = torch.cat(int(ncell / leng3) * [col3])
-    col2 = col2.repeat(leng3, 1)
-    col2 = torch.cat([(col2[:, ii]) for ii in range(leng2)])
-    cellvec[:, 1] = torch.cat(int(ncell / (leng2 * leng3)) * [col2])
-    col1 = col1.repeat(leng3 * leng2, 1)
-    cellvec[:, 0] = torch.cat([(col1[:, ii]) for ii in range(leng1)])
-    
-    # Cell translation vectors in absolute units
-    rcellvec = torch.stack([torch.matmul(torch.transpose(latvec, 0, 1), cellvec[ii])
-                                     for ii in range(ncell)])
-    
-    # Number of lattice cells
-    ncell = rcellvec.size(0)
-    
-    return cutoff, cellvol, reccellvol, cellvec, rcellvec, ncell
 
-def get_neighbour(coord0: Tensor, species0: Tensor, rcellvec: Tensor, natom: int, ncell: int, cutoff: float):
-    """Obtain neighbour list and species according to periodic boundary condition.
-    
-    Arguments:
-        coord0: Coordinates of the atoms in central cell.
-        species0: Species of the atoms in central cell.
-        rcellvec: Cell translation vectors in absolute units.
-        natom: NUmber of the atoms in central cell.
-        ncell: Number of lattice cells
-        cutoff: Global cutoff for the diatomic interactions.
-    
-    Return:
-        neighdist2: Squared distance between atoms in central cell and other cells. 
-        iposcentcell: Index of position for atoms in central cell.
-        img2centcell: Mapping index of atoms in translated cells onto the atoms in central cell.
-        icellvec: Index of cell vector for each atom.
-        nallatom: Count of all atoms interacting with each atom in central cell.
-        species: Species of atoms in translated cells for all interacting atom pairs.
-    
-    Notes: 
-        neighdist2 is a 1D tensor. With three additional indices, i.e. iposcentcell, img2centcell 
-        and icellvec, information of the interacting atoms for each element in neighdist2 can be 
-        clearly defined.
-    
-    Examples:
-        >>> from periodic import get_cell_translations_3d
-        >>> from periodic import get_neighbour
-        >>> import torch
-        >>> _bohr = 0.529177249
-        >>> latvec = torch.tensor([[0, 8, 0], [4, 0, 0], [0, 0, 4]]) / _bohr
-        >>> coord0 = torch.tensor([[0, 0, 0], [0, 4, 0]]) / _bohr
-        >>> species0 = torch.tensor([[1], [1]])
-        >>> sk_cutoff = 499 * 0.02
-        >>> cutoff, cellvol, reccellvol, cellvec, rcellvec, ncell = get_cell_translations_3d(latvec, sk_cutoff)
-        >>> neighdist2, iposcentcell, img2centcell, icellvec, nallatom, species = get_neighbour(
-                                                          coord0, species0, rcellvec, natom, ncell, cutoff)
-        >>> print(neighdist2)
-        tensor([114.2741, 114.2741,  57.1370, 114.2741, 114.2741, 114.2741, 114.2741,
-         57.1370, 114.2741, 114.2741,  57.1370, 114.2741, 114.2741,  57.1370,
-        114.2741, 114.2741,  57.1370,   0.0000,  57.1370,  57.1370,   0.0000,
-         57.1370, 114.2741, 114.2741,  57.1370, 114.2741, 114.2741,  57.1370,
-        114.2741, 114.2741,  57.1370, 114.2741, 114.2741, 114.2741, 114.2741,
-         57.1370, 114.2741, 114.2741])
+    def __init__(self, system: object, latvec: Tensor,
+                 cutoff: Union[Tensor, float], **kwargs):
+        self.system = system
+        self.latvec, self.cutoff = self._check(latvec, cutoff, **kwargs)
+        self._positions_check(**kwargs)
+        dist_ext = kwargs.get('distance_extention', 1.0)
 
-    """
-    # Square of the diatomic interaction cutoff
-    cutoff2 = cutoff ** 2
-    
-    # Coordinates of atoms in all translated cells
-    coord = torch.stack([(coord0 + rcellvec[ii]) for ii in range(ncell)])
-    
-    # Square of the distance between two atoms in translated and central cells respectively
-    dist2 = torch.tensor([])
-    
-    # Mapping index of atoms in all translated cells onto the atoms in central cell
-    imapall = torch.tensor([])
-    imap = torch.linspace(0, natom-1, natom)
-    mm = torch.stack([(torch.unsqueeze(imap, 1)) for ii in range(ncell)])
-    
-    # Index of cell vector for atoms in all translated cells
-    icellall = torch.tensor([])
-    icell = torch.stack([torch.cat(natom * [torch.tensor([ii])]) for ii in range(ncell)])
-    cc = torch.unsqueeze(icell, -1)
-    
-    # Index of position for atoms in central cell
-    iposiall = torch.tensor([])
-    
-    # Loop over all atoms in central cell
-    for ii in range(natom):
-        # Square of the distance between atoms in translated cells and atom ii in central cell
-        dd = torch.sum((coord - coord0[ii]) ** 2, -1, keepdim=True)
-        
-        # Index of positon for atom ii in central cell
-        pp = torch.unsqueeze(torch.cat(ncell * [torch.tensor([ii])]), -1)
-        
-        # dist2[ii, jj, kk] means square of the distance between atom jj in cell ii and atom kk in central cell
-        # [ii, jj, kk] describes the same pair of atoms for imapall, icellall and iposiall
-        dist2 = torch.cat((dist2, dd), dim=-1)
-        imapall = torch.cat((imapall, mm), dim=-1)
-        icellall = torch.cat((icellall, cc), dim=-1)
-        iposiall = torch.cat((iposiall, torch.unsqueeze(pp, -1)), dim=-1)
-    
-    # Creating mask = True when dist2 <= cutoff2
-    mask_dist2 = dist2.le(cutoff2)
-    
-    # Squared distance between atoms in central cell and other cells 
-    # The position of atom in central is described by iposcentcell
-    neighdist2 = torch.masked_select(dist2, mask_dist2)
-    
-    # Index of position for atoms in central cell
-    iposcentcell = torch.masked_select(iposiall, mask_dist2).int()
-    
-    # Mapping index of atoms in translated cells onto the atoms in central cell
-    img2centcell = torch.masked_select(imapall, mask_dist2).int()
-    
-    # Index of cell vector for each atom
-    icellvec = torch.masked_select(icellall, mask_dist2).int()
-    
-    # Count of all atoms interacting with each atom in central cell
-    nallatom = neighdist2.size(0)
-    
-    # Species of atoms in translated cells for all interacting atom pairs
-    species = torch.cat([(species0[ii]) for ii in zip(img2centcell)])
-    
-    return neighdist2, iposcentcell, img2centcell, icellvec, nallatom, species
+        # Global cutoff for the diatomic interactions
+        self.cutoff = self.cutoff + dist_ext
 
-def build_periodic_nonscc_HS(coord0, species0, rcellvec, iorb, natom, neighdist2, iposcentcell, img2centcell, icellvec, nallatom, species):
-    """Build Hamiltonian and Overlap matrices for nonscc calculation with periodic boundary condition.
-    
-    Based on existing tbmalt code, obtain integral values for all interacting atom pairs in periodic
-    system and construct Hamiltonian and Overlap matrices.
-    
-    Arguments:
-        coord0: Coordinates of the atoms in central cell.
-        species0: Species of the atoms in central cell.
-        rcellvec: Cell translation vectors in absolute units.
-        iorb: Index of orbitals for atoms in central cell.
-        natom: NUmber of the atoms in central cell.
-        neighdist2: Squared distance between atoms in central cell and other cells. 
-        iposcentcell: Index of position for atoms in central cell.
-        img2centcell: Mapping index of atoms in translated cells onto the atoms in central cell.
-        icellvec: Index of cell vector for each atom.
-        nallatom: Count of all atoms interacting with each atom in central cell.
-        species: Species of all interacting atoms in translated cells
-    
-    Return:
-        H: Hamiltonian matrix for nonscc calculation with periodic boundary condition.
-        S: Overlap matrices for nonscc calculation with periodic boundary condition.
-    
-    To do: Consider Kpoints for building H and S matrices.
+        self.invlatvec = self._inverse_lattice()
         
-    """
-    # Coordinates of atoms within cutoff distance in all translated cells
-    coordall = torch.stack([coord0[ii] + rcellvec[jj] for ii, jj in zip(img2centcell, icellvec)])
-    
-    # Species of atoms in central cell for all interacting atom pairs
-    species2 = torch.cat([(species0[ii]) for ii in zip(iposcentcell)])
-    
-    # Total number of orbitals in central cell
-    norb = torch.sum(iorb)
-    
-    # Index of start position for atom in H and S matrices
-    iorbtem = torch.cat((torch.tensor([0]), iorb), dim=0)
-    iatomstart = torch.cat([torch.tensor([sum(iorbtem[ : ii + 1])]) for ii in range(natom + 1)])
-    
-    # Build H, S
-    H = torch.zeros(1, norb, norb)
-    S = torch.zeros(1, norb, norb)
-    
-    # Loop over all atomparis in neighbour list
-    for ii in range(nallatom):
-        # When distance between two atoms is not zero, read integral values for orbitals needed
-        if neighdist2[ii] != 0:
-            
-            # Directly build an atom pair using atom species from central and translated cell
-            atompair = torch.tensor([species2[ii], species[ii]])
-            
-            # Position of two atoms
-            position = torch.stack((coord0[iposcentcell[ii]], coordall[ii]))
-            
-            # Build atom pair
-            molecule = System(atompair, position, unit='Bohr')
-            
-            # Obtain orbitals of the atom pair
-            atomorb = molecule.atom_orbitals
-            
-            # Read integral values
-            sktable = IntegralGenerator.from_dir('/home/wenbo/dftb_pe/slakos/mio/mio-1-1', molecule)
-            skt = SKT(molecule, sktable)
-            h = skt.H[0, 0:atomorb[0, 0], atomorb[0, 0]:atomorb[0, 0]+atomorb[0, 1]]
-            s = skt.S[0, 0:atomorb[0, 0], atomorb[0, 0]:atomorb[0, 0]+atomorb[0, 1]]
+        self.recvec = self._reciprocal_lattice()
+
+        self.cellvol, self.cellvec, self.rcellvec, self.ncell = self.get_cell_translations(**kwargs)
+
+        self.positions_vec, self.periodic_distances = self._get_periodic_distance()
+
+    def _check(self, latvec, cutoff, **kwargs):
+        """Check dimension, type of lattice vector and cutoff."""
+        _mask = self.system.is_periodic
+        # Default lattice vector is from system, therefore default unit is bohr
+        unit = kwargs.get('unit', 'bohr')
+
+        # Molecule will be padding with zeros, here select latvec for solid
+        if type(latvec) is list:
+            latvec = pack(latvec)
+        elif type(latvec) is not Tensor:
+            raise TypeError('Lattice vector is tensor or list of tensor.')
+
+        if latvec.dim() == 2:
+            latvec = latvec.unsqueeze(0)[_mask]
+        elif latvec.dim() == 3:
+            latvec = latvec[_mask]
+        else:
+            raise ValueError('lattice vector dimension should be 2 or 3')
+
+        if type(cutoff) is float:
+            cutoff = torch.tensor([cutoff])
+            if cutoff.dim() == 0:
+                cutoff = cutoff.unsqueeze(0)
+            elif cutoff.dim() >= 2:
+                raise ValueError(
+                    'cutoff should be 0, 1 dimension tensor or float')
+        elif type(cutoff) is Tensor:
+            if cutoff.dim() == 0:
+                cutoff = cutoff.unsqueeze(0)
+            elif cutoff.dim() >= 2:
+                raise ValueError(
+                    'cutoff should be 0, 1 dimension tensor or float')
+        elif type(cutoff) is not float:
+            raise TypeError('cutoff should be tensor or float')
+
+        if unit in ('angstrom', 'Angstrom'):
+            latvec = latvec / _bohr
+            cutoff = cutoff / _bohr
+        elif unit not in ('bohr', 'Bohr'):
+            raise ValueError('unit is either angstrom or bohr')
+
+        return latvec, cutoff
+
+    def _positions_check(self, **kwargs):
+        """Check positions type (fraction or not) and unit."""
+        unit = kwargs.get('unit', 'angstrom')
+
+        # transfer from fraction to Bohr unit positions
+        position_pe = self.system.positions[self.system.is_periodic]
+        is_frac = pack([abs(ipos).lt(1.).all() for ipos in position_pe])
+        position_pe[is_frac] = torch.matmul(
+            position_pe[is_frac], self.latvec[is_frac])
+
+        # transfer other periodic positions (non-fraction) to bohr
+        if unit in ('angstrom', 'Angstrom'):
+            position_pe[~is_frac] = position_pe[~is_frac] / _bohr
+        elif unit not in ('bohr', 'Bohr'):
+            raise ValueError('Please select either angstrom or bohr')
+
+        self.system.positions[self.system.is_periodic] = position_pe
+
+    def get_cell_translations(self, **kwargs):
+        """Get cell translation vectors."""
+        pos_ext = kwargs.get('positive_extention', 1)
+        neg_ext = kwargs.get('negative_extention', 1)
+
+        # Unit cell volume
+        cellvol = abs(torch.det(self.latvec))
         
-        # When distance between two atoms is zero, read on-site values
-        if neighdist2[ii] == 0:
-            
-            # Directly build an atom pair using atom species from central and translated cell
-            atompair = torch.tensor([species2[ii], species[ii]])
-            
-            # Using an imaginary atom as the second atom
-            position = torch.stack((coord0[iposcentcell[ii]], coord0[iposcentcell[ii]] + rcellvec[icellvec[0]]))
-            
-            # Build atom pair
-            molecule = System(atompair, position, unit='Bohr')
-            
-            # Obtain orbitals of the atom pair
-            atomorb = molecule.atom_orbitals
-            
-            # Read on-site values
-            sktable = IntegralGenerator.from_dir('/home/wenbo/dftb_pe/slakos/mio/mio-1-1', molecule)
-            skt = SKT(molecule, sktable)
-            h = skt.H[0, 0:atomorb[0, 0], 0:atomorb[0, 0]]
-            s = skt.S[0, 0:atomorb[0, 0], 0:atomorb[0, 0]]
+        _tmp = torch.stack([torch.floor(icutoff * torch.norm(iinvlatvec, dim=-1))
+                            for icutoff, iinvlatvec in zip(self.cutoff, self.invlatvec)])
+        ranges = torch.stack([-(neg_ext + _tmp), pos_ext + _tmp])
+
+        # Length of the first, second and third column in ranges
+        leng = ranges[1, :].long() - ranges[0, :].long() + 1
         
-        # Build H, S
-        H[0, iatomstart[iposcentcell[ii]]:iatomstart[iposcentcell[ii] + 1], iatomstart[img2centcell[ii]]:iatomstart[img2centcell[ii] + 1]] = \
-            H[0, iatomstart[iposcentcell[ii]]:iatomstart[iposcentcell[ii] + 1], iatomstart[img2centcell[ii]]:iatomstart[img2centcell[ii] + 1]] + h
-        S[0, iatomstart[iposcentcell[ii]]:iatomstart[iposcentcell[ii] + 1], iatomstart[img2centcell[ii]]:iatomstart[img2centcell[ii] + 1]] = \
-            S[0, iatomstart[iposcentcell[ii]]:iatomstart[iposcentcell[ii] + 1], iatomstart[img2centcell[ii]]:iatomstart[img2centcell[ii] + 1]] + s
+        # Number of cells
+        ncell = torch.tensor([leng[ibatch, 0] * leng[ibatch, 1] * leng[ibatch, 2] 
+                            for ibatch in range(leng.size(0))])
+
+        # Cell translation vectors in relative coordinates
+        # Large values are padded at the end of short cell vectors to exceed cutoff distance
+        cellvec = pack([torch.stack([
+            torch.linspace(iran[0, 0], iran[1, 0],
+                           ile[0]).repeat_interleave(ile[2] * ile[1]),
+            torch.linspace(iran[0, 1], iran[1, 1],
+                           ile[1]).repeat(ile[0]).repeat_interleave(ile[2]),
+            torch.linspace(iran[0, 2], iran[1, 2],
+                           ile[2]).repeat(ile[0] * ile[1])])
+            for ile, iran in zip(leng, ranges.transpose(1, 0))], value=1e4)
+
+        rcellvec = pack([(ilv.transpose(0, 1) @ icv.T.unsqueeze(-1)).squeeze(-1)
+                         for ilv, icv in zip(self.latvec, cellvec)], value=1e4)
+
+        return cellvol, cellvec, rcellvec, ncell
+
+    def _get_periodic_distance(self):
+        """Get distances between central cell and neighbour cells."""
+        positions = self.rcellvec.unsqueeze(2) + self.system.positions.unsqueeze(1)
+        size_system = self.system.size_system
+        positions_vec = (positions.unsqueeze(-3) - self.system.positions.unsqueeze(1).unsqueeze(-2))
+        
+        return positions_vec, pack([torch.sqrt(((
+            ipos[:, :inat].repeat(1, inat, 1) - torch.repeat_interleave(
+                icp[:inat], inat, 0)) ** 2).sum(-1)).reshape(-1, inat, inat)
+            for ipos, icp, inat in zip(positions, self.system.positions, size_system)], value=1e4)
+
+    def _inverse_lattice(self):
+        """Get inverse lattice vectors."""
+        return torch.transpose(torch.solve(torch.eye(
+                self.latvec.shape[-1]), self.latvec)[0], -1, -2)
     
-    return H, S
+    def _reciprocal_lattice(self):
+        """Get reciprocal lattice vectors"""
+        return 2 * np.pi * self.invlatvec
+
+    def get_reciprocal_volume(self):
+        """Get reciprocal lattice unit cell volume."""
+        return abs(torch.det(2 * np.pi * (self.invlatvec.transpose(0, 1))))
+
+    @property
+    def neighbour(self):
+        """Get neighbour list according to periodic boundary condition."""
+        return torch.stack([self.periodic_distances[ibatch].le(self.cutoff[ibatch]) 
+                           for ibatch in range(self.cutoff.size(0))])

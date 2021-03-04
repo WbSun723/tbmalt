@@ -47,7 +47,7 @@ class Coulomb:
         self.maxg = self.get_maxg()
         
         # The updated lattice points
-        self.rcellvec_ud = self.update_latvec()
+        self.rcellvec_ud, self.ncell_ud = self.update_latvec()
         
         # The updated neighbour lists
         self.distmat, self.neighbour = self.update_neighbour()
@@ -89,15 +89,15 @@ class Coulomb:
     
     def update_latvec(self):
         """Update the lattice points for reciprocal Ewald summation."""
-        update = Periodic(system = self.system, latvec = self.recvec, cutoff = self.maxg[0], 
+        update = Periodic(system = self.system, latvec = self.recvec, cutoff = self.maxg, 
                       distance_extention=0, positive_extention=0, negative_extention=0, unit='Bohr')
-        return update.rcellvec
+        return update.rcellvec, update.ncell
     
     def update_neighbour(self):
         """Update the neighbour lists for real Ewald summation."""
-        update = Periodic(system = self.system, latvec = self.latvec, cutoff = self.maxr[0], 
+        update = Periodic(system = self.system, latvec = self.latvec, cutoff = self.maxr, 
                           distance_extention=0, unit='Bohr')
-        return update._get_periodic_distance()[1], update.neighbour
+        return update.periodic_distances, update.neighbour
     
     def update_shift(self, charge, qzero):
         """Update potential shifts for scc calculation."""
@@ -122,15 +122,18 @@ class Coulomb:
     def invr_periodic_reciprocal(self):
         """Calculate the reciprocal part of 1/R matrix for the periodic system.""" 
         # Lattice points for the reciprocal sum.
-        n_low = torch.ceil(torch.tensor(self.rcellvec_ud.size(1)) / 2.0).repeat(self.rcellvec_ud.size(0))
-        gvec_tem = torch.stack([torch.unsqueeze(self.rcellvec_ud[ibatch, int(n_low[ibatch]):], 0) 
-                      for ibatch in range(self.rcellvec_ud.size(0))])
+        n_low = torch.ceil(torch.clone(self.ncell_ud / 2.0))
+        
+        # Large values are padded in the end of short vectors.
+        gvec_tem = pack([torch.unsqueeze(self.rcellvec_ud[ibatch, 
+                      int(n_low[ibatch]):int(2 * n_low[ibatch] - 1)], 0) 
+                      for ibatch in range(self.rcellvec_ud.size(0))], value=1e10)
     
         dd2 = torch.sum(torch.clone(gvec_tem) ** 2, -1)
         mask = torch.cat([torch.unsqueeze(dd2[ibatch] < self.maxg[ibatch] ** 2, 0) 
                       for ibatch in range(self.rcellvec_ud.size(0))])
         gvec = pack([gvec_tem[ibatch, mask[ibatch]] 
-                      for ibatch in range(self.rcellvec_ud.size(0))], value=1e50)
+                      for ibatch in range(self.rcellvec_ud.size(0))], value=1e10)
     
         # Vectors for calculating the reciprocal Ewald sum
         coord1 = pack([self.coord[ibatch].repeat(self.coord.size(1), 1) 
@@ -142,7 +145,6 @@ class Coulomb:
     
         # The reciprocal Ewald sum
         recsum = self.ewald_reciprocal(rr, gvec, self.alpha, self.cellvol)
-    
         ewald_g = pack([torch.unsqueeze(recsum[ibatch] - np.pi / (
                                         self.cellvol[ibatch] * self.alpha[ibatch] ** 2), 0) 
                       for ibatch in range(self.alpha.size(0))])
