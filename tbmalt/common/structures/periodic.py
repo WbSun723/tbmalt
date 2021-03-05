@@ -45,17 +45,20 @@ class Periodic:
 
         self.invlatvec = self._inverse_lattice()
 
-        self.cellvol, self.cellvec, self.rcellvec = self.get_cell_translations(**kwargs)
+        self.recvec = self._reciprocal_lattice()
+
+        self.cellvol, self.cellvec, self.rcellvec, self.ncell = self.get_cell_translations(**kwargs)
 
         self.positions_vec, self.periodic_distances = self._get_periodic_distance()
 
     def _check(self, latvec, cutoff, **kwargs):
         """Check dimension, type of lattice vector and cutoff."""
         _mask = self.system.is_periodic
-        # default lattice vector is from system, therefore default unit is bohr
+
+        # Default lattice vector is from system, therefore default unit is bohr
         unit = kwargs.get('unit', 'bohr')
 
-        # molecule will be padding with zeros, here select latvec for solid
+        # Molecule will be padding with zeros, here select latvec for solid
         if type(latvec) is list:
             latvec = pack(latvec)
         elif type(latvec) is not Tensor:
@@ -68,8 +71,14 @@ class Periodic:
         else:
             raise ValueError('lattice vector dimension should be 2 or 3')
 
-        # currently, cutoff is the same for all systems
-        if type(cutoff) is Tensor:
+        if type(cutoff) is float:
+            cutoff = torch.tensor([cutoff])
+            if cutoff.dim() == 0:
+                cutoff = cutoff.unsqueeze(0)
+            elif cutoff.dim() >= 2:
+                raise ValueError(
+                    'cutoff should be 0, 1 dimension tensor or float')
+        elif type(cutoff) is Tensor:
             if cutoff.dim() == 0:
                 cutoff = cutoff.unsqueeze(0)
             elif cutoff.dim() >= 2:
@@ -105,19 +114,26 @@ class Periodic:
         self.system.positions[self.system.is_periodic] = position_pe
 
     def get_cell_translations(self, **kwargs):
-        """Get."""
+        """Get cell translation vectors."""
         pos_ext = kwargs.get('positive_extention', 1)
         neg_ext = kwargs.get('negative_extention', 1)
 
         # Unit cell volume
         cellvol = abs(torch.det(self.latvec))
-        _tmp = torch.floor(self.cutoff * torch.norm(self.invlatvec, dim=-1))
+
+        _tmp = torch.stack([torch.floor(icutoff * torch.norm(iinvlatvec, dim=-1))
+                            for icutoff, iinvlatvec in zip(self.cutoff, self.invlatvec)])
         ranges = torch.stack([-(neg_ext + _tmp), pos_ext + _tmp])
 
         # Length of the first, second and third column in ranges
         leng = ranges[1, :].long() - ranges[0, :].long() + 1
 
+        # Number of cells
+        ncell = torch.tensor([leng[ibatch, 0] * leng[ibatch, 1] * leng[ibatch, 2]
+                              for ibatch in range(leng.size(0))])
+
         # Cell translation vectors in relative coordinates
+        # Large values are padded at the end of short cell vectors to exceed cutoff distance
         cellvec = pack([torch.stack([
             torch.linspace(iran[0, 0], iran[1, 0],
                            ile[0]).repeat_interleave(ile[2] * ile[1]),
@@ -125,31 +141,32 @@ class Periodic:
                            ile[1]).repeat(ile[0]).repeat_interleave(ile[2]),
             torch.linspace(iran[0, 2], iran[1, 2],
                            ile[2]).repeat(ile[0] * ile[1])])
-            for ile, iran in zip(leng, ranges.transpose(1, 0))])
+            for ile, iran in zip(leng, ranges.transpose(1, 0))], value=1e4)
 
         rcellvec = pack([(ilv.transpose(0, 1) @ icv.T.unsqueeze(-1)).squeeze(-1)
-                         for ilv, icv in zip(self.latvec, cellvec)])
+                         for ilv, icv in zip(self.latvec, cellvec)], value=1e4)
 
-        return cellvol, cellvec, rcellvec
+        return cellvol, cellvec, rcellvec, ncell
 
     def _get_periodic_distance(self):
         """Get distances between central cell and neighbour cells."""
         positions = self.rcellvec.unsqueeze(2) + self.system.positions.unsqueeze(1)
         size_system = self.system.size_system
-
-        # positions_vec = (positions.transpose(1, 0).unsqueeze(-3) -
-        #                  positions.transpose(1, 0).unsqueeze(-2)).transpose(1, 0)
         positions_vec = (positions.unsqueeze(-3) - self.system.positions.unsqueeze(1).unsqueeze(-2))
 
         return positions_vec, pack([torch.sqrt(((
             ipos[:, :inat].repeat(1, inat, 1) - torch.repeat_interleave(
                 icp[:inat], inat, 0)) ** 2).sum(-1)).reshape(-1, inat, inat)
-            for ipos, icp, inat in zip(positions, self.system.positions, size_system)])
+            for ipos, icp, inat in zip(positions, self.system.positions, size_system)], value=1e4)
 
     def _inverse_lattice(self):
         """Get inverse lattice vectors."""
         return torch.transpose(torch.solve(torch.eye(
                 self.latvec.shape[-1]), self.latvec)[0], -1, -2)
+
+    def _reciprocal_lattice(self):
+        """Get reciprocal lattice vectors"""
+        return 2 * np.pi * self.invlatvec
 
     def get_reciprocal_volume(self):
         """Get reciprocal lattice unit cell volume."""
@@ -158,4 +175,5 @@ class Periodic:
     @property
     def neighbour(self):
         """Get neighbour list according to periodic boundary condition."""
-        return self.periodic_distances.le(self.cutoff)
+        return torch.stack([self.periodic_distances[ibatch].le(self.cutoff[ibatch])
+                           for ibatch in range(self.cutoff.size(0))])

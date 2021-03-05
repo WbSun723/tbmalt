@@ -4,7 +4,7 @@
 This module contains a collection of batch-operable, back-propagatable
 mathematical functions.
 """
-from typing import Tuple, Union, Optional
+from typing import Tuple, Union, Literal, Optional
 import torch
 import numpy as np
 Tensor = torch.Tensor
@@ -19,7 +19,7 @@ def gaussian(x: Union[Tensor, float], mean: Union[Tensor, float],
 
     .. math::
 
-        g(x) = \frac{1}{\sigma\sqrt{2\pi}}e
+        g(x) = \frac{1}{\sigma\sqrt{2\pi}}exp
             \left(-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^{2}\right)
 
     Where σ (`std`) is the standard deviation, μ (`mean`) is the mean & x is
@@ -387,8 +387,8 @@ def _eig_sort_out(w: Tensor, v: Tensor, ghost: bool = True
 
 def eighb(a: Tensor,
           b: Tensor = None,
-          scheme='chol',
-          broadening_method='cond',
+          scheme: Literal['chol', 'lowd'] = 'chol',
+          broadening_method: Optional[Literal['cond', 'lorn']] = 'cond',
           factor: float = 1E-12,
           sort_out: bool = True,
           aux: bool = True,

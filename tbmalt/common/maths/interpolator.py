@@ -1,5 +1,7 @@
 import bisect
 import torch
+from tbmalt.common.batch import pack
+import numpy as np
 Tensor = torch.Tensor
 
 
@@ -110,23 +112,23 @@ class BicubInterp:
                  f11: Tensor):
         """Get the 1st derivative of four grid points over x, y and xy."""
         f_10 = zmesh[self.arange_atp, self.nx_1[..., 0], self.nx0[..., 1]]
-        f_11 = zmesh[self.arange_atp, self.nx_1[..., 0], self.nx_1[..., 1]]
+        f_11 = zmesh[self.arange_atp, self.nx_1[..., 0], self.nx1[..., 1]]
         f0_1 = zmesh[self.arange_atp, self.nx0[..., 0], self.nx_1[..., 1]]
         f02 = zmesh[self.arange_atp, self.nx0[..., 0], self.nx2[..., 1]]
-        f1_1 = zmesh[self.arange_atp, self.nx_1[..., 0], self.nx_1[..., 1]]
+        f1_1 = zmesh[self.arange_atp, self.nx1[..., 0], self.nx_1[..., 1]]
         f12 = zmesh[self.arange_atp, self.nx1[..., 0], self.nx2[..., 1]]
         f20 = zmesh[self.arange_atp, self.nx2[..., 0], self.nx0[..., 1]]
         f21 = zmesh[self.arange_atp, self.nx2[..., 0], self.nx1[..., 1]]
 
         # calculate the derivative: (F(1) - F(-1) / (2 * grid)
-        fy00 = (f01 - f0_1) / (self.nx1[..., 0] - self.nx_1[..., 1])
-        fy01 = (f02 - f00) / (self.nx1[..., 0] - self.nx_1[..., 1])
-        fy10 = (f11 - f1_1) / (self.nx1[..., 0] - self.nx_1[..., 1])
-        fy11 = (f12 - f10) / (self.nx1[..., 0] - self.nx_1[..., 1])
-        fx00 = (f10 - f_10) / (self.nx1[..., 0] - self.nx_1[..., 1])
-        fx01 = (f20 - f00) / (self.nx1[..., 0] - self.nx_1[..., 1])
-        fx10 = (f11 - f_11) / (self.nx1[..., 0] - self.nx_1[..., 1])
-        fx11 = (f21 - f01) / (self.nx1[..., 0] - self.nx_1[..., 1])
+        fy00 = (f01 - f0_1) / (self.nx1[..., 1] - self.nx_1[..., 1])
+        fy01 = (f02 - f00) / (self.nx2[..., 1] - self.nx0[..., 1])
+        fy10 = (f11 - f1_1) / (self.nx1[..., 1] - self.nx_1[..., 1])
+        fy11 = (f12 - f10) / (self.nx2[..., 1] - self.nx0[..., 1])
+        fx00 = (f10 - f_10) / (self.nx1[..., 0] - self.nx_1[..., 0])
+        fx01 = (f20 - f00) / (self.nx2[..., 0] - self.nx0[..., 0])
+        fx10 = (f11 - f_11) / (self.nx1[..., 0] - self.nx_1[..., 0])
+        fx11 = (f21 - f01) / (self.nx2[..., 0] - self.nx0[..., 0])
         fxy00, fxy11 = fy00 * fx00, fx11 * fy11
         fxy01, fxy10 = fx01 * fy01, fx10 * fy10
         return fy00, fy01, fy10, fy11, fx00, fx01, fx10, fx11, fxy00, fxy01, fxy10, fxy11
@@ -158,22 +160,20 @@ class Spline1d:
         >>> tensor([-0.3508])
     """
 
-    def __init__(self, x: Tensor, y: Tensor, **kwargs):
-        self.xp, self.yp = x, y
-        kind = kwargs.get('kind')
+    def __init__(self, xx: Tensor, yy: Tensor, **kwargs):
+        self.xp, self.yp = xx, yy
+        self.kind = kwargs.get('kind', 'cubic')
 
-        if kind in ('cubic', None):
-            self.kind = 'cubic'
+        if self.kind == 'cubic':
             if kwargs.get('abcd') is not None:
                 self.aa, self.bb, self.cc, self.dd = kwargs.get('abcd')
             else:
                 self.aa, self.bb, self.cc, self.dd = self._get_abcd()
-        elif kind == 'linear':
-            self.kind = 'linear'
-        else:
+            self.abcd = pack([self.aa, self.bb, self.cc, self.dd])
+        elif self.kind != 'linear':
             raise NotImplementedError('%s not implemented' % self.kind)
 
-    def __call__(self, xnew: Tensor):
+    def __call__(self, xnew: Tensor, abcd=None):
         """Evaluate the polynomial linear or cubic spline.
 
         Arguments:
@@ -184,7 +184,6 @@ class Spline1d:
         """
         # according to the order to choose spline method
         self.xnew = xnew if xnew.dim() == 1 else xnew.unsqueeze(0)
-        self.batch = False if len(self.xnew) == 1 else True
         self.knot = [ii in self.xp for ii in self.xnew]
 
         # boundary condition of xnew,  xp[0] < xnew < xp[-1]
@@ -194,11 +193,13 @@ class Spline1d:
         self.dind = [
             bisect.bisect(self.xp.detach().numpy(), ii.detach().numpy()) - 1
             for ii in self.xnew]
-        # generate new index if self.batch
-        self.ind = [torch.arange(len(self.xnew)), self.dind] if self.batch else self.dind
+
+        # generate new index for 2D yp batch
+        self.ind = [torch.arange(len(self.xnew)), self.dind] if \
+            self.yp.dim() == 2 else self.dind
 
         if self.kind == 'cubic':
-            return self._cubic()
+            return self._cubic(abcd)
         elif self.kind == 'linear':
             return self._linear()
 
@@ -208,12 +209,17 @@ class Spline1d:
             self.xp[1:] - self.xp[:-1])[self.dind] * (
             self.yp[..., 1:] - self.yp[..., :-1])[self.ind]
 
-    def _cubic(self):
+    def _cubic(self, abcd):
         """Calculate cubic spline interpolation."""
+        if abcd is None:
+            aa, bb, cc, dd = self.aa, self.bb, self.cc, self.dd
+        else:
+            aa, bb, cc, dd = abcd[0], abcd[1], abcd[2], abcd[3]
         # calculate a, b, c, d parameters, need input x and y
         dx = self.xnew - self.xp[self.dind]
-        return self.aa[self.ind] + self.bb[self.ind] * dx + \
-            self.cc[self.ind] * dx ** 2 + self.dd[self.ind] * dx ** 3
+
+        return aa[self.ind] + bb[self.ind] * dx + \
+            cc[self.ind] * dx ** 2 + dd[self.ind] * dx ** 3
 
     def _get_abcd(self):
         """Get parameter aa, bb, cc, dd for cubic spline interpolation."""
@@ -267,7 +273,7 @@ class SKInterpolation:
             delta_r: Delta distance for 1st, 2nd derivative.
             tail: Distance to smooth the tail, unit is bohr.
         """
-        max_ind = self.ngridpoint - 1 + int(tail / self.incr)
+        ntail = int(tail / self.incr)
         rmax = (self.ngridpoint - 1) * self.incr + tail
         ind = (rr / self.incr).int()
         result = torch.zeros(rr.shape) if self.yy.dim() == 1 else torch.zeros(
@@ -277,8 +283,12 @@ class SKInterpolation:
         if self.ngridpoint < ninterp + 1:
             raise ValueError("Not enough grid points for interpolation!")
 
+        # distance beyond grid points in SKF
+        if (rr >= rmax).any():
+            result[rr >= rmax] = 0.
+
         # => polynomial fit
-        if (ind <= self.ngridpoint).any():
+        elif (ind <= self.ngridpoint).any():
             _mask = ind <= self.ngridpoint
 
             # get the index of rr in grid points
@@ -290,85 +300,120 @@ class SKInterpolation:
                   ) * self.incr  # get the interpolation gird points
             yb = torch.stack([self.yy[ii - ninterp - 1: ii - 1]
                               for ii in ind_last])  # grid point values
-
-            result[_mask] = self.poly_interp_2d(xa, yb, rr[_mask])
+            result[_mask] = poly_interp_2d(xa, yb, rr[_mask])
 
         # Beyond the grid => extrapolation with polynomial of 5th order
-        is_tail = ind.masked_fill(ind.ge(self.ngridpoint) * ind.le(max_ind), -1).eq(-1)
-        if is_tail.any():
-            dr = rr[is_tail] - rmax
+        elif torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).nelement() != 0:
+            _mask = torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).ne(0)
+            dr = rr[_mask] - rmax
             ilast = self.ngridpoint
 
             # get grid points and grid point values
             xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
             yb = self.yy[ilast - ninterp - 1: ilast - 1]
-            xa = xa.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
-            yb = yb.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
+            xa = xa.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
+            yb = yb.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
 
             # get derivative
-            y0 = self.poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
-            y2 = self.poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
+            y0 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
+            y2 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
             y1 = self.yy[ilast - 2]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            result[is_tail] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+            result[_mask] = poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
 
         return result
 
-    def poly5_zero(self, y0: Tensor, y0p: Tensor, y0pp: Tensor, xx: Tensor,
-                   dx: Tensor) -> Tensor:
-        """Get integrals if beyond the grid range with 5th polynomial."""
-        dx1 = y0p * dx
-        dx2 = y0pp * dx * dx
-        dd = 10.0 * y0 - 4.0 * dx1 + 0.5 * dx2
-        ee = -15.0 * y0 + 7.0 * dx1 - 1.0 * dx2
-        ff = 6.0 * y0 - 3.0 * dx1 + 0.5 * dx2
-        xr = xx / dx
-        yy = ((ff * xr + ee) * xr + dd) * xr * xr * xr
-        return yy
 
-    def poly_interp_2d(self, xp: Tensor, yp: Tensor, rr: Tensor) -> Tensor:
-        """Interpolate from DFTB+ (lib_math) with uniform grid.
+def smooth_tail_batch(xx: Tensor, yy: Tensor, n_grid: Tensor, ninterp=8,
+                      delta_r=1E-5, tail=1.0):
+    """Smooth the tail with input xx and yy."""
+    assert xx.dim() == 2
+    assert yy.dim() == 3
+    assert n_grid.shape[0] == xx.shape[0]
 
-        Arguments:
-            xp: 2D tensor, 1st dimension if batch size, 2nd is grid points.
-            yp: 2D tensor of integrals.
-            rr: interpolation points.
-        """
-        nn0, nn1 = xp.shape[0], xp.shape[1]
-        index_nn0 = torch.arange(nn0)
-        icl = torch.zeros(nn0).long()
-        cc, dd = yp.clone(), yp.clone()
-        dxp = abs(rr - xp[index_nn0, icl])
+    ilast = n_grid.clone()
+    incr = xx[0, 1] - xx[0, 0]
 
-        # find the most close point to rr (single atom pair or multi pairs)
-        _mask, ii = torch.zeros(len(rr)) == 0, 0
-        dxNew = abs(rr - xp[index_nn0, 0])
-        while (dxNew < dxp).any():
-            ii += 1
-            assert ii < nn1 - 1  # index ii range from 0 to nn1 - 1
-            _mask = dxNew < dxp
-            icl[_mask] = ii
-            dxp[_mask] = abs(rr - xp[index_nn0, ii])[_mask]
+    # get grid points and grid point values
+    xa = (ilast.unsqueeze(1) - ninterp + torch.arange(ninterp)) * incr
+    yb = torch.stack([yy[ii, il - ninterp - 1: il - 1]
+                      for ii, il in enumerate(ilast)])
 
-        yy = yp[index_nn0, icl]
+    # return smooth grid points in the tail for each SKF
+    dr = -torch.linspace(4, 0, 5) * incr
 
-        for mm in range(nn1 - 1):
-            for ii in range(nn1 - mm - 1):
-                rtmp0 = xp[index_nn0, ii] - xp[index_nn0, ii + mm + 1]
+    # get derivative
+    y0 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
+    y2 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
+    y1 = yy[torch.arange(yy.shape[0]), ilast - 2]
+    y1p = (y2 - y0) / (2.0 * delta_r)
+    y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
+    # dr = dr.unsqueeze(1).unsqueeze(2).repeat(1, y0.shape[0], y0.shape[1])
+    integral_tail = poly5_zero(
+        y1.unsqueeze(-1), y1p.unsqueeze(-1), y1pp.unsqueeze(-1), dr, -tail).permute(0, 2, 1)
 
-                # use transpose to realize div: (N, M, K) / (N)
-                rtmp1 = ((cc[index_nn0, ii + 1] - dd[index_nn0, ii]).transpose(
-                    0, -1) / rtmp0).transpose(0, -1)
-                cc[index_nn0, ii] = ((xp[index_nn0, ii] - rr) *
-                                     rtmp1.transpose(0, -1)).transpose(0, -1)
-                dd[index_nn0, ii] = ((xp[index_nn0, ii + mm + 1] - rr) *
-                                     rtmp1.transpose(0, -1)).transpose(0, -1)
-            if (2 * icl < nn1 - mm - 1).any():
-                _mask = 2 * icl < nn1 - mm - 1
-                yy[_mask] = (yy + cc[index_nn0, icl])[_mask]
-            else:
-                _mask = 2 * icl >= nn1 - mm - 1
-                yy[_mask] = (yy + dd[index_nn0, icl - 1])[_mask]
-                icl[_mask] = icl[_mask] - 1
-        return yy
+    for ii, iy in enumerate(yy):  # -> add tail
+        yy[ii, n_grid[ii]: n_grid[ii] + 5] = integral_tail[ii]
+
+    return yy
+
+
+def poly5_zero(y0: Tensor, y0p: Tensor, y0pp: Tensor, xx: Tensor,
+               dx: Tensor) -> Tensor:
+    """Get integrals if beyond the grid range with 5th polynomial."""
+    dx1 = y0p * dx
+    dx2 = y0pp * dx * dx
+    dd = 10.0 * y0 - 4.0 * dx1 + 0.5 * dx2
+    ee = -15.0 * y0 + 7.0 * dx1 - 1.0 * dx2
+    ff = 6.0 * y0 - 3.0 * dx1 + 0.5 * dx2
+    xr = xx / dx
+    yy = ((ff * xr + ee) * xr + dd) * xr * xr * xr
+    return yy
+
+
+def poly_interp_2d(xp: Tensor, yp: Tensor, rr: Tensor) -> Tensor:
+    """Interpolate from DFTB+ (lib_math) with uniform grid.
+
+    Arguments:
+        xp: 2D tensor, 1st dimension if batch size, 2nd is grid points.
+        yp: 2D tensor of integrals.
+        rr: interpolation points.
+    """
+    nn0, nn1 = xp.shape[0], xp.shape[1]
+    index_nn0 = torch.arange(nn0)
+    icl = torch.zeros(nn0).long()
+    cc, dd = yp.clone(), yp.clone()
+    dxp = abs(rr - xp[index_nn0, icl])
+
+    # find the most close point to rr (single atom pair or multi pairs)
+    _mask, ii = torch.zeros(len(rr)) == 0, 0
+    dxNew = abs(rr - xp[index_nn0, 0])
+    while (dxNew < dxp).any():
+        ii += 1
+        assert ii < nn1 - 1  # index ii range from 0 to nn1 - 1
+        _mask = dxNew < dxp
+        icl[_mask] = ii
+        dxp[_mask] = abs(rr - xp[index_nn0, ii])[_mask]
+
+    yy = yp[index_nn0, icl]
+
+    for mm in range(nn1 - 1):
+        for ii in range(nn1 - mm - 1):
+            rtmp0 = xp[index_nn0, ii] - xp[index_nn0, ii + mm + 1]
+
+            # use transpose to realize div: (N, M, K) / (N)
+            rtmp1 = ((cc[index_nn0, ii + 1] - dd[index_nn0, ii]).transpose(
+                0, -1) / rtmp0).transpose(0, -1)
+            cc[index_nn0, ii] = ((xp[index_nn0, ii] - rr) *
+                                 rtmp1.transpose(0, -1)).transpose(0, -1)
+            dd[index_nn0, ii] = ((xp[index_nn0, ii + mm + 1] - rr) *
+                                 rtmp1.transpose(0, -1)).transpose(0, -1)
+        if (2 * icl < nn1 - mm - 1).any():
+            _mask = 2 * icl < nn1 - mm - 1
+            yy[_mask] = (yy + cc[index_nn0, icl])[_mask]
+        else:
+            _mask = 2 * icl >= nn1 - mm - 1
+            yy[_mask] = (yy + dd[index_nn0, icl - 1])[_mask]
+            icl[_mask] = icl[_mask] - 1
+    return yy
