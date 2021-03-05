@@ -1,12 +1,14 @@
 """Geometric, structural and orbital information."""
 from typing import Union, List
+import numpy as np
 import torch
 from tbmalt.common.batch import pack
 from tbmalt.common.data import bohr, atom_name, val_elect, l_num
+from tbmalt.common.structures.cell import Cell
 Tensor = torch.Tensor
 
 
-class System:
+class Geometry:
     r"""Geometry object.
 
     This object will generate single geometry (molecule, unit cell)
@@ -53,10 +55,20 @@ class System:
 
     def __init__(self, numbers: Union[Tensor, List[Tensor]],
                  positions: Union[Tensor, List[Tensor]],
-                 lattice=None, **kwargs):
-        self.pbc = kwargs['pbc'] if 'pbc' in kwargs else lattice is not None
-        self.positions, self.numbers, self.batch = self._check(
-            numbers, positions, **kwargs)
+                 cell=None, pbc=None, lattice=None, **kwargs):
+        self.cell = cell
+        self.pbc = pbc
+
+        # bool tensor is_periodic defines which is solid and which is molecule
+        if self.cell is not None:
+            self.cell, self.pbc, self.is_periodic = self._cell()
+            self.periodic = True if True in self.is_periodic else False
+            self.positions, self.numbers, self.batch, self.is_periodic = \
+                self._check(numbers, positions, self.is_periodic, **kwargs)
+        else:
+            self.periodic = False  # no system is solid
+            self.positions, self.numbers, self.batch, self.is_periodic = \
+                self._check(numbers, positions, **kwargs)
 
         # size of each geometry
         self.size_geometry = self._get_size()
@@ -78,7 +90,7 @@ class System:
         # get Hamiltonian, overlap shape in batch of each geometry and batch
         self.single_hs_shape, self.hs_shape = self._get_hs_shape()
 
-    def _check(self, numbers, positions, **kwargs):
+    def _check(self, numbers, positions, is_periodic=None, **kwargs):
         """Check the type and dimension of numbers, positions."""
         unit = kwargs['unit'] if 'unit' in kwargs else 'angstrom'
 
@@ -94,16 +106,25 @@ class System:
         elif isinstance(positions, Tensor) and positions.dim() == 2:
             positions = positions.unsqueeze(0)
 
+        # if there is no solid, build is_periodic as False tensor
+        if is_periodic is None:
+            is_periodic = torch.zeros(numbers.shape[0], dtype=torch.bool)
+
         # transfer positions from angstrom to bohr
         if unit in ('angstrom', 'Angstrom'):
-            positions = positions / bohr
+            positions[~is_periodic] = positions[~is_periodic] / bohr
         elif unit not in ('bohr', 'Bohr'):
             raise ValueError('Please select either angstrom or bohr')
 
         assert positions.shape[0] == numbers.shape[0]
         batch_ = True if numbers.shape[0] != 1 else False
 
-        return positions, numbers, batch_
+        return positions, numbers, batch_, is_periodic
+
+    def _cell(self):
+        """Return cell information."""
+        _cell = Cell(self.cell, self.pbc)
+        return _cell.cell, _cell.pbc, _cell.is_periodic
 
     def _get_distances(self):
         """Return distances between a list of atoms for each geometry."""
@@ -224,7 +245,7 @@ class System:
         return [[atom_name[ii - 1] for ii in inum[inum.ne(0)]] for inum in number]
 
     @classmethod
-    def from_ase_atoms(cls, atoms):
+    def from_ase_atoms(cls, atoms, **kwargs):
         """Instantiate a Geometry instance from an ase.Atoms object.
 
         Arguments:
@@ -234,14 +255,27 @@ class System:
             Geometry : Geometry object.
 
         """
-        if isinstance(atoms, list):  # If multiple atoms objects supplied:
+        # if isinstance(atoms, list):  # If multiple atoms objects supplied:
+        #     # Recursively call from_ase_atoms and return the result
+        #     numbers = [torch.from_numpy(iat.numbers) for iat in atoms]
+        #     positions = [torch.from_numpy(iat.positions) for iat in atoms]
+        #     return Geometry(numbers, positions)
+
+        # return Geometry(torch.from_numpy(atoms.numbers),
+        #                 torch.torch.from_numpy(atoms.positions))
+        if isinstance(atoms, list):  # If multiple atoms objects supplied
             # Recursively call from_ase_atoms and return the result
             numbers = [torch.from_numpy(iat.numbers) for iat in atoms]
             positions = [torch.from_numpy(iat.positions) for iat in atoms]
-            return Geometry(numbers, positions)
+            cell = [torch.from_numpy(np.asarray(iat.cell)) for iat in atoms]
+            pbc = [torch.from_numpy(np.asarray(iat.pbc)) for iat in atoms]
+            return Geometry(numbers, positions, cell, pbc, **kwargs)
 
-        return Geometry(torch.from_numpy(atoms.numbers),
-                        torch.torch.from_numpy(atoms.positions))
+        elif isinstance(atoms, object):  # If single atoms objects supplied
+            return Geometry(torch.from_numpy(atoms.numbers),
+                            torch.torch.from_numpy(atoms.positions),
+                            torch.from_numpy(np.asarray(atoms.cell)),
+                            torch.from_numpy(np.asarray(atoms.pbc)), **kwargs)
 
     def to_hd5(self, target):
         """Convert the Geometry instance to a set of hdf5 datasets.

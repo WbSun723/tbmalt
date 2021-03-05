@@ -65,7 +65,7 @@ def test_system_ase_byhand_single(device):
     positions = torch.from_numpy(ch4.positions)
     numbers = torch.from_numpy(ch4.numbers)
 
-    sys = Geometry(numbers, positions)
+    sys = Geometry(numbers, positions.clone())
     distance_ref = _calculate_distance(numbers, positions / _bohr)
 
     assert torch.max(abs(sys.distances - distance_ref)) < 1E-14
@@ -216,7 +216,7 @@ def test_hdf5(device):
     numbers = torch.from_numpy(ch4.numbers)
 
     with h5py.File('test.hdf5', 'w') as f:
-        Geometry(numbers, positions).to_hd5(f)
+        Geometry(numbers, positions.clone()).to_hd5(f)
 
     with h5py.File('test.hdf5', 'r') as f:
         sys = Geometry.from_hd5(f, unit='bohr')

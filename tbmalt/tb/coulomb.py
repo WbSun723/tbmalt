@@ -8,11 +8,11 @@ _bohr = 0.529177249
 
 
 class Coulomb:
-    """Calculate the coulombic interaction in periodic system.
+    """Calculate the coulombic interaction in periodic geometry.
 
     Arguments:
-        system: Object for calculation, storing the data of input system.
-        latvec: Lattice vector describing the geometry of periodic system.
+        geometry: Object for calculation, storing the data of input geometry.
+        latvec: Lattice vector describing the geometry of periodic geometry.
         recvec: Reciprocal lattice vectors.
 
     Keyword Args:
@@ -20,7 +20,7 @@ class Coulomb:
         nsearchiter: Maximum of iteration for searching alpha, maxg and maxr.
 
     Return:
-        invrmat: 1/R matrix for the periodic system.
+        invrmat: 1/R matrix for the periodic geometry.
         alpha: Optimal alpha for the Ewald summation
         maxr: The longest real space vector that gives a bigger
               contribution to the EWald sum than tolerance.
@@ -29,13 +29,17 @@ class Coulomb:
 
     """
 
-    def __init__(self, system: object, latvec: Tensor,
-               recvec: Tensor, **kwargs):
-        self.system = system
-        self.natom = self.system.size_system
-        self.coord = self.system.positions
-        self.latvec, self.recvec, self.cellvol, self.tol_ewald, self.nsearchiter = \
-                            self._check(latvec, recvec, **kwargs)
+    def __init__(self, geometry: object, periodic: object, # latvec: Tensor, recvec: Tensor,
+                 **kwargs):
+        self.geometry = geometry
+        self.latvec = geometry.cell
+        self.natom = self.geometry.size_geometry
+        self.coord = self.geometry.positions
+        self.cellvol = periodic.cellvol
+        self.recvec = periodic.recvec
+        # self.latvec, self.recvec, self.cellvol, self.tol_ewald, self.nsearchiter = \
+        #     self._check(latvec, recvec, **kwargs)
+        self.tol_ewald, self.nsearchiter = self._check(**kwargs)
 
         # Optimal alpha for the Ewald summation
         self.alpha = self.get_alpha()
@@ -58,10 +62,10 @@ class Coulomb:
         # Reciprocal part of the Ewald summation
         self.ewald_g = self.invr_periodic_reciprocal()
 
-        # 1/R matrix for the periodic system
+        # 1/R matrix for the periodic geometry
         self.invrmat = self.invr_periodic()
 
-    def _check(self, latvec, recvec, **kwargs):
+    def _check(self, **kwargs):
         """Check the unit and dimension of lattice vector and parameters for Ewald summation."""
         # Default unit of lattice vector is bohr
         unit = kwargs.get('unit', 'bohr')
@@ -73,29 +77,29 @@ class Coulomb:
         nsearchiter = kwargs.get('nsearchiter', 30)
 
         # Check the unit and dimension of lattice vector
-        if latvec.dim() == 2:
-            latvec = latvec.unsqueeze(0)
-        if recvec.dim() == 2:
-            recvec = recvec.unsqueeze(0)
-        if unit in ('angstrom', 'Angstrom'):
-            latvec = latvec / _bohr
-            recvec = recvec / _bohr
-        elif unit not in ('bohr', 'Bohr'):
-            raise ValueError('unit is either angstrom or bohr')
+        # if latvec.dim() == 2:
+        #     latvec = latvec.unsqueeze(0)
+        # if recvec.dim() == 2:
+        #     recvec = recvec.unsqueeze(0)
+        # if unit in ('angstrom', 'Angstrom'):
+        #     # latvec = latvec / _bohr
+        #     recvec = recvec / _bohr
+        # elif unit not in ('bohr', 'Bohr'):
+        #     raise ValueError('unit is either angstrom or bohr')
 
-        cellvol = abs(torch.det(latvec))
+        # cellvol = abs(torch.det(latvec))
 
-        return latvec, recvec, cellvol, tol_ewald, nsearchiter
+        return tol_ewald, nsearchiter
 
     def update_latvec(self):
         """Update the lattice points for reciprocal Ewald summation."""
-        update = Periodic(system = self.system, latvec = self.recvec, cutoff = self.maxg,
-                      distance_extention=0, positive_extention=0, negative_extention=0, unit='Bohr')
+        update = Periodic(self.geometry, self.recvec, cutoff=self.maxg,
+                          distance_extention=0, positive_extention=0, negative_extention=0, unit='Bohr')
         return update.rcellvec, update.ncell
 
     def update_neighbour(self):
         """Update the neighbour lists for real Ewald summation."""
-        update = Periodic(system = self.system, latvec = self.latvec, cutoff = self.maxr,
+        update = Periodic(self.geometry, self.latvec, cutoff=self.maxr,
                           distance_extention=0, unit='Bohr')
         return update.periodic_distances, update.neighbour
 
@@ -111,7 +115,7 @@ class Coulomb:
         return escc + 0.5 * shiftperatom * deltaq_atom
 
     def invr_periodic(self):
-        """Calculate the 1/R matrix for the periodic system."""
+        """Calculate the 1/R matrix for the periodic geometry."""
         # Extra contribution for self interaction
         extra = torch.stack([torch.eye(self.ewald_r.size(1)) * 2.0 * self.alpha[ii] / np.sqrt(np.pi)
                              for ii in range(self.ewald_r.size(0))])
@@ -120,20 +124,20 @@ class Coulomb:
         return invr
 
     def invr_periodic_reciprocal(self):
-        """Calculate the reciprocal part of 1/R matrix for the periodic system."""
+        """Calculate the reciprocal part of 1/R matrix for the periodic geometry."""
         # Lattice points for the reciprocal sum.
         n_low = torch.ceil(torch.clone(self.ncell_ud / 2.0))
 
         # Large values are padded in the end of short vectors.
-        gvec_tem = pack([torch.unsqueeze(self.rcellvec_ud[ibatch,
-                      int(n_low[ibatch]):int(2 * n_low[ibatch] - 1)], 0)
-                      for ibatch in range(self.rcellvec_ud.size(0))], value=1e10)
+        gvec_tem = pack([torch.unsqueeze(self.rcellvec_ud[
+            ibatch, int(n_low[ibatch]):int(2 * n_low[ibatch] - 1)], 0)
+            for ibatch in range(self.rcellvec_ud.size(0))], value=1e10)
 
         dd2 = torch.sum(torch.clone(gvec_tem) ** 2, -1)
         mask = torch.cat([torch.unsqueeze(dd2[ibatch] < self.maxg[ibatch] ** 2, 0)
-                      for ibatch in range(self.rcellvec_ud.size(0))])
+                          for ibatch in range(self.rcellvec_ud.size(0))])
         gvec = pack([gvec_tem[ibatch, mask[ibatch]]
-                      for ibatch in range(self.rcellvec_ud.size(0))], value=1e10)
+                     for ibatch in range(self.rcellvec_ud.size(0))], value=1e10)
 
         # Vectors for calculating the reciprocal Ewald sum
         coord1 = pack([self.coord[ibatch].repeat(self.coord.size(1), 1)
@@ -145,15 +149,16 @@ class Coulomb:
 
         # The reciprocal Ewald sum
         recsum = self.ewald_reciprocal(rr, gvec, self.alpha, self.cellvol)
-        ewald_g = pack([torch.unsqueeze(recsum[ibatch] - np.pi / (
-                                        self.cellvol[ibatch] * self.alpha[ibatch] ** 2), 0)
-                      for ibatch in range(self.alpha.size(0))])
-        ewald_g = torch.reshape(ewald_g, (self.alpha.size(0), self.coord.size(1), self.coord.size(1)))
+        ewald_g = pack([torch.unsqueeze(
+            recsum[ibatch] - np.pi / (self.cellvol[ibatch] * self.alpha[ibatch] ** 2), 0)
+            for ibatch in range(self.alpha.size(0))])
+        ewald_g = torch.reshape(ewald_g, (
+            self.alpha.size(0), self.coord.size(1), self.coord.size(1)))
         ewald_g[self.mask_g] = 0
         return ewald_g
 
     def invr_periodic_real(self):
-        """Calculate the real part of 1/R matrix for the periodic system."""
+        """Calculate the real part of 1/R matrix for the periodic geometry."""
         ewaldr_tmp = self.ewald_real()
 
         # Mask for summation
@@ -190,7 +195,7 @@ class Coulomb:
         while ((alpha[mask] < float('inf')).all()):
             alpha[mask] = 2.0 * alpha[mask]
             diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask],
-                                       min_r[mask], self.cellvol[mask])
+                                            min_r[mask], self.cellvol[mask])
             mask = diff[mask] < - self.tol_ewald
             if (~mask).all() == True:
                 break
@@ -204,7 +209,8 @@ class Coulomb:
             mask = diff < self.tol_ewald
             while((alpha[mask] < float('inf')).all()):
                 alpha[mask] = 2.0 * alpha[mask]
-                diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask], min_r[mask], self.cellvol[mask])
+                diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask],
+                                                min_r[mask], self.cellvol[mask])
                 mask = diff[mask] < self.tol_ewald
                 if (~mask).all() == True:
                     break
@@ -223,7 +229,8 @@ class Coulomb:
                 alphaleft[mask_neg] = alpha[mask_neg]
                 alpharight[~mask_neg] = alpha[~mask_neg]
                 alpha[mask] = (alphaleft[mask] + alpharight[mask]) / 2.0
-                diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask], min_r[mask], self.cellvol[mask])
+                diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask],
+                                                min_r[mask], self.cellvol[mask])
                 mask = torch.abs(diff) > self.tol_ewald
                 iiter += 1
                 if (~mask).all() == True:
@@ -338,11 +345,11 @@ class Coulomb:
     def ewald_reciprocal(self, rr, gvec, alpha, vol):
         """Calculate the reciprocal part of the Ewald sum."""
         g2 = torch.sum(gvec ** 2, -1)
-        dot = torch.tensor([[[igvec[0] @ irr[0] for igvec in zip (gvec[ibatch])]
+        dot = torch.tensor([[[igvec[0] @ irr[0] for igvec in zip(gvec[ibatch])]
                              for irr in zip(rr[ibatch])] for ibatch in range(alpha.size(0))])
-        recsum = torch.cat([torch.unsqueeze(torch.sum((torch.exp(- g2[ibatch] / (4.0 * alpha[ibatch]
-                                            ** 2)) / g2[ibatch]) * torch.cos(dot[ibatch]), -1), 0)
-                         for ibatch in range(alpha.size(0))])
+        recsum = torch.cat([torch.unsqueeze(torch.sum((torch.exp(
+            - g2[ibatch] / (4.0 * alpha[ibatch] ** 2)) / g2[ibatch]) *
+            torch.cos(dot[ibatch]), -1), 0) for ibatch in range(alpha.size(0))])
         return torch.cat([torch.unsqueeze(2.0 * recsum[ibatch] * 4.0 * np.pi / vol[ibatch], 0)
                          for ibatch in range(alpha.size(0))])
 

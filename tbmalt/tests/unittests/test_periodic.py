@@ -5,7 +5,7 @@ import os
 import re
 import torch
 import numpy as np
-from tbmalt.common.structures.system import System
+from tbmalt.common.structures.geometry import Geometry
 from ase import Atoms
 from ase.build import molecule as molecule_database
 from tbmalt.common.structures.periodic import Periodic
@@ -23,7 +23,7 @@ os.system('cp -r /home/gz_fan/Public/tbmalt/sk .')
 def _get_cell_trans(latVec, cutoff, negExt=1, posExt=1, latvec_unit='bohr'):
     """Reproduce code originally from DFTB+ for test TBMaLT.
 
-    This code is for single system and not vectorized, retain loop as DFTB+,
+    This code is for single geometry and not vectorized, retain loop as DFTB+,
     to act as a reference for cell translation code in TBMaLT."""
     if latvec_unit == 'angstrom':
         latVec = latVec / _bohr
@@ -62,28 +62,29 @@ def _get_cell_trans(latVec, cutoff, negExt=1, posExt=1, latvec_unit='bohr'):
 def test_cell_nonpe_h2():
     positions = torch.tensor([[0., 0., 0.368583], [0., 0., -0.368583]])
     numbers = torch.tensor([1, 1])
-    system = System(numbers, positions)
-    sktable = IntegralGenerator.from_dir('./slko/auorg-1-1', system)
-    skt = SKT(system, sktable)
+    geo = Geometry(numbers, positions)
+    sktable = IntegralGenerator.from_dir('./slko/auorg-1-1', geo)
+    skt = SKT(geo, sktable)
     assert torch.max(abs(skt.H - h_h2)) < 1E-14, 'Tolerance check'
     assert torch.max(abs(skt.S - s_h2)) < 1E-14, 'Tolerance check'
 
 
 def test_pe_normal_h2_mio():
-    """Test H2 Hamiltonian and ovelap in periodic system."""
+    """Test H2 Hamiltonian and ovelap in periodic geometry."""
     latvec = torch.tensor([[6., 0., 0.], [0., 6., 0.], [0., 0., 6.]])
     cutoff = torch.tensor([9.98])
     positions = torch.tensor([[0., 0., 0.], [0., 0., 0.2]])
     numbers = torch.tensor([1, 1])
     cellvec_ref, rcellvec_ref = _get_cell_trans(latvec / _bohr, cutoff + 1)
 
-    system = System(numbers, positions, latvec)
-    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', system)
-    periodic = Periodic(system, system.cell, sktable.cutoff, unit='bohr')
+    geo = Geometry(numbers, positions, latvec)
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', geo)
+    periodic = Periodic(geo, geo.cell, sktable.cutoff, unit='bohr')
     assert torch.max(abs(periodic.cellvec[0] - cellvec_ref)) < 1E-14
     assert torch.max(abs(periodic.rcellvec[0] - rcellvec_ref)) < 1E-14
 
-    skt = SKT(system, sktable, periodic)
+    skt = SKT(geo, sktable, periodic)
+    print(skt.H, h_h2_pe, geo.positions, positions)
     assert torch.max(abs(skt.H[0] - h_h2_pe[:, torch.tensor([0, 2])]
                          )) < 1E-14, 'Tolerance check'
     assert torch.max(abs(skt.S[0] - s_h2_pe[:, torch.tensor([0, 2])]
@@ -91,14 +92,14 @@ def test_pe_normal_h2_mio():
 
 
 def test_pe_h2_ase():
-    """Test ASE H2 Hamiltonian and ovelap in periodic system."""
+    """Test ASE H2 Hamiltonian and ovelap in periodic geometry."""
     h2 = Atoms('HH', positions=[[0., 0., 0.], [0., 0., 0.2]],
                cell=[6., 6., 6.], pbc=[1, 1, 1])
-    system = System.from_ase_atoms(h2)
-    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', system)
-    periodic = Periodic(system, system.cell, sktable.cutoff, unit='bohr')
+    geo = Geometry.from_ase_atoms(h2)
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', geo)
+    periodic = Periodic(geo, geo.cell, sktable.cutoff, unit='bohr')
 
-    skt = SKT(system, sktable, periodic)
+    skt = SKT(geo, sktable, periodic)
     assert torch.max(abs(skt.H[0] - h_h2_pe[:, torch.tensor([0, 2])]
                          )) < 1E-14, 'Tolerance check'
     assert torch.max(abs(skt.S[0] - s_h2_pe[:, torch.tensor([0, 2])]
@@ -106,17 +107,17 @@ def test_pe_h2_ase():
 
 
 def test_pe_normal_ch4():
-    """Test CH4 Hamiltonian and ovelap in periodic system."""
+    """Test CH4 Hamiltonian and ovelap in periodic geometry."""
     latvec = torch.tensor([[6., 0., 0.], [0., 6., 0.], [0., 0., 6.]])
     positions = torch.tensor([[.5, .5, .5], [.6, .6, .6], [.4, .6, .6],
                               [.6, .4, .6], [.6, .6, .4]])
     cutoff = torch.tensor([9.98])
     numbers = [torch.tensor([6, 1, 1, 1, 1])]
     cellvec_ref, rcellvec_ref = _get_cell_trans(latvec / _bohr, cutoff + 1)
-    system = System(numbers, positions, latvec)
-    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', system)
-    periodic = Periodic(system, system.cell, sktable.cutoff, unit='bohr')
-    skt = SKT(system, sktable, periodic)
+    geo = Geometry(numbers, positions, latvec)
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', geo)
+    periodic = Periodic(geo, geo.cell, sktable.cutoff, unit='bohr')
+    skt = SKT(geo, sktable, periodic)
     shape_ch4 = torch.arange(0, h_ch4_pe.shape[0]) * 2
     assert torch.max(abs(periodic.cellvec[0] - cellvec_ref)) < 1E-14
     assert torch.max(abs(periodic.rcellvec[0] - rcellvec_ref)) < 1E-14
@@ -127,16 +128,16 @@ def test_pe_normal_ch4():
 
 
 def test_pe_normal_co2():
-    """Test CO2 Hamiltonian and ovelap in periodic system."""
+    """Test CO2 Hamiltonian and ovelap in periodic geometry."""
     latvec = torch.tensor([[6., 0., 0.], [0., 6., 0.], [0., 0., 6.]])
     positions = torch.tensor([[.5, .5, .5], [.55, .55, .55], [.45, .45, .45]])
     numbers = torch.tensor([6, 8, 8])
     cutoff = torch.tensor([9.98])
     cellvec_ref, rcellvec_ref = _get_cell_trans(latvec / _bohr, cutoff + 1)
-    system = System(numbers, positions, latvec)
-    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', system)
-    periodic = Periodic(system, system.cell, sktable.cutoff, unit='bohr')
-    skt = SKT(system, sktable, periodic)
+    geo = Geometry(numbers, positions, latvec)
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', geo)
+    periodic = Periodic(geo, geo.cell, sktable.cutoff, unit='bohr')
+    skt = SKT(geo, sktable, periodic)
     shape_co2 = torch.arange(0, h_co2_pe.shape[0]) * 2
     assert torch.max(abs(periodic.cellvec[0] - cellvec_ref)) < 1E-14
     assert torch.max(abs(periodic.rcellvec[0] - rcellvec_ref)) < 1E-14
@@ -145,7 +146,7 @@ def test_pe_normal_co2():
 
 
 def test_pe_normal_batch():
-    """Test batch Hamiltonian and ovelap in periodic system."""
+    """Test batch Hamiltonian and ovelap in periodic geometry."""
     latvec = [torch.tensor([[6., 0., 0.], [0., 6., 0.], [0., 0., 6.]]),
               torch.tensor([[6., 0., 0.], [0., 6., 0.], [0., 0., 6.]]),
               torch.tensor([[6., 0., 0.], [0., 6., 0.], [0., 0., 6.]])]
@@ -155,10 +156,10 @@ def test_pe_normal_batch():
                  torch.tensor([[.5, .5, .5], [.55, .55, .55], [.45, .45, .45]])]
     numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([1, 1]),
                torch.tensor([6, 8, 8])]
-    system = System(numbers, positions, latvec)
-    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', system)
-    periodic = Periodic(system, system.cell, sktable.cutoff, unit='bohr')
-    skt = SKT(system, sktable, periodic)
+    geo = Geometry(numbers, positions, latvec)
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', geo)
+    periodic = Periodic(geo, geo.cell, sktable.cutoff, unit='bohr')
+    skt = SKT(geo, sktable, periodic)
     shape_ch4 = torch.arange(0, h_ch4_pe.shape[0]) * 2
     assert torch.max(abs(skt.H[0, :len(shape_ch4), :len(shape_ch4)] -
                          h_ch4_pe[:, shape_ch4])) < 1E-11, 'Tolerance check'

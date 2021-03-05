@@ -4,7 +4,7 @@ import os
 import pytest
 from torch.autograd import gradcheck
 from ase.build import molecule as molecule_database
-from tbmalt.common.structures.system import System
+from tbmalt.common.structures.geometry import Geometry
 from tbmalt.io.loadskf import IntegralGenerator
 from tbmalt.tb.sk import SKT
 from tbmalt.tb.dftb.scc import Scc
@@ -17,7 +17,7 @@ os.system('cp -r /home/gz_fan/Public/tbmalt/slko .')
 
 def test_nonscc_ase_single():
     """Test non-SCC DFTB from ase input."""
-    molecule = System.from_ase_atoms([molecule_database('H2O')])
+    molecule = Geometry.from_ase_atoms([molecule_database('H2O')])
     sktable = IntegralGenerator.from_dir('./slko/auorg-1-1', molecule)
     skt = SKT(molecule, sktable)
     parameter = Parameter()
@@ -27,9 +27,9 @@ def test_nonscc_ase_single():
 
 def test_nonscc_ase():
     """Test non-SCC DFTB from ase input."""
-    molecule = System.from_ase_atoms([molecule_database('CH4'),
-                                      molecule_database('H2O'),
-                                      molecule_database('CH3CH2O')])
+    molecule = Geometry.from_ase_atoms([molecule_database('CH4'),
+                                        molecule_database('H2O'),
+                                        molecule_database('CH3CH2O')])
     sktable = IntegralGenerator.from_dir('./slko/auorg-1-1', molecule)
     skt = SKT(molecule, sktable)
     parameter = Parameter()
@@ -39,9 +39,9 @@ def test_nonscc_ase():
 
 def test_scc_property():
     """Test non-SCC DFTB from ase input."""
-    molecule = System.from_ase_atoms([molecule_database('CH4'),
-                                      molecule_database('H2'),
-                                      molecule_database('CH3CH2O')])
+    molecule = Geometry.from_ase_atoms([molecule_database('CH4'),
+                                        molecule_database('H2'),
+                                        molecule_database('CH3CH2O')])
     sktable = IntegralGenerator.from_dir('./slko/auorg-1-1', molecule)
     skt = SKT(molecule, sktable)
     parameter = Parameter()
@@ -52,7 +52,7 @@ def test_scc_property():
 
 def test_read_compr_single(device):
     """Test SKF data with various compression radii."""
-    molecule = System.from_ase_atoms([molecule_database('CH4')])
+    molecule = Geometry.from_ase_atoms([molecule_database('CH4')])
     compression_radii_grid = torch.tensor([
         01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
         04.50, 05.00, 05.50, 06.00, 07.00, 08.00, 09.00, 10.00])
@@ -72,8 +72,8 @@ def test_read_compr_single(device):
 
 def test_read_compr_batch(device):
     """Test SKF data with various compression radii."""
-    molecule = System.from_ase_atoms([molecule_database('CH4'),
-                                      molecule_database('NH3')])
+    molecule = Geometry.from_ase_atoms([molecule_database('CH4'),
+                                        molecule_database('NH3')])
                                       # molecule_database('C2H6')])
                                       # molecule_database('CH3CH2O')])
     compression_radii_grid = torch.tensor([

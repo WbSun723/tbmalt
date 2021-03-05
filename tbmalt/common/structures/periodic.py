@@ -11,7 +11,7 @@ class Periodic:
     """Calculate the translation vectors for cells for 3D periodic boundary condition.
 
     Arguments:
-        latvec: Lattice vector describing the geometry of periodic system,
+        latvec: Lattice vector describing the geometry of periodic geometry,
             with Bohr as unit.
         cutoff: Interaction cutoff distance for reading  SK table.
 
@@ -33,9 +33,9 @@ class Periodic:
         >>> import torch
     """
 
-    def __init__(self, system: object, latvec: Tensor,
+    def __init__(self, geometry: object, latvec: Tensor,
                  cutoff: Union[Tensor, float], **kwargs):
-        self.system = system
+        self.geometry = geometry
         self.latvec, self.cutoff = self._check(latvec, cutoff, **kwargs)
         self._positions_check(**kwargs)
         dist_ext = kwargs.get('distance_extention', 1.0)
@@ -47,15 +47,18 @@ class Periodic:
 
         self.recvec = self._reciprocal_lattice()
 
-        self.cellvol, self.cellvec, self.rcellvec, self.ncell = self.get_cell_translations(**kwargs)
+        # Unit cell volume
+        self.cellvol = abs(torch.det(self.latvec))
+
+        self.cellvec, self.rcellvec, self.ncell = self.get_cell_translations(**kwargs)
 
         self.positions_vec, self.periodic_distances = self._get_periodic_distance()
 
     def _check(self, latvec, cutoff, **kwargs):
         """Check dimension, type of lattice vector and cutoff."""
-        _mask = self.system.is_periodic
+        _mask = self.geometry.is_periodic
 
-        # Default lattice vector is from system, therefore default unit is bohr
+        # Default lattice vector is from geometry, therefore default unit is bohr
         unit = kwargs.get('unit', 'bohr')
 
         # Molecule will be padding with zeros, here select latvec for solid
@@ -100,7 +103,7 @@ class Periodic:
         unit = kwargs.get('unit', 'angstrom')
 
         # transfer from fraction to Bohr unit positions
-        position_pe = self.system.positions[self.system.is_periodic]
+        position_pe = self.geometry.positions[self.geometry.is_periodic]
         is_frac = pack([abs(ipos).lt(1.).all() for ipos in position_pe])
         position_pe[is_frac] = torch.matmul(
             position_pe[is_frac], self.latvec[is_frac])
@@ -111,18 +114,14 @@ class Periodic:
         elif unit not in ('bohr', 'Bohr'):
             raise ValueError('Please select either angstrom or bohr')
 
-        self.system.positions[self.system.is_periodic] = position_pe
+        self.geometry.positions[self.geometry.is_periodic] = position_pe
 
     def get_cell_translations(self, **kwargs):
         """Get cell translation vectors."""
         pos_ext = kwargs.get('positive_extention', 1)
         neg_ext = kwargs.get('negative_extention', 1)
 
-        # Unit cell volume
-        cellvol = abs(torch.det(self.latvec))
-
-        _tmp = torch.stack([torch.floor(icutoff * torch.norm(iinvlatvec, dim=-1))
-                            for icutoff, iinvlatvec in zip(self.cutoff, self.invlatvec)])
+        _tmp = torch.floor(self.cutoff * torch.norm(self.invlatvec, dim=-1).T).T
         ranges = torch.stack([-(neg_ext + _tmp), pos_ext + _tmp])
 
         # Length of the first, second and third column in ranges
@@ -146,18 +145,18 @@ class Periodic:
         rcellvec = pack([(ilv.transpose(0, 1) @ icv.T.unsqueeze(-1)).squeeze(-1)
                          for ilv, icv in zip(self.latvec, cellvec)], value=1e4)
 
-        return cellvol, cellvec, rcellvec, ncell
+        return cellvec, rcellvec, ncell
 
     def _get_periodic_distance(self):
         """Get distances between central cell and neighbour cells."""
-        positions = self.rcellvec.unsqueeze(2) + self.system.positions.unsqueeze(1)
-        size_system = self.system.size_system
-        positions_vec = (positions.unsqueeze(-3) - self.system.positions.unsqueeze(1).unsqueeze(-2))
+        positions = self.rcellvec.unsqueeze(2) + self.geometry.positions.unsqueeze(1)
+        size_geometry = self.geometry.size_geometry
+        positions_vec = (positions.unsqueeze(-3) - self.geometry.positions.unsqueeze(1).unsqueeze(-2))
 
         return positions_vec, pack([torch.sqrt(((
             ipos[:, :inat].repeat(1, inat, 1) - torch.repeat_interleave(
                 icp[:inat], inat, 0)) ** 2).sum(-1)).reshape(-1, inat, inat)
-            for ipos, icp, inat in zip(positions, self.system.positions, size_system)], value=1e4)
+            for ipos, icp, inat in zip(positions, self.geometry.positions, size_geometry)], value=1e4)
 
     def _inverse_lattice(self):
         """Get inverse lattice vectors."""
