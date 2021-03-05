@@ -84,12 +84,6 @@ class BicubInterp:
 
         pdim = [2, 0, 1] if fmat.dim() == 3 else [2, 3, 0, 1]
         a_mat = torch.matmul(torch.matmul(coeff, fmat.permute(pdim)), coeff_)
-        # self.nan = (np.isnan(a_mat.detach()) == 1).any()
-        # if self.nan:
-        #     print(coeff, fmat.permute(pdim))
-        #     print('nx0', self.nx0)
-        #     print('nx_1', self.nx_1)
-        #     print('nx1', self.nx1, xnew)
 
         return torch.stack([torch.matmul(torch.matmul(
             xmat[:, i, 0], a_mat[i]), xmat[:, i, 1]) for i in range(self.atp)])
@@ -118,10 +112,10 @@ class BicubInterp:
                  f11: Tensor):
         """Get the 1st derivative of four grid points over x, y and xy."""
         f_10 = zmesh[self.arange_atp, self.nx_1[..., 0], self.nx0[..., 1]]
-        f_11 = zmesh[self.arange_atp, self.nx_1[..., 0], self.nx_1[..., 1]]
+        f_11 = zmesh[self.arange_atp, self.nx_1[..., 0], self.nx1[..., 1]]
         f0_1 = zmesh[self.arange_atp, self.nx0[..., 0], self.nx_1[..., 1]]
         f02 = zmesh[self.arange_atp, self.nx0[..., 0], self.nx2[..., 1]]
-        f1_1 = zmesh[self.arange_atp, self.nx_1[..., 0], self.nx_1[..., 1]]
+        f1_1 = zmesh[self.arange_atp, self.nx1[..., 0], self.nx_1[..., 1]]
         f12 = zmesh[self.arange_atp, self.nx1[..., 0], self.nx2[..., 1]]
         f20 = zmesh[self.arange_atp, self.nx2[..., 0], self.nx0[..., 1]]
         f21 = zmesh[self.arange_atp, self.nx2[..., 0], self.nx1[..., 1]]
