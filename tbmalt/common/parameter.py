@@ -18,8 +18,9 @@ class Parameter:
             'steps': 3,  # -> training steps
             'loss_function': 'MSELoss',  # MSELoss, L1Loss
             'optimizer': 'Adam',  # SCG, Adam
-            'compression_radii_min': 1.5,
-            'compression_radii_max': 9.0
+            'compression_radii_min': 1.25,
+            'compression_radii_max': 9.0,
+            'ml_method': 'linear'
             }
 
         if type(ml_params) is dict:

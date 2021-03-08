@@ -48,8 +48,13 @@ class Scc:
 
         self._scc_npe()
 
-        self.properties = Properties(properties, self.system, self.qzero,
-                                     self.charge, self.over, self.rho)
+        # if 'dipole' in properties:
+        self.dipole = self._dipole()
+        # if 'homo_lumo' or 'gap' in properties:
+        self.homo_lumo = self._homo_lumo()
+        self.cpa = self._cpa()
+        # self.properties = Properties(properties, self.system, self.qzero,
+        #                              self.charge, self.over, self.rho)
 
     def _init_scc(self, **kwargs):
         """Initialize parameters for (non-) SCC DFTB calculations."""
@@ -104,7 +109,6 @@ class Scc:
             # eigenvector with Fermi-Dirac distribution
             c_scaled = torch.sqrt(occ).unsqueeze(1).expand_as(eigvec) * eigvec
             self.rho = c_scaled @ c_scaled.transpose(1, 2)  # -> density
-            # self.rho = torch.matmul(c_scaled, c_scaled.transpose(1, 2))
 
             # calculate mulliken charges for each system in batch
             q_new = mulliken(self.over[self.mask, :this_size, :this_size],
@@ -114,91 +118,61 @@ class Scc:
             if self.scc == 'nonscc':
                 self.charge = q_new
             else:
+                if iiter == 0:
+                    self.eigenvalue = torch.zeros(*epsilon.shape)
+                    self.nocc = torch.zeros(*nocc.shape)
+                    self.density = torch.zeros(*self.rho.shape)
                 self.qmix, self.converge = self.mixer(q_new)
-                self._update_charge(self.qmix)
+                self._update_scc(self.qmix, epsilon, nocc)
 
                 if (self.converge == True).all():
                     break  # -> all system reach convergence
+
         return self.charge
 
-    def _update_charge(self, qmix):
+    def _update_scc(self, qmix, epsilon, nocc):
         """Update charge according to convergence in last step."""
         self.charge[self.mask] = qmix
+        self.eigenvalue[self.mask, :epsilon.shape[1]] = epsilon
+        self.nocc[self.mask] = nocc
+        self.density[self.mask, :self.rho.shape[1], :self.rho.shape[2]] = self.rho
         self.mask = ~self.converge
 
+    def _dipole(self):
+        """Return dipole moments."""
+        return torch.sum((self.qzero - self.charge).unsqueeze(-1) *
+                         self.system.positions, 1)
 
-    # def scf_npe_scc(self):
-    #     """SCF for non-periodic-ML system with scc.
+    def _homo_lumo(self):
+        """Return dipole moments."""
+        # get HOMO-LUMO, not orbital resolved
+        return torch.stack([
+            ieig[int(iocc) - 1:int(iocc) + 1] * 27.2113845
+            for ieig, iocc in zip(self.eigenvalue, self.nocc)])
 
-    #     atomind is the number of atom, for C, lmax is 2, therefore
-    #     we need 2**2 orbitals (s, px, py, pz), then define atomind2
-    #     """
-    #     from tbmalt.common.tmp import EigenSolver
-    #     from tbmalt.common.tmp2 import Anderson
-    #     eigen = EigenSolver()
-    #     mixer = Anderson()
-    #     gmat = Gamma(self.skt.U, self.system.distances).gamma
+    def _onsite_population(self):
+        """Get onsite population for CPA DFTB.
 
-    #     # qatom = self.analysis.get_qatom(self.atomname, ibatch)
+        sum density matrix diagnal value for each atom
+        """
+        ao = self.system.atom_orbitals
+        nb = self.system.size_batch
+        ns = self.system.size_system
+        acum = torch.cat([torch.zeros(ao.shape[0]).unsqueeze(0),
+                          torch.cumsum(ao, dim=1).T]).T.long()
+        denmat = [idensity.diag() for idensity in self.density]
+        # get onsite population
+        return pack([torch.stack([torch.sum(denmat[ib][acum[ib][iat]: acum[ib][iat + 1]])
+                    for iat in range(ns[ib])]) for ib in range(nb)])
 
-    #     # qatom here is 2D, add up the along the rows
-    #     nelectron = self.qzero.sum(axis=1)
-    #     qzero = self.qzero.clone()
-    #     q_mixed = qzero.clone()  # q_mixed will maintain the shape unchanged
-    #     self.maxiter = 1
-    #     for iiter in range(self.maxiter):
-    #         shift_ = torch.stack(
-    #             [(im - iz) @ ig for im, iz, ig in zip(
-    #                 self.charge, self.qzero, gmat)])
+    def _cpa(self):
+        """Get onsite population for CPA DFTB.
 
-    #         # repeat shift according to number of orbitals
-    #         shiftorb_ = pack([ishif.repeat_interleave(iorb) for iorb, ishif in
-    #                           zip(self.atom_orbitals, shift_)])
-    #         shift_mat = torch.stack([torch.unsqueeze(ishift, 1) + ishift
-    #                                  for ishift in shiftorb_])
+        J. Chem. Phys. 144, 151101 (2016)
+        """
+        onsite = self._onsite_population()
+        nat = self.system.size_system
+        numbers = self.system.numbers
 
-    #         # To get the Fock matrix
-    #         dim_ = shift_mat.shape[-1]   # the new dimension of max orbitals
-    #         fock = self.ham + 0.5 * self.over * shift_mat
-
-    #         # Calculate the eigen-values & vectors via a Cholesky decomposition
-    #         epsilon, C = eigen.eigen(fock, self.over, True)
-
-    #         # Calculate the occupation of electrons via the fermi method
-    #         occ, nocc = fermi(epsilon, nelectron)
-
-    #         # build density according to occ and eigenvector
-    #         C_scaled = torch.sqrt(occ).unsqueeze(1).expand_as(C) * C
-
-    #         # batch calculation of density, normal code: C_scaled @ C_scaled.T
-    #         rho = torch.matmul(C_scaled, C_scaled.transpose(1, 2))
-
-    #         # calculate mulliken charges for each system in batch
-    #         q_new = mulliken(self.over, rho, self.atom_orbitals)
-
-    #         # Last mixed charge is the current step now
-    #         q_mixed = mixer(q_new, q_mixed)
-
-    #         if iiter > 20:
-    #             break
-
-    #     # return eigenvalue and charge
-    #     self.charge = q_mixed
-    #     self.rho = rho
-    #     # shiftorb = pack([
-    #     #     ishif.repeat_interleave(iorb) for iorb, ishif in zip(
-    #     #         self.atind, self.para['shift'])])
-    #     # shift_mat = torch.stack([torch.unsqueeze(ish, 1) + ish for ish in shiftorb])
-    #     # fock = self.ham + 0.5 * self.over * shift_mat
-    #     # self.para['eigenvalue'], self.para['eigenvec'] = \
-    #     #     self.eigen.eigen(fock, self.over, self.batch, self.atind)
-
-    #     # # return occupied states
-    #     # self.para['occ'], self.para['nocc'] = \
-    #     #     self.elect.fermi(self.para['eigenvalue'], nelectron, self.para['tElec'])
-
-    #     # # return density matrix
-    #     # C_scaled = torch.sqrt(self.para['occ']).unsqueeze(1).expand_as(
-    #     #     self.para['eigenvec']) * self.para['eigenvec']
-    #     # self.para['denmat'] = torch.matmul(C_scaled, C_scaled.transpose(1, 2))
-    #     return C
+        return pack([1.0 + (onsite[ib] - self.qzero[ib])[:nat[ib]] / numbers[ib][:nat[ib]]
+                     for ib in range(self.system.size_batch)])

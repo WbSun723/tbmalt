@@ -6,43 +6,10 @@ from tbmalt.common.parameter import Parameter
 from tbmalt.tb.sk import SKT
 from tbmalt.common.batch import pack
 from tbmalt.tb.dftb.scc import Scc
-from tbmalt.common.structures.system import System
-from tbmalt.io.loadhdf import LoadHdf
 from tbmalt.io.loadskf import IntegralGenerator
 import matplotlib.pyplot as plt
-
-
-def train(parameter=None, ml=None):
-    """Initialize parameters."""
-    params = Parameter(ml_params=True)
-    params.dftb_params['scc'] = 'scc'
-    params.ml_params['task'] = 'mlCompressionR'
-    params.ml_params['steps'] = 50
-    params.ml_params['target'] = ['charge', 'dipole']
-    size = 6
-
-    if params.ml_params['task'] == 'mlIntegral':
-        params.dftb_params['path_to_skf'] = '../tests/unittests/slko/skf.hdf.init2'
-        params.ml_params['lr'] = 0.001
-    elif params.ml_params['task'] == 'mlCompressionR':
-        params.dftb_params['path_to_skf'] = '../tests/unittests/slko/skf.hdf.compr'
-        params.ml_params['lr'] = 0.05
-        params.ml_params['compression_radii_grid'] = torch.tensor([
-            01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
-            04.50, 05.00, 05.50, 06.00, 07.00, 08.00, 09.00, 10.00])
-
-    numbers, positions, data = LoadHdf.load_reference(
-        '../tests/unittests/dataset/aims_6000_01.hdf', size, params.ml_params['target'])
-    sys = System(numbers, positions)
-
-    # optimize integrals directly
-    if params.ml_params['task'] == 'mlIntegral':
-        integral = Integal(sys, data, params)
-        integral(params.ml_params['target'])
-    elif params.ml_params['task'] == 'mlCompressionR':
-        compr = CompressionRadii(sys, data, params)
-        compr(params.ml_params['target'])
-    # print('positions', positions)
+from tbmalt.ml.feature import Dscribe
+from tbmalt.ml.scikitlearn import SciKitLearn
 
 
 class Train:
@@ -81,10 +48,40 @@ class Train:
         self.loss = 0.
         if 'dipole' in self.properties:
             self.loss = self.loss + self.criterion(
-                results.properties.dipole, self.reference['dipole'])
+                results.dipole, self.reference['dipole'])
         if 'charge' in self.properties:
             self.loss = self.loss + self.criterion(
                 results.charge, self.reference['charge'])
+        if 'gap' in self.properties:
+            homolumo = results.homo_lumo
+            refhl = pack(self.reference['homo_lumo'])
+            gap = homolumo[:, 1] - homolumo[:, 0]
+            refgap = refhl[:, 1] - refhl[:, 0]
+            self.loss = self.loss + self.criterion(gap, refgap)
+        if 'cpa' in self.properties:
+            cpa = results.cpa
+            refcpa = self.reference['hirshfeld_volume_ratio']
+            self.loss = self.loss + self.criterion(cpa, refcpa)
+
+    def __predict__(self, system):
+        """Predict with training results."""
+        pass
+
+    def __plot__(self, steps, loss, **kwargs):
+        """Visualize training results."""
+        compression_radii = kwargs.get('compression_radii', None)
+
+        # plot loss
+        plt.plot(np.linspace(1, steps, steps), loss)
+        plt.show()
+
+        # plot compression radii
+        if compression_radii is not None:
+            compr = pack(compression_radii)
+            for ii in range(compr.shape[1]):
+                for jj in range(compr.shape[2]):
+                    plt.plot(np.linspace(1, steps, steps), compr[:, ii, jj])
+            plt.show()
 
 
 class Integal(Train):
@@ -98,15 +95,16 @@ class Integal(Train):
         self.ml_variable = self.sk.sktable_dict['variable']
         super().__init__(system, reference, self.ml_variable, parameter)
 
-    def __call__(self, target):
+    def __call__(self, target, plot=True):
+        """Train spline parameters with target properties."""
         super().__call__(target)
         self._loss = []
         for istep in range(self.steps):
             self._update_train()
             self._loss.append(self.loss.detach())
 
-        plt.plot(np.linspace(1, len(self._loss), len(self._loss)), self._loss)
-        plt.show()
+        if plot:
+            super().__plot__(self.steps, self._loss)
 
     def _update_train(self):
         skt = SKT(self.system, self.sk, with_variable=True,
@@ -116,6 +114,12 @@ class Integal(Train):
         self.optimizer.zero_grad()
         self.loss.backward(retain_graph=True)
         self.optimizer.step()
+
+    def predict(self, system):
+        """Predict with optimized Hamiltonian and overlap."""
+        skt = SKT(system, self.sk, with_variable=True,
+                  fix_onsite=True, fix_U=True)
+        return Scc(system, skt, self.params, self.properties)
 
 
 class CompressionRadii(Train):
@@ -132,27 +136,21 @@ class CompressionRadii(Train):
             compression_radii_grid=parameter.ml_params['compression_radii_grid'])
         super().__init__(system, reference, [self.ml_variable], parameter)
 
-    def __call__(self, target):
+    def __call__(self, target, plot=True):
+        """Train compression radii with target properties."""
         super().__call__(target)
         self._loss, self._compr = [], []
         for istep in range(self.steps):
             self._update_train()
 
-        steps = len(self._loss)
-        plt.plot(np.linspace(1, steps, steps), self._loss)
-        plt.show()
-        for ii in range(self.ml_variable.shape[0]):
-            for jj in range(self.ml_variable.shape[1]):
-                plt.plot(np.linspace(1, steps, steps), pack(self._compr)[:, ii, jj])
-        plt.show()
+        if plot:
+            super().__plot__(self.steps, self._loss, compression_radii=self._compr)
 
     def _update_train(self):
         skt = SKT(self.system, self.sk, compression_radii=self.ml_variable,
                   fix_onsite=True, fix_U=True)
         scc = Scc(self.system, skt, self.params, self.properties)
         super().__loss__(scc)
-        print('compression radii', self.variable)
-        print('gradient', self.ml_variable.grad)
         self._loss.append(self.loss.detach())
         self._compr.append(self.ml_variable.detach().clone())
 
@@ -177,6 +175,25 @@ class CompressionRadii(Train):
                 self.ml_variable.clamp_(para.ml_params['compression_radii_min'],
                                         para.ml_params['compression_radii_max'])
 
+    def predict(self, system):
+        """Predict with optimized Hamiltonian and overlap."""
+        feature_type = 'acsf'
+        targets = self.ml_variable
+        feature = Dscribe(self.system, feature_type=feature_type).features
+        feature_pred = Dscribe(system, feature_type=feature_type).features
+        split_ratio = 0.5
+        predict_compr = SciKitLearn(
+            self.system, feature, targets.detach(), system_pred=system,
+            feature_pred=feature_pred, ml_method=self.params.ml_params['ml_method'],
+            split_ratio=split_ratio).prediction
+        predict_compr = torch.clamp(
+            predict_compr, self.params.ml_params['compression_radii_min'],
+            self.params.ml_params['compression_radii_max'])
+        print('predicted compr', predict_compr)
+        skt = SKT(system, self.sk, compression_radii=predict_compr,
+                  fix_onsite=True, fix_U=True)
+        return Scc(system, skt, self.params, self.properties)
+
 
 class Charge(Train):
     """Train charge."""
@@ -194,6 +211,3 @@ class Charge(Train):
     def _update_train(self):
         skt = SKT(self.system, self.sk)
         scc = Scc(self.system, skt, self.params, properties=self.properties)
-
-
-train()

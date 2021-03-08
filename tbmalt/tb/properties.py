@@ -16,9 +16,11 @@ class Properties:
         self.charge = charge
 
         if 'dipole' in properties:
-            self.dipole = self.get_dipole()
+            self.dipole = self._dipole()
+        if 'homo_lumo' in properties:
+            self.dipole = self.get_homo_lumo()
 
-    def get_dipole(self):
+    def _dipole(self):
         """Return dipole moments."""
         positions = self.system.positions
         return torch.sum((self.qzero - self.charge).unsqueeze(-1) * positions, 1)
