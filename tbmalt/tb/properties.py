@@ -10,7 +10,8 @@ ndarray = np.ndarray
 
 class Properties:
 
-    def __init__(self, properties: list, system: object, qzero: Tensor, charge, overlap, density):
+    def __init__(self, properties: list, system: object, qzero: Tensor,
+                 charge: Tensor, overlap: Tensor, density: Tensor, **kwargs):
         self.qzero = qzero
         self.system = system
         self.charge = charge
@@ -25,9 +26,15 @@ class Properties:
         positions = self.system.positions
         return torch.sum((self.qzero - self.charge).unsqueeze(-1) * positions, 1)
 
-    @classmethod
-    def mulliken(cls, overlap: Tensor, density: Tensor, atom_orbitals=None,
-                 **kwargs) -> Tensor:
+    @property
+    def dipole(self) -> Tensor:
+        """Return dipole moments."""
+        return torch.sum((self.qzero - self.charge).unsqueeze(-1) *
+                         self.system.positions, 1)
+
+    @property
+    def mulliken_charge(self, overlap: Tensor, density: Tensor,
+                        atom_orbitals=None, **kwargs) -> Tensor:
         """Calculate Mulliken charge for both batch system.
 
         Arguments:
@@ -57,6 +64,34 @@ class Properties:
             return pack([torch.stack([(icharge[ii: jj]).sum() for ii, jj in zip(
                 icumsum[:-1], icumsum[1:])])
                    for icumsum, icharge in zip(ind_cumsum, charge_orbital)])
+
+    @property
+    def homo_lumo(self):
+        pass
+
+    @property
+    def gap(self):
+        pass
+
+    @property
+    def net_onsite(self):
+        pass
+
+    @property
+    def polarizability(self):
+        pass
+
+    @property
+    def pdos(self):
+        pass
+
+    @property
+    def dos(self):
+        pass
+
+    @property
+    def band_structure(self):
+        pass
 
 
 def mulliken(overlap: Tensor, density: Tensor, atom_orbitals=None,
@@ -90,11 +125,6 @@ def mulliken(overlap: Tensor, density: Tensor, atom_orbitals=None,
         return pack([torch.stack([(icharge[ii: jj]).sum() for ii, jj in zip(
             icumsum[:-1], icumsum[1:])])
             for icumsum, icharge in zip(ind_cumsum, charge_orbital)])
-
-
-
-def homo_lumo():
-    pass
 
 
 def _gaussian_broadening(energy: Union[Tensor, Real],

@@ -18,6 +18,9 @@ class Train:
     def __init__(self, system, reference, variable, parameter, **kwargs):
         self.system = system
         self.reference = reference
+        self.periodic = kwargs.get('periodic', None)
+        self.coulomb = kwargs.get('coulomb', None)
+
         if type(variable) is torch.Tensor:
             self.variable = Variable(variable, requires_grad=True)
         elif type(variable) is list:
@@ -87,13 +90,13 @@ class Train:
 class Integal(Train):
     """Optimize integrals."""
 
-    def __init__(self, system, reference, parameter):
+    def __init__(self, system, reference, parameter, **kwargs):
         """Initialize parameters."""
         self.sk = IntegralGenerator.from_dir(
             parameter.dftb_params['path_to_skf'], system, repulsive=False,
             interpolation='spline', sk_type='h5py', with_variable=True)
         self.ml_variable = self.sk.sktable_dict['variable']
-        super().__init__(system, reference, self.ml_variable, parameter)
+        super().__init__(system, reference, self.ml_variable, parameter, **kwargs)
 
     def __call__(self, target, plot=True):
         """Train spline parameters with target properties."""
@@ -107,25 +110,25 @@ class Integal(Train):
             super().__plot__(self.steps, self._loss)
 
     def _update_train(self):
-        skt = SKT(self.system, self.sk, with_variable=True,
+        skt = SKT(self.system, self.sk, self.periodic, with_variable=True,
                   fix_onsite=True, fix_U=True)
-        scc = Scc(self.system, skt, self.params, self.properties)
+        scc = Scc(self.system, skt, self.params, self.coulomb, self.properties)
         super().__loss__(scc)
         self.optimizer.zero_grad()
         self.loss.backward(retain_graph=True)
         self.optimizer.step()
 
-    def predict(self, system):
+    def predict(self, system, coulomb=None):
         """Predict with optimized Hamiltonian and overlap."""
         skt = SKT(system, self.sk, with_variable=True,
                   fix_onsite=True, fix_U=True)
-        return Scc(system, skt, self.params, self.properties)
+        return Scc(system, skt, self.params, coulomb, self.properties)
 
 
 class CompressionRadii(Train):
     """Optimize compression radii."""
 
-    def __init__(self, system, reference, parameter):
+    def __init__(self, system, reference, parameter, **kwargs):
         """Initialize parameters."""
         self.nbatch = system.size_batch
         self.ml_variable = Variable(torch.ones(
@@ -134,7 +137,7 @@ class CompressionRadii(Train):
             parameter.dftb_params['path_to_skf'], system, repulsive=False,
             sk_type='h5py', homo=False, interpolation='bicubic_interpolation',
             compression_radii_grid=parameter.ml_params['compression_radii_grid'])
-        super().__init__(system, reference, [self.ml_variable], parameter)
+        super().__init__(system, reference, [self.ml_variable], parameter, **kwargs)
 
     def __call__(self, target, plot=True):
         """Train compression radii with target properties."""
@@ -147,9 +150,9 @@ class CompressionRadii(Train):
             super().__plot__(self.steps, self._loss, compression_radii=self._compr)
 
     def _update_train(self):
-        skt = SKT(self.system, self.sk, compression_radii=self.ml_variable,
+        skt = SKT(self.system, self.sk, self.periodic, compression_radii=self.ml_variable,
                   fix_onsite=True, fix_U=True)
-        scc = Scc(self.system, skt, self.params, self.properties)
+        scc = Scc(self.system, skt, self.params, self.coulomb, self.properties)
         super().__loss__(scc)
         self._loss.append(self.loss.detach())
         self._compr.append(self.ml_variable.detach().clone())

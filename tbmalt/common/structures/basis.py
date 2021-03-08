@@ -12,36 +12,36 @@ class Basis:
     All the code is designed for batch calculations.
 
     Arguments:
-        system: The class which contains geometry and orbital information.
+        geometry: The class which contains geometry and orbital information.
 
     Examples:
         >>> from ase.build import molecule as molecule_database
-        >>> from tbmalt.common.structures.system import System
+        >>> from tbmalt.common.structures.geometry import Geometry
         >>> from tbmalt.common.structures.basis import Basis
         >>> molecule = molecule_database('CH4')
-        >>> system = System.from_ase_atoms(molecule)
-        >>> basis = Basis(system)
+        >>> geometry = Geometry.from_ase_atoms(molecule)
+        >>> basis = Basis(Geometry)
         >>> subblock = basis._sub_blocks()
         >>> subblock
         >>> [[tensor([[True, True], [True, True]]), tensor([[True]]),
               tensor([[True]]), tensor([[True]]), tensor([[True]])]]
     """
 
-    def __init__(self, system: object):
-        self.numbers = system.numbers
-        self.l_max = system.l_max
-        self.n_orbital = system.system_orbitals
-        self.n_batch = system.size_batch
-        self.n_atom = system.size_system
+    def __init__(self, geometry: object):
+        self.numbers = geometry.numbers
+        self.l_max = geometry.l_max
+        self.n_orbital = geometry.geometry_orbitals
+        self.n_batch = geometry.size_batch
+        self.n_atom = geometry.size_system
 
         # cached properties see class's docstring for more information.
-        self._basis_list = system.get_resolved_orbital()
+        self._basis_list = geometry.get_resolved_orbital()
         self._basis_blocks = self._blocks()
 
         self._sub_basis_list = self._sub_basis_list()
         self._sub_basis_blocks = self._sub_blocks()
 
-        self.hsshape, self.shape = system.hs_shape, system.shape
+        self.hsshape, self.shape = geometry.hs_shape, geometry.single_hs_shape
         self.subshape = [torch.Size([iss, iss]) for iss in self._sub_shells()]
 
     def _blocks(self):

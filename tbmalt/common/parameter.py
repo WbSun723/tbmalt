@@ -56,3 +56,17 @@ class Parameter:
                 raise TypeError('dftb_params should be None or dict')
 
         return _dftb_params
+
+    @classmethod
+    def get_ml_params(cls):
+        """Return machine learning parameters."""
+        return {'lr': 0.1,
+
+                # training steps
+                'steps': 3,
+
+                # get loss function type
+                'loss_function': 'MSELoss',
+
+                # get optimizer
+                'optimizer': 'SCG'}

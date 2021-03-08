@@ -187,15 +187,16 @@ class Spline1d:
         self.knot = [ii in self.xp for ii in self.xnew]
 
         # boundary condition of xnew,  xp[0] < xnew < xp[-1]
-        assert self.xnew.ge(self.xp[0]).all() and self.xnew.le(self.xp[-1]).all()
+        assert self.xnew.ge(self.xp[0]).all()  # and self.xnew.le(self.xp[-1]).all()
+        self.mask = self.xnew.lt(self.xp[-1])
 
         # get the nearest grid point index of d in x
         self.dind = [
             bisect.bisect(self.xp.detach().numpy(), ii.detach().numpy()) - 1
-            for ii in self.xnew]
+            for ii in self.xnew[self.mask]]
 
         # generate new index for 2D yp batch
-        self.ind = [torch.arange(len(self.xnew)), self.dind] if \
+        self.ind = [torch.arange(len(self.mask)), self.dind] if \
             self.yp.dim() == 2 else self.dind
 
         if self.kind == 'cubic':
@@ -216,10 +217,14 @@ class Spline1d:
         else:
             aa, bb, cc, dd = abcd[0], abcd[1], abcd[2], abcd[3]
         # calculate a, b, c, d parameters, need input x and y
-        dx = self.xnew - self.xp[self.dind]
+        dx = self.xnew[self.mask] - self.xp[self.dind]
 
-        return aa[self.ind] + bb[self.ind] * dx + \
+        intergal_ = aa[self.ind] + bb[self.ind] * dx + \
             cc[self.ind] * dx ** 2 + dd[self.ind] * dx ** 3
+        integral = torch.zeros(self.xnew.shape[0], *intergal_.shape[1:])
+        integral[self.mask] = intergal_
+
+        return integral
 
     def _get_abcd(self):
         """Get parameter aa, bb, cc, dd for cubic spline interpolation."""
@@ -273,7 +278,7 @@ class SKInterpolation:
             delta_r: Delta distance for 1st, 2nd derivative.
             tail: Distance to smooth the tail, unit is bohr.
         """
-        ntail = int(tail / self.incr)
+        max_ind = self.ngridpoint - 1 + int(tail / self.incr)
         rmax = (self.ngridpoint - 1) * self.incr + tail
         ind = (rr / self.incr).int()
         result = torch.zeros(rr.shape) if self.yy.dim() == 1 else torch.zeros(
@@ -283,12 +288,8 @@ class SKInterpolation:
         if self.ngridpoint < ninterp + 1:
             raise ValueError("Not enough grid points for interpolation!")
 
-        # distance beyond grid points in SKF
-        if (rr >= rmax).any():
-            result[rr >= rmax] = 0.
-
         # => polynomial fit
-        elif (ind <= self.ngridpoint).any():
+        if (ind <= self.ngridpoint).any():
             _mask = ind <= self.ngridpoint
 
             # get the index of rr in grid points
@@ -303,16 +304,16 @@ class SKInterpolation:
             result[_mask] = poly_interp_2d(xa, yb, rr[_mask])
 
         # Beyond the grid => extrapolation with polynomial of 5th order
-        elif torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).nelement() != 0:
-            _mask = torch.clamp(ind, self.ngridpoint, self.ngridpoint + ntail - 1).ne(0)
-            dr = rr[_mask] - rmax
+        is_tail = ind.masked_fill(ind.ge(self.ngridpoint) * ind.le(max_ind), -1).eq(-1)
+        if is_tail.any():
+            dr = rr[is_tail] - rmax
             ilast = self.ngridpoint
 
             # get grid points and grid point values
             xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
             yb = self.yy[ilast - ninterp - 1: ilast - 1]
-            xa = xa.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
-            yb = yb.repeat(_mask.shape[0]).reshape(_mask.shape[0], -1)
+            xa = xa.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
+            yb = yb.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
 
             # get derivative
             y0 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
@@ -320,7 +321,7 @@ class SKInterpolation:
             y1 = self.yy[ilast - 2]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            result[_mask] = poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+            result[is_tail] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
 
         return result
 

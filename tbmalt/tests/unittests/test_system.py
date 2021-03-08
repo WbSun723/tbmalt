@@ -2,7 +2,7 @@
 import torch
 from ase.atoms import Atoms
 import h5py
-from tbmalt.common.structures.system import System
+from tbmalt.common.structures.geometry import Geometry
 from tbmalt.common.batch import pack
 torch.set_default_dtype(torch.float64)
 torch.set_printoptions(15)
@@ -35,28 +35,28 @@ def _calculate_vector_position(positions):
     return vector
 
 
-def test_system_single(device):
-    """Test single system input."""
+def test_geometry_single(device):
+    """Test single geometry input."""
     numbers = torch.tensor([6, 1, 1, 1, 1])
     positions = torch.tensor([[0.0000000000, 0.0000000000, 0.0000000000],
                               [0.6287614522, 0.6287614522, 0.6287614522],
                               [-0.6287614522, -0.6287614522, 0.6287614522],
                               [-0.6287614522, 0.6287614522, -0.6287614522],
                               [0.6287614522, -0.6287614522, -0.6287614522]])
-    sys = System(numbers, positions)
+    sys = Geometry(numbers, positions)
     distance_ref = _calculate_distance(sys.numbers, sys.positions)
 
     assert torch.max(abs(sys.distances - distance_ref)) < 1E-14
     assert sys.symbols == [['C', 'H', 'H', 'H', 'H']]
     assert sys.size_batch == 1
-    assert sys.size_system == [5]
+    assert sys.size_geometry == [5]
     assert (sys.l_max == torch.tensor([[1, 0, 0, 0, 0]])).all()
     assert sys.hs_shape == torch.Size([1, 8, 8])
     assert torch.max(abs(sys.get_positions_vec() - _calculate_vector_position(
         sys.positions))) < 1E-14
 
 
-def test_symtem_ase_byhand_single(device):
+def test_system_ase_byhand_single(device):
     """Test single input, deal with ase input by hand."""
     ch4 = Atoms('CH4', positions=[
         [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
@@ -65,21 +65,21 @@ def test_symtem_ase_byhand_single(device):
     positions = torch.from_numpy(ch4.positions)
     numbers = torch.from_numpy(ch4.numbers)
 
-    sys = System(numbers, positions)
+    sys = Geometry(numbers, positions.clone())
     distance_ref = _calculate_distance(numbers, positions / _bohr)
 
     assert torch.max(abs(sys.distances - distance_ref)) < 1E-14
     assert sys.symbols == [['C', 'H', 'H', 'H', 'H']]
     assert sys.size_batch == 1
-    assert sys.size_system == [5]
+    assert sys.size_geometry == [5]
     assert (sys.l_max == torch.tensor([[1, 0, 0, 0, 0]])).all()
     assert sys.hs_shape == torch.Size([1, 8, 8])
     assert torch.max(abs(sys.get_positions_vec() - _calculate_vector_position(
         sys.positions))) < 1E-14
 
 
-def test_system_ase_byhand_batch(device):
-    """Batch evaluation of system class, positions, numbers input by hand."""
+def test_geometry_ase_byhand_batch(device):
+    """Batch evaluation of geometry class, positions, numbers input by hand."""
     ch4 = Atoms('CH4', positions=[
         [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
         [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
@@ -88,7 +88,7 @@ def test_system_ase_byhand_batch(device):
     # deal with input by hand
     pos_ = [torch.from_numpy(ch4.positions), torch.from_numpy(h2.positions)]
     num_ = [torch.from_numpy(ch4.numbers), torch.from_numpy(h2.numbers)]
-    sys = System(num_, pos_)
+    sys = Geometry(num_, pos_)
 
     # get positions, numbers by hand
     distance_ref = _calculate_distance(pack(num_), pack(pos_) / _bohr)
@@ -98,7 +98,7 @@ def test_system_ase_byhand_batch(device):
     assert sys.symbols[0] == ['C', 'H', 'H', 'H', 'H']
     assert sys.symbols[1] == ['H', 'H']
     assert sys.size_batch == 2
-    assert sys.size_system == [5, 2]
+    assert sys.size_geometry == [5, 2]
     assert (sys.l_max == torch.tensor([[1, 0, 0, 0, 0],
                                        [0, 0, -1, -1, -1]])).all()
     assert sys.hs_shape == torch.Size([2, 8, 8])
@@ -107,19 +107,19 @@ def test_system_ase_byhand_batch(device):
 
 
 def test_from_ase_single(device):
-    """Single evaluation of system class from ase input."""
-    # ase Atoms as input for single system
+    """Single evaluation of geometry class from ase input."""
+    # ase Atoms as input for single geometry
     ch4 = Atoms('CH4', positions=[
         [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
         [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
-    sys = System.from_ase_atoms(ch4)
+    sys = Geometry.from_ase_atoms(ch4)
     distance_ref = _calculate_distance(sys.numbers, sys.positions)
 
     assert torch.max(abs(sys.distances - distance_ref)) < 1E-14
     assert torch.max(abs(sys.distances - distance_ref)) < 1E-14
     assert sys.symbols == [['C', 'H', 'H', 'H', 'H']]
     assert sys.size_batch == 1
-    assert sys.size_system == [5]
+    assert sys.size_geometry == [5]
     assert (sys.l_max == torch.tensor([[1, 0, 0, 0, 0]])).all()
     assert sys.hs_shape == torch.Size([1, 8, 8])
     assert (sys.get_valence_electrons() == torch.tensor([4, 1, 1, 1, 1])).all()
@@ -128,19 +128,19 @@ def test_from_ase_single(device):
 
 
 def test_from_ase_batch(device):
-    """Batch evaluation of system class from ase input."""
-    # ase Atoms as input for batch system
+    """Batch evaluation of geometry class from ase input."""
+    # ase Atoms as input for batch geometry
     ch4 = Atoms('CH4', positions=[
         [0., 0., 0.], [0.5, 0.5, 0.5], [-0.5, 0.5, 0.5],
         [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]])
     h2 = Atoms('H2', positions=[[0., 0., 0.], [0.5, 0.5, 0.5]])
-    sys = System.from_ase_atoms([ch4, h2])
+    sys = Geometry.from_ase_atoms([ch4, h2])
     distance_ref = _calculate_distance(sys.numbers, sys.positions)
 
     assert torch.max(abs(sys.distances - distance_ref)) < 1E-14
     assert sys.symbols == [['C', 'H', 'H', 'H', 'H'], ['H', 'H']]
     assert sys.size_batch == 2
-    assert sys.size_system == [5, 2]
+    assert sys.size_geometry == [5, 2]
     assert (sys.l_max == torch.tensor([[1, 0, 0, 0, 0],
                                        [0, 0, -1, -1, -1]])).all()
     assert sys.hs_shape == torch.Size([2, 8, 8])
@@ -163,17 +163,17 @@ def test_from_ase_batch(device):
 
 
 def test_au_batch(device):
-    """Batch evaluation of system class from ase input with d orbitals."""
-    # ase Atoms as input for batch system
+    """Batch evaluation of geometry class from ase input with d orbitals."""
+    # ase Atoms as input for batch geometry
     auo = Atoms('AuO', positions=[[0., 0., 0.], [0.8, 0.8, 0.8]])
     auau = Atoms('AuAu', positions=[[0., 0., 0.], [0.5, 0.5, 0.5]])
-    sys = System.from_ase_atoms([auo, auau])
+    sys = Geometry.from_ase_atoms([auo, auau])
     distance_ref = _calculate_distance(sys.numbers, sys.positions)
 
     assert torch.max(abs(sys.distances - distance_ref)) < 1E-14
     assert sys.symbols == [['Au', 'O'], ['Au', 'Au']]
     assert sys.size_batch == 2
-    assert sys.size_system == [2, 2]
+    assert sys.size_geometry == [2, 2]
     assert (sys.l_max == torch.tensor([[2, 1], [2, 2]])).all()
     assert sys.hs_shape == torch.Size([2, 18, 18])
     assert (sys.get_valence_electrons() == torch.tensor(
@@ -194,17 +194,17 @@ def test_au_batch(device):
 
 
 def test_classmethod(device):
-    """Test class methods in system."""
+    """Test class methods in geometry."""
     element_single = ['C', 'H']
     element_batch = [['C', 'H'], ['N', 'O', 'Au']]
-    assert (System.to_element_number(element_single) == torch.tensor(
+    assert (Geometry.to_element_number(element_single) == torch.tensor(
         [6, 1])).all()
-    assert (System.to_element_number(element_batch) == torch.tensor([
+    assert (Geometry.to_element_number(element_batch) == torch.tensor([
         [6, 1, 0], [7,  8, 79]])).all()
     number_single = torch.tensor([6, 1])
     number_batch = torch.tensor([[6, 1, 0], [79, 1, 6]])
-    assert System.to_element(number_single) == [['C', 'H']]
-    assert System.to_element(number_batch) == [['C', 'H'], ['Au', 'H', 'C']]
+    assert Geometry.to_element(number_single) == [['C', 'H']]
+    assert Geometry.to_element(number_batch) == [['C', 'H'], ['Au', 'H', 'C']]
 
 
 def test_hdf5(device):
@@ -216,8 +216,8 @@ def test_hdf5(device):
     numbers = torch.from_numpy(ch4.numbers)
 
     with h5py.File('test.hdf5', 'w') as f:
-        System(numbers, positions).to_hd5(f)
+        Geometry(numbers, positions.clone()).to_hd5(f)
 
     with h5py.File('test.hdf5', 'r') as f:
-        sys = System.from_hd5(f, unit='bohr')
+        sys = Geometry.from_hd5(f, unit='bohr')
         assert torch.max(abs(sys.positions - positions / _bohr)) < 1E-14

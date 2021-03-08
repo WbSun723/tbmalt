@@ -10,6 +10,7 @@ from tbmalt.common.maths.mixer import Simple, Anderson
 from tbmalt.tb.properties import Properties
 from tbmalt.common.batch import pack
 from tbmalt.tb.electrons import Gamma
+from tbmalt.tb.coulomb import Coulomb
 
 
 class Scc:
@@ -38,7 +39,7 @@ class Scc:
     """
 
     def __init__(self, system: object, skt: object, parameter: object,
-                 properties=[], **kwargs):
+                 coulomb=None, properties=[], **kwargs):
         self.system = system
         self.skt = skt
         self.params = parameter
@@ -46,7 +47,11 @@ class Scc:
         self.ham, self.over = skt.H, skt.S
         self._init_scc(**kwargs)
 
-        self._scc_npe()
+        if self.system.periodic:
+            assert coulomb is not None
+            self.coulomb = coulomb
+
+        self._scc()
 
         # if 'dipole' in properties:
         self.dipole = self._dipole()
@@ -72,22 +77,28 @@ class Scc:
 
         # get the mixer
         self.mix = self.params.dftb_params['mix']
+
         if self.mix in ('Anderson', 'anderson'):
             self.mixer = Anderson(self.charge, return_convergence=True)
         elif self.mix in ('Simple', 'simple'):
             self.mixer = Simple(self.charge, return_convergence=True)
 
-    def _scc_npe(self):
-        """SCF for non-periodic-ML system with scc."""
+    def _scc(self, ibatch=[0]):
+        """SCF for non-periodic-ML system with scc.
+
+        atomind is the number of atom, for C, lmax is 2, therefore
+        we need 2**2 orbitals (s, px, py, pz), then define atomind2
+        """
         if self.scc in ('scc', 'xlbomd'):
-            gamma = Gamma(self.skt.U, self.system.distances).gamma
+            self.gamma = Gamma(self.skt.U, self.system.distances).gamma
         else:
-            gamma = torch.zeros(*self.system.distances.shape)
+            self.gamma = torch.zeros(*self.qzero.shape)
 
         for iiter in range(self.maxiter):
-            shift_ = torch.stack(
-                [(im - iz) @ ig for im, iz, ig in zip(
-                    self.charge[self.mask], self.qzero[self.mask], gamma[self.mask])])
+            # shift_ = torch.stack(
+            #     [(im - iz) @ ig for im, iz, ig in zip(
+            #         self.charge[self.mask], self.qzero[self.mask], gamma[self.mask])])
+            shift_ = self._update_shift()
 
             # repeat shift according to number of orbitals
             shiftorb_ = pack([ishif.repeat_interleave(iorb) for iorb, ishif in
@@ -176,3 +187,21 @@ class Scc:
 
         return pack([1.0 + (onsite[ib] - self.qzero[ib])[:nat[ib]] / numbers[ib][:nat[ib]]
                      for ib in range(self.system.size_batch)])
+
+    def _update_charge(self, qmix):
+        """Update charge according to convergence in last step."""
+        self.charge[self.mask] = qmix
+        self.mask = ~self.converge
+
+    def _update_shift(self):
+        """Update shift."""
+        if not self.system.periodic:
+            return torch.stack([(im - iz) @ ig for im, iz, ig in zip(
+                self.charge[self.mask], self.qzero[self.mask], self.gamma[self.mask])])
+        else:
+            shift_gamma = torch.stack([(im - iz) @ ig for im, iz, ig in zip(
+                self.charge[self.mask], self.qzero[self.mask], self.gamma[self.mask])])
+
+            _, shift_ewald = self.coulomb.update_shift(
+                self.charge[self.mask], self.qzero[self.mask])
+            return shift_gamma + shift_ewald
