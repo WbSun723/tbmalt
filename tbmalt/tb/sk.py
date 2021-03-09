@@ -154,7 +154,7 @@ class SKT:
             batch_size = periodic.periodic_distances.shape[0]
             cell_vec = periodic.cellvec
             kpoint = np.pi * torch.ones(batch_size, 1, 3)
-            print('kpoint', kpoint.shape, 'cell', cell_vec.shape, mask)
+
             # 1st dim of returned dot_product(kpoint, cellvec) is cellvec size
             return torch.bmm(kpoint[mask], cell_vec[mask]).squeeze(1).T
         else:

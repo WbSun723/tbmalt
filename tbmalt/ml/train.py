@@ -112,17 +112,17 @@ class Integal(Train):
     def _update_train(self):
         skt = SKT(self.system, self.sk, self.periodic, with_variable=True,
                   fix_onsite=True, fix_U=True)
-        scc = Scc(self.system, skt, self.params, self.coulomb, self.properties)
+        scc = Scc(self.system, skt, self.params, self.coulomb, self.periodic, self.properties)
         super().__loss__(scc)
         self.optimizer.zero_grad()
         self.loss.backward(retain_graph=True)
         self.optimizer.step()
 
-    def predict(self, system, coulomb=None):
+    def predict(self, system, coulomb=None, periodic=None):
         """Predict with optimized Hamiltonian and overlap."""
         skt = SKT(system, self.sk, with_variable=True,
                   fix_onsite=True, fix_U=True)
-        return Scc(system, skt, self.params, coulomb, self.properties)
+        return Scc(system, skt, self.params, coulomb, periodic, self.properties)
 
 
 class CompressionRadii(Train):
@@ -152,7 +152,7 @@ class CompressionRadii(Train):
     def _update_train(self):
         skt = SKT(self.system, self.sk, self.periodic, compression_radii=self.ml_variable,
                   fix_onsite=True, fix_U=True)
-        scc = Scc(self.system, skt, self.params, self.coulomb, self.properties)
+        scc = Scc(self.system, skt, self.params, self.coulomb, self.periodic, self.properties)
         super().__loss__(scc)
         self._loss.append(self.loss.detach())
         self._compr.append(self.ml_variable.detach().clone())

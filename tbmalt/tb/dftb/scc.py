@@ -39,17 +39,15 @@ class Scc:
     """
 
     def __init__(self, system: object, skt: object, parameter: object,
-                 coulomb=None, properties=[], **kwargs):
+                 coulomb=None, periodic=None, properties=[], **kwargs):
         self.system = system
         self.skt = skt
         self.params = parameter
+        self.coulomb = coulomb
+        self.periodic = periodic
 
         self.ham, self.over = skt.H, skt.S
         self._init_scc(**kwargs)
-
-        if self.system.periodic:
-            assert coulomb is not None
-            self.coulomb = coulomb
 
         self._scc()
 
@@ -83,24 +81,33 @@ class Scc:
         elif self.mix in ('Simple', 'simple'):
             self.mixer = Simple(self.charge, return_convergence=True)
 
+        if self.system.periodic:
+            assert self.coulomb is not None
+            assert self.periodic is not None
+            self.distances = self.periodic.periodic_distances
+            self.u = self._expand_u(self.skt.U)
+        else:
+            self.distances = self.system.distances
+            self.u = self.skt.U
+
+        if self.scc in ('scc', 'xlbomd'):
+            self.gamma = Gamma(self.u, self.distances).gamma
+        else:
+            self.gamma = torch.zeros(*self.qzero.shape)
+
+        self.inv_dist = self._inv_distance(self.system.distances)
+
+        self.shift = self._get_shift()
+
     def _scc(self, ibatch=[0]):
         """SCF for non-periodic-ML system with scc.
 
         atomind is the number of atom, for C, lmax is 2, therefore
         we need 2**2 orbitals (s, px, py, pz), then define atomind2
         """
-        if self.scc in ('scc', 'xlbomd'):
-            self.gamma = Gamma(self.skt.U, self.system.distances).gamma
-        else:
-            self.gamma = torch.zeros(*self.qzero.shape)
-
         for iiter in range(self.maxiter):
-            # shift_ = torch.stack(
-            #     [(im - iz) @ ig for im, iz, ig in zip(
-            #         self.charge[self.mask], self.qzero[self.mask], gamma[self.mask])])
+            # get shift and repeat shift according to number of orbitals
             shift_ = self._update_shift()
-
-            # repeat shift according to number of orbitals
             shiftorb_ = pack([ishif.repeat_interleave(iorb) for iorb, ishif in
                               zip(self.atom_orbitals[self.mask], shift_)])
             shift_mat = torch.stack([torch.unsqueeze(ishift, 1) + ishift
@@ -193,15 +200,25 @@ class Scc:
         self.charge[self.mask] = qmix
         self.mask = ~self.converge
 
+    def _inv_distance(self, distance):
+        _inv_distance = torch.zeros(*distance.shape)
+        mask = distance.ne(0.0)
+        _inv_distance[mask] = 1.0 / distance[mask]
+        return _inv_distance
+
+    def _get_shift(self):
+        """Return shift term for periodic and non-periodic."""
+        if not self.system.periodic:
+            return self.inv_dist - self.gamma
+        else:
+            return self.coulomb.invrmat - self.gamma
+
     def _update_shift(self):
         """Update shift."""
-        if not self.system.periodic:
-            return torch.stack([(im - iz) @ ig for im, iz, ig in zip(
-                self.charge[self.mask], self.qzero[self.mask], self.gamma[self.mask])])
-        else:
-            shift_gamma = torch.stack([(im - iz) @ ig for im, iz, ig in zip(
-                self.charge[self.mask], self.qzero[self.mask], self.gamma[self.mask])])
+        return torch.stack([(im - iz) @ ig for im, iz, ig in zip(
+            self.charge[self.mask], self.qzero[self.mask], self.shift[self.mask])])
 
-            _, shift_ewald = self.coulomb.update_shift(
-                self.charge[self.mask], self.qzero[self.mask])
-            return shift_gamma + shift_ewald
+    def _expand_u(self, u):
+        """Expand Hubbert U for periodic system."""
+        shape_cell = self.distances.shape[1]
+        return u.repeat(shape_cell, 1, 1).transpose(0, 1)

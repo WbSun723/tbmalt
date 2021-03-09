@@ -17,13 +17,14 @@ class Gamma:
             slater_short will not include 1 / distance term.
     """
 
-    def __init__(self, U: Tensor, distance: Tensor, **kwargs) -> Tensor:
+    def __init__(self, U: Tensor, distance: Tensor,
+                 distance_periodic=None, **kwargs) -> Tensor:
         self.U = U
         self.distance = distance
         self.gamma_type = kwargs.get('gamma_type', 'slater')
 
         # call gamma funcitons
-        if self.gamma_type in ('slater', 'slater_short'):
+        if self.gamma_type == 'slater':
             self.gamma = self.gamma_slater()
         elif self.gamma_type == 'gaussian':
             self.gamma = self.gamma_gaussian()
@@ -33,25 +34,28 @@ class Gamma:
         # Construct index list for upper triangle gather operation
         ut = torch.unbind(torch.triu_indices(
             self.U.shape[-1], self.U.shape[-1], 1))
-        distance = self.distance[..., ut[0], ut[1]]
 
         # deal with single and batch problem
         U = self.U.unsqueeze(0) if self.U.dim() == 1 else self.U
 
+        # make sure the unfied dim for both periodic and non-periodic
+        U = self.U.unsqueeze(1) if self.U.dim() == 2 else self.U
+        dist = self.distance.unsqueeze(1) if self.distance.dim() == 3 else self.distance
+
+        distance = dist[..., ut[0], ut[1]]
+
         # build the whole gamma, shortgamma (without 1/R) and triangular gamma
         gamma = torch.zeros(*U.shape, U.shape[-1])
-        gamma_tr = torch.zeros(U.shape[0], len(ut[0]))
+        gamma_tr = torch.zeros(U.shape[0], U.shape[1], len(ut[0]))
 
-        # diagonal values is so called chemical hardness Hubbert
-        if self.gamma_type == 'slater':
-            gamma.diagonal(0, -(U.dim() - 1))[:] = U
-        elif self.gamma_type == 'slater_short':
-            gamma.diagonal(0, -(U.dim() - 1))[:] = -U
+        # add (0th row in cell dim) so called chemical hardness Hubbert
+        gamma.diagonal(0, -1, -2)[:, 0] = -U[:, 0]
 
         alpha, beta = U[..., ut[0]] * 3.2, U[..., ut[1]] * 3.2
 
         # mask of homo or hetero Hubbert in triangular gamma
         mask_homo, mask_hetero = alpha == beta, alpha != beta
+
         mask_homo[distance.eq(0)], mask_hetero[distance.eq(0)] = False, False
         r_homo, r_hetero = 1. / distance[mask_homo], 1. / distance[mask_hetero]
 
@@ -61,9 +65,6 @@ class Gamma:
         efac = torch.exp(-taur) / 48. * r_homo
         gamma_tr[mask_homo] = \
             (48. + 33. * taur + 9. * taur ** 2 + taur ** 3) * efac
-        if self.gamma_type == 'slater':  # -> add 1 / distances
-            gamma_tr[mask_homo] = \
-                r_homo - gamma_tr[mask_homo]
 
         # hetero Hubbert
         aa, bb = alpha[mask_hetero], beta[mask_hetero]
@@ -78,13 +79,11 @@ class Gamma:
                           (aa6 - 3. * bb2 * aa4) * rba ** 3 * r_hetero)
         gamma_tr[mask_hetero] = val_ab + val_ba
 
-        if self.gamma_type == 'slater':  # -> add 1 / distances
-            gamma_tr[mask_hetero] = (r_hetero - gamma_tr[mask_hetero])
-
         # return symmetric gamma values
         gamma[..., ut[0], ut[1]] = gamma_tr
         gamma[..., ut[1], ut[0]] = gamma[..., ut[0], ut[1]]
-        return gamma
+
+        return gamma.sum(1)  # -> sum over cell dim and return gamma
 
     def gaussian(self):
         """Build the Gaussian type gamma in second-order term."""

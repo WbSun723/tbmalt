@@ -29,17 +29,15 @@ class Coulomb:
 
     """
 
-    def __init__(self, geometry: object, periodic: object, # latvec: Tensor, recvec: Tensor,
-                 **kwargs):
+    def __init__(self, geometry: object, periodic: object, **kwargs):
         self.geometry = geometry
         self.latvec = geometry.cell
         self.natom = self.geometry.size_system
         self.coord = self.geometry.positions
         self.cellvol = periodic.cellvol
         self.recvec = periodic.recvec
-        # self.latvec, self.recvec, self.cellvol, self.tol_ewald, self.nsearchiter = \
-        #     self._check(latvec, recvec, **kwargs)
-        self.tol_ewald, self.nsearchiter = self._check(**kwargs)
+        self.tol_ewald = kwargs.get('tol_ewald', 1e-9)
+        self.nsearchiter = kwargs.get('nsearchiter', 30)
 
         # Optimal alpha for the Ewald summation
         self.alpha = self.get_alpha()
@@ -65,32 +63,6 @@ class Coulomb:
         # 1/R matrix for the periodic geometry
         self.invrmat = self.invr_periodic()
 
-    def _check(self, **kwargs):
-        """Check the unit and dimension of lattice vector and parameters for Ewald summation."""
-        # Default unit of lattice vector is bohr
-        unit = kwargs.get('unit', 'bohr')
-
-        # Default Ewald tolerance is 1e-9
-        tol_ewald = kwargs.get('tol_ewald', 1e-9)
-
-        # Default search iteration is 30
-        nsearchiter = kwargs.get('nsearchiter', 30)
-
-        # Check the unit and dimension of lattice vector
-        # if latvec.dim() == 2:
-        #     latvec = latvec.unsqueeze(0)
-        # if recvec.dim() == 2:
-        #     recvec = recvec.unsqueeze(0)
-        # if unit in ('angstrom', 'Angstrom'):
-        #     # latvec = latvec / _bohr
-        #     recvec = recvec / _bohr
-        # elif unit not in ('bohr', 'Bohr'):
-        #     raise ValueError('unit is either angstrom or bohr')
-
-        # cellvol = abs(torch.det(latvec))
-
-        return tol_ewald, nsearchiter
-
     def update_latvec(self):
         """Update the lattice points for reciprocal Ewald summation."""
         update = Periodic(self.geometry, self.recvec, cutoff=self.maxg,
@@ -103,12 +75,12 @@ class Coulomb:
                           distance_extention=0, unit='Bohr')
         return update.periodic_distances, update.neighbour
 
-    def update_shift(self, charge, qzero):
-        """Update potential shifts for scc calculation."""
-        deltaq_atom = charge - qzero
-        shiftperatom = torch.stack([torch.matmul(iinvr, idq)
-                                    for iinvr, idq in zip(self.invrmat, deltaq_atom)])
-        return deltaq_atom, shiftperatom
+    # def update_shift(self, charge, qzero):
+    #     """Update potential shifts for scc calculation."""
+    #     deltaq_atom = charge - qzero
+    #     shiftperatom = torch.stack([torch.matmul(iinvr, idq)
+    #                                 for iinvr, idq in zip(self.invrmat, deltaq_atom)])
+    #     return deltaq_atom, shiftperatom
 
     def add_energy(self, shiftperatom, deltaq_atom, escc):
         """Add contribution from coulombic interaction to scc energy."""
@@ -178,10 +150,10 @@ class Coulomb:
         alpha = torch.clone(alphainit)
 
         # Length of the shortest vector in reciprocal space
-        min_g = torch.sqrt(torch.min(torch.sum(self.recvec ** 2, 1), 1).values)
+        min_g = torch.sqrt(torch.min(torch.sum(self.recvec ** 2, -1), 1).values)
 
         # Length of the shortest vector in real space
-        min_r = torch.sqrt(torch.min(torch.sum(self.latvec ** 2, 1), 1).values)
+        min_r = torch.sqrt(torch.min(torch.sum(self.latvec ** 2, -1), 1).values)
 
         # Difference between reciprocal and real parts of the decrease of Ewald sum
         diff = self.diff_rec_real(alpha, min_g, min_r, self.cellvol)
@@ -355,24 +327,22 @@ class Coulomb:
 
     def ewald_real(self):
         """Batch calculation of the Ewald sum in the real part for a certain vector length."""
-        rterm = pack([torch.erfc(self.alpha[ibatch] * self.distmat[ibatch]) / self.distmat[ibatch]
-                      for ibatch in range(self.alpha.size(0))])
-        return rterm
+        return pack([torch.erfc(self.alpha[ibatch] * self.distmat[ibatch]) / self.distmat[ibatch]
+                     for ibatch in range(self.alpha.size(0))])
 
     def diff_rec_real(self, alpha, min_g, min_r, cellvol):
         """Returns the difference between reciprocal and real parts of the decrease of Ewald sum."""
-        diff = (self.gterm(4.0 * min_g, alpha, cellvol) - self.gterm(5.0 * min_g, alpha, cellvol)) - \
-                (self.rterm(2.0 * min_r, alpha) - self.rterm(3.0 * min_r, alpha))
-        return diff
+        return (self.gterm(4.0 * min_g, alpha, cellvol) - self.gterm(
+            5.0 * min_g, alpha, cellvol)) - (self.rterm(2.0 * min_r, alpha) -
+                                             self.rterm(3.0 * min_r, alpha))
 
     def gterm(self, len_g, alpha, cellvol):
         """Returns the maximum value of the Ewald sum in the
            reciprocal part for a certain vector length."""
-        gterm = 4.0 * np.pi * (torch.exp((-0.25 * len_g ** 2) / (alpha ** 2)) / (cellvol * len_g ** 2))
-        return gterm
+        return 4.0 * np.pi * (torch.exp((-0.25 * len_g ** 2) / (alpha ** 2))
+                              / (cellvol * len_g ** 2))
 
     def rterm(self, len_r, alpha):
         """Returns the maximum value of the Ewald sum in the
            real part for a certain vector length."""
-        rterm = torch.erfc(alpha * len_r) / len_r
-        return rterm
+        return torch.erfc(alpha * len_r) / len_r

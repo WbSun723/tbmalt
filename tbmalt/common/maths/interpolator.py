@@ -321,7 +321,7 @@ class SKInterpolation:
             y1 = self.yy[ilast - 2]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-            result[is_tail] = self.poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
+            result[is_tail] = poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
 
         return result
 
