@@ -55,19 +55,20 @@ class System:
 
     def __init__(self, numbers: Union[Tensor, List[Tensor]],
                  positions: Union[Tensor, List[Tensor]],
-                 cell=None, pbc=None, lattice=None, **kwargs):
+                 cell=None, pbc=None, lattice=None, frac=None, **kwargs):
         self.cell = cell
         self.pbc = pbc
+        self.frac = frac
 
         # bool tensor is_periodic defines which is solid and which is molecule
         if self.cell is not None:
-            self.cell, self.pbc, self.is_periodic = self._cell()
+            self.cell, self.pbc, self.is_periodic, self.is_frac = self._cell()
             self.periodic = True if True in self.is_periodic else False
-            self.positions, self.numbers, self.batch, self.is_periodic = \
-                self._check(numbers, positions, self.is_periodic, **kwargs)
+            self.positions, self.numbers, self.batch, self.is_periodic, self.is_frac = \
+                self._check(numbers, positions, self.is_periodic, self.is_frac, **kwargs)
         else:
             self.periodic = False  # no system is solid
-            self.positions, self.numbers, self.batch, self.is_periodic = \
+            self.positions, self.numbers, self.batch, self.is_periodic, self.is_frac = \
                 self._check(numbers, positions, **kwargs)
 
         # size of each geometry
@@ -90,9 +91,10 @@ class System:
         # get Hamiltonian, overlap shape in batch of each geometry and batch
         self.single_hs_shape, self.hs_shape = self._get_hs_shape()
 
-    def _check(self, numbers, positions, is_periodic=None, **kwargs):
+    def _check(self, numbers, positions, is_periodic=None, is_frac=None, **kwargs):
         """Check the type and dimension of numbers, positions."""
         unit = kwargs['unit'] if 'unit' in kwargs else 'angstrom'
+        coord_type = kwargs['coord'] if 'coord' in kwargs else 'cartesian'
 
         # sequences of tensor
         if isinstance(numbers, list):
@@ -109,8 +111,16 @@ class System:
         # if there is no solid, build is_periodic as False tensor
         if is_periodic is None:
             is_periodic = torch.zeros(numbers.shape[0], dtype=torch.bool)
+            if coord_type in ('fraction', 'Fraction'):
+                raise ValueError('Coordinate type for non-periodic should be cartesian')
+            elif coord_type not in ('cartesian', 'Cartesian'):
+                raise ValueError('Please select either cartesian or fraction')
+        else:
+            # check whether specify the fraction system
+            if is_frac is None and coord_type in ('fraction', 'Fraction'):
+                raise ValueError('Please specify the fraction system')
 
-        # transfer positions from angstrom to bohr
+        # transfer positions of non-periodic systems from angstrom to bohr
         if unit in ('angstrom', 'Angstrom'):
             positions[~is_periodic] = positions[~is_periodic] / bohr
         elif unit not in ('bohr', 'Bohr'):
@@ -119,12 +129,12 @@ class System:
         assert positions.shape[0] == numbers.shape[0]
         batch_ = True if numbers.shape[0] != 1 else False
 
-        return positions, numbers, batch_, is_periodic
+        return positions, numbers, batch_, is_periodic, is_frac
 
     def _cell(self):
         """Return cell information."""
-        _cell = Cell(self.cell, self.pbc)
-        return _cell.cell, _cell.pbc, _cell.is_periodic
+        _cell = Cell(self.cell, self.pbc, self.frac)
+        return _cell.cell, _cell.pbc, _cell.is_periodic, _cell.is_frac
 
     def _get_distances(self):
         """Return distances between a list of atoms for each geometry."""
@@ -269,10 +279,10 @@ class System:
             positions = [torch.from_numpy(iat.positions) for iat in atoms]
             cell = [torch.from_numpy(np.asarray(iat.cell)) for iat in atoms]
             pbc = [torch.from_numpy(np.asarray(iat.pbc)) for iat in atoms]
-            return Geometry(numbers, positions, cell, pbc, **kwargs)
+            return System(numbers, positions, cell, pbc, **kwargs)
 
         elif isinstance(atoms, object):  # If single atoms objects supplied
-            return Geometry(torch.from_numpy(atoms.numbers),
+            return System(torch.from_numpy(atoms.numbers),
                             torch.torch.from_numpy(atoms.positions),
                             torch.from_numpy(np.asarray(atoms.cell)),
                             torch.from_numpy(np.asarray(atoms.pbc)), **kwargs)
@@ -312,6 +322,6 @@ class System:
 
         # Read & parse datasets from the database into a Geometry instance
         # & return the result.
-        return Geometry(
+        return System(
             torch.tensor(source['numbers']),
             torch.tensor(source['positions'], dtype=dtype), **kwargs)

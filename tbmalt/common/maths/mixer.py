@@ -101,7 +101,7 @@ class Simple(_Mixer):
                      0.980000000000000, 0.980000000000000]])
     """
 
-    def __init__(self, q_init: Tensor, mix_param=0.2, generations=4, **kwargs):
+    def __init__(self, q_init: Tensor, mix_param=0.2, generations=3, **kwargs):
         super().__init__(q_init, mix_param, **kwargs)
         self.mix_param = mix_param
         self._build_matrices(self.q_init)

@@ -101,18 +101,23 @@ class Periodic:
     def _positions_check(self, **kwargs):
         """Check positions type (fraction or not) and unit."""
         unit = kwargs.get('unit', 'angstrom')
+        is_frac = self.geometry.is_frac
 
-        # transfer from fraction to Bohr unit positions
+        # transfer periodic positions to bohr
         position_pe = self.geometry.positions[self.geometry.is_periodic]
-        is_frac = pack([abs(ipos).lt(1.).all() for ipos in position_pe])
-        position_pe[is_frac] = torch.matmul(
-            position_pe[is_frac], self.latvec[is_frac])
-
-        # transfer other periodic positions (non-fraction) to bohr
         if unit in ('angstrom', 'Angstrom'):
             position_pe[~is_frac] = position_pe[~is_frac] / _bohr
         elif unit not in ('bohr', 'Bohr'):
             raise ValueError('Please select either angstrom or bohr')
+
+        # whether fraction coordinates in the range [0, 1)
+        if torch.any(position_pe[is_frac] >= 1) or torch.any(position_pe[is_frac] < 0):
+            position_pe[is_frac] = torch.abs(position_pe[is_frac]) - \
+                            torch.floor(torch.abs(position_pe[is_frac]))
+
+        # transfer from fraction to Bohr unit positions
+        position_pe[is_frac] = torch.matmul(
+            position_pe[is_frac], self.latvec[is_frac])
 
         self.geometry.positions[self.geometry.is_periodic] = position_pe
 

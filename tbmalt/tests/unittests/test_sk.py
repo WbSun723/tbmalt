@@ -1,19 +1,21 @@
 """Perform tests on functions which read SKF or SK transformations.
-
 Reference is from DFTB+."""
 import os
 import re
 import numpy as np
 import torch
 from ase.build import molecule as molecule_database
-from tbmalt.common.structures.geometry import Geometry
+from tbmalt.common.structures.system import System
+from tbmalt.common.structures.periodic import Periodic
 from tbmalt.tb.sk import SKT
 from tbmalt.io.loadskf import IntegralGenerator
+from tbmalt.common.batch import pack
 torch.set_default_dtype(torch.float64)
 torch.set_printoptions(15)
 
 
 # copy from public directory
+os.system('cp /home/gz_fan/Public/tbmalt/skf.hdf .')
 os.system('cp -r /home/gz_fan/Public/tbmalt/slko .')
 os.system('cp -r /home/gz_fan/Public/tbmalt/sk .')
 
@@ -21,8 +23,8 @@ os.system('cp -r /home/gz_fan/Public/tbmalt/sk .')
 def test_read_skf_mio(device):
     """Test mio SKF data."""
     molecule = molecule_database('CH4')
-    geo = Geometry.from_ase_atoms(molecule)
-    sk = IntegralGenerator.from_dir('./slko/mio-1-1', geo)
+    system = System.from_ase_atoms(molecule)
+    sk = IntegralGenerator.from_dir('./slko/mio-1-1', system)
 
     # Hpp0 Hpp1, Hsp0, Hss0, Spp0 Spp1, Ssp0, Sss0 at distance 2.0
     atom_pair = torch.tensor([6, 6])
@@ -77,9 +79,9 @@ def test_other_params():
 
 def test_sk_mio_ase_single(device):
     """Test SK transformation values of single molecules from mio."""
-    geo = Geometry.from_ase_atoms([molecule_database('CH3CH2NH2')])
-    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', geo)
-    skt = SKT(geo, sktable)
+    system = System.from_ase_atoms([molecule_database('CH3CH2NH2')])
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', system)
+    skt = SKT(system, sktable)
     assert torch.max(abs(skt.H[0][:h_ch3ch2nh2.shape[0], :h_ch3ch2nh2.shape[1]]
                          - h_ch3ch2nh2)) < 1E-14, 'Tolerance check'
     assert torch.max(abs(skt.S[0][:s_ch3ch2nh2.shape[0], :s_ch3ch2nh2.shape[1]]
@@ -88,10 +90,10 @@ def test_sk_mio_ase_single(device):
 
 def test_sk_mio_ase_batch(device):
     """Test SK transformation values of batch molecules from mio."""
-    geo = Geometry.from_ase_atoms([molecule_database('CH3S'),
-                                   molecule_database('PH3')])
-    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', geo)
-    skt = SKT(geo, sktable)
+    system = System.from_ase_atoms([molecule_database('CH3S'),
+                                    molecule_database('PH3')])
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', system)
+    skt = SKT(system, sktable)
     assert torch.max(abs(skt.H[0][:h_ch3s.shape[0], :h_ch3s.shape[1]] - h_ch3s)
                      ) < 1E-14, 'Tolerance check'
     assert torch.max(abs(skt.S[0][:s_ch3s.shape[0], :s_ch3s.shape[1]] - s_ch3s)
@@ -105,8 +107,8 @@ def test_sk_mio_ase_batch(device):
 def test_read_skf_auorg(device):
     """Read auorg type SKF files."""
     molecule = molecule_database('CH4')
-    geo = Geometry.from_ase_atoms(molecule)
-    sk = IntegralGenerator.from_dir('./slko/auorg-1-1', Geometry)
+    system = System.from_ase_atoms(molecule)
+    sk = IntegralGenerator.from_dir('./slko/auorg-1-1', system)
 
     # Hpp0 Hpp1, Hsp0, Hss0, Spp0 Spp1, Ssp0, Sss0 at distance 2.0
     atom_pair = torch.tensor([6, 6])
@@ -146,7 +148,7 @@ def test_repulsive_auorg():
 
 def test_repulsive_hdf():
     """Test repulsive of hdf (originally from auorg)."""
-    sk = IntegralGenerator.from_dir('./slko/skf.hdf', elements=['C', 'H'],
+    sk = IntegralGenerator.from_dir('./skf.hdf', elements=['C', 'H'],
                                     repulsive=True, sk_type='h5py')
     assert sk.sktable_dict[(6, 6, 'n_repulsive')] == 48
     assert sk.sktable_dict[(6, 1, 'rep_cutoff')] == 3.5
@@ -167,8 +169,8 @@ def test_repulsive_hdf():
 def test_read_skf_h5py(device):
     """Read auorg type SKF files."""
     molecule = molecule_database('CH4')
-    geo = Geometry.from_ase_atoms(molecule)
-    sk = IntegralGenerator.from_dir('./slko/skf.hdf', geo, sk_type='h5py')
+    system = System.from_ase_atoms(molecule)
+    sk = IntegralGenerator.from_dir('./skf.hdf', system, sk_type='h5py')
     c_c_ref = torch.tensor([
         3.293893775138E-01, -2.631898290831E-01, 4.210227871585E-01,
         -4.705514912464E-01, -3.151402994035E-01, 3.193776711119E-01,
@@ -192,7 +194,7 @@ def test_sk_single(device):
         [0., 0., 0.], [0.629118, 0.629118, 0.629118],
         [-0.629118, -0.629118, 0.629118], [0.629118, -0.629118, -0.629118],
         [-0.629118, 0.629118, -0.629118]])
-    molecule = Geometry(numbers, positions)
+    molecule = System(numbers, positions)
     sktable = IntegralGenerator.from_dir('./slko/auorg-1-1', molecule)
     skt = SKT(molecule, sktable)
     assert torch.max(abs(skt.H - h_ch4)) < 1E-14, 'Tolerance check'
@@ -203,7 +205,7 @@ def test_sk_single_d_orb(device):
     """Test SK transformation values of single molecule with d orbitals."""
     numbers = torch.tensor([79, 8])
     positions = torch.tensor([[0., 0., 0.], [1., 1., 0.]])
-    molecule = Geometry(numbers, positions)
+    molecule = System(numbers, positions)
     sktable = IntegralGenerator.from_dir('./slko/auorg-1-1/', molecule)
     skt = SKT(molecule, sktable)
     assert torch.max(abs(skt.H - h_auo)) < 1E-14, 'Tolerance check'
@@ -212,7 +214,6 @@ def test_sk_single_d_orb(device):
 
 def test_sk_batch(device):
     """Test SK transformation values of batch molecules.
-
     Test p-d, s-p, d-d orbitals."""
     numbers = [torch.tensor([79, 8]), torch.tensor([79, 79]),
                torch.tensor([6, 1, 1, 1, 1])]
@@ -222,7 +223,7 @@ def test_sk_batch(device):
                                [-0.629118, -0.629118, 0.629118],
                                [0.629118, -0.629118, -0.629118],
                                [-0.629118, 0.629118, -0.629118]])]
-    molecule = Geometry(numbers, positions)
+    molecule = System(numbers, positions)
     sktable = IntegralGenerator.from_dir('./slko/auorg-1-1/', molecule)
     skt = SKT(molecule, sktable)
     assert torch.max(abs(skt.H[0][:h_auo.shape[0], :h_auo.shape[1]] - h_auo)
@@ -242,7 +243,7 @@ def test_sk_batch(device):
 def test_sk_ase_single(device):
     """Test SK transformation values of single ASE molecule."""
     molecule = molecule_database('CH4')
-    molecule = Geometry.from_ase_atoms(molecule)
+    molecule = System.from_ase_atoms(molecule)
     sktable = IntegralGenerator.from_dir('./slko/auorg-1-1/', molecule)
     skt = SKT(molecule, sktable)
     assert torch.max(abs(skt.H - h_ch4)) < 1E-14, 'Tolerance check'
@@ -251,7 +252,7 @@ def test_sk_ase_single(device):
 
 def test_sk_ase_batch(device):
     """Test SK transformation values of batch ASE molecules."""
-    molecule = Geometry.from_ase_atoms([
+    molecule = System.from_ase_atoms([
         molecule_database('H2'), molecule_database('N2'),
         molecule_database('CH4'), molecule_database('NH3'),
         molecule_database('H2O'), molecule_database('CO2'),
@@ -290,10 +291,9 @@ def test_sk_ase_batch(device):
 
 def test_sk_ase_batch_cubic(device):
     """Test batch molecule SK transformtion value.
-
     The interpolation of integral is cubic interpolation, which is different
     from DFTB+."""
-    molecule = Geometry.from_ase_atoms([
+    molecule = System.from_ase_atoms([
         molecule_database('H2'), molecule_database('N2'),
         molecule_database('CH4'), molecule_database('NH3'),
         molecule_database('H2O'), molecule_database('CN'),
@@ -335,6 +335,96 @@ def get_matrix(filename):
     out = np.array([[float(i) for i in row.split()]
                     for row in string.split('\n')])
     return torch.from_numpy(out)
+
+
+def test_spline_tail():
+    """Test the interplolation for tail by spline."""
+    latvec = torch.tensor([[6., 0., 0.], [0., 6., 0.], [0., 0., 6.]])
+    positions = torch.tensor([
+        [3., 3., 3.], [3.6, 3.6, 3.6], [2.4, 3.6, 3.6], [3.6, 2.4, 3.6], [3.6, 3.6, 2.4]])
+    numbers = torch.tensor([6, 1, 1, 1, 1])
+    molecule = System(numbers, positions, latvec)
+    sk_spline = IntegralGenerator.from_dir('./slko/mio-1-1', molecule,
+                                           interpolation='spline')
+    sk_skinter = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
+
+    # C-C pair
+    atom_pair_cc = torch.tensor([6, 6])
+    distance = torch.from_numpy(np.linspace(9.98, 10.98, 50))
+
+    # pp orbitals
+    tail_spline_cc_Hpp = sk_spline(distance, atom_pair_cc, torch.tensor([1, 1]), hs_type='H')
+    tail_skinter_cc_Hpp = sk_skinter(distance, atom_pair_cc, torch.tensor([1, 1]), hs_type='H')
+    tail_spline_cc_Spp = sk_spline(distance, atom_pair_cc, torch.tensor([1, 1]), hs_type='S')
+    tail_skinter_cc_Spp = sk_skinter(distance, atom_pair_cc, torch.tensor([1, 1]), hs_type='S')
+
+    # sp orbital
+    tail_spline_cc_Hsp = sk_spline(distance, atom_pair_cc, torch.tensor([0, 1]), hs_type='H')
+    tail_skinter_cc_Hsp = sk_skinter(distance, atom_pair_cc, torch.tensor([0, 1]), hs_type='H')
+    tail_spline_cc_Ssp = sk_spline(distance, atom_pair_cc, torch.tensor([0, 1]), hs_type='S')
+    tail_skinter_cc_Ssp = sk_skinter(distance, atom_pair_cc, torch.tensor([0, 1]), hs_type='S')
+
+    # ss orbital
+    tail_spline_cc_Hss = sk_spline(distance, atom_pair_cc, torch.tensor([0, 0]), hs_type='H')
+    tail_skinter_cc_Hss = sk_skinter(distance, atom_pair_cc, torch.tensor([0, 0]), hs_type='H')
+    tail_spline_cc_Sss = sk_spline(distance, atom_pair_cc, torch.tensor([0, 0]), hs_type='S')
+    tail_skinter_cc_Sss = sk_skinter(distance, atom_pair_cc, torch.tensor([0, 0]), hs_type='S')
+
+    # C-H pair
+    atom_pair_ch = torch.tensor([6, 1])
+
+    # sp orbital
+    tail_spline_ch_Hsp = sk_spline(distance, atom_pair_ch, torch.tensor([0, 1]), hs_type='H')
+    tail_skinter_ch_Hsp = sk_skinter(distance, atom_pair_ch, torch.tensor([0, 1]), hs_type='H')
+    tail_spline_ch_Ssp = sk_spline(distance, atom_pair_ch, torch.tensor([0, 1]), hs_type='S')
+    tail_skinter_ch_Ssp = sk_skinter(distance, atom_pair_ch, torch.tensor([0, 1]), hs_type='S')
+
+    # ss orbital
+    tail_spline_ch_Hss = sk_spline(distance, atom_pair_ch, torch.tensor([0, 0]), hs_type='H')
+    tail_skinter_ch_Hss = sk_skinter(distance, atom_pair_ch, torch.tensor([0, 0]), hs_type='H')
+    tail_spline_ch_Sss = sk_spline(distance, atom_pair_ch, torch.tensor([0, 0]), hs_type='S')
+    tail_skinter_ch_Sss = sk_skinter(distance, atom_pair_ch, torch.tensor([0, 0]), hs_type='S')
+
+    # H-H pair
+    atom_pair_hh = torch.tensor([1, 1])
+
+    # ss orbital
+    tail_spline_hh_Hss = sk_spline(distance, atom_pair_hh, torch.tensor([0, 0]), hs_type='H')
+    tail_skinter_hh_Hss = sk_skinter(distance, atom_pair_hh, torch.tensor([0, 0]), hs_type='H')
+    tail_spline_hh_Sss = sk_spline(distance, atom_pair_hh, torch.tensor([0, 0]), hs_type='S')
+    tail_skinter_hh_Sss = sk_skinter(distance, atom_pair_hh, torch.tensor([0, 0]), hs_type='S')
+
+    tail_spline_cc = pack([tail_spline_cc_Hpp, tail_spline_cc_Spp, tail_spline_cc_Hsp,
+                           tail_spline_cc_Ssp, tail_spline_cc_Hss, tail_spline_cc_Sss])
+    tail_skinter_cc = pack([tail_skinter_cc_Hpp, tail_skinter_cc_Spp, tail_skinter_cc_Hsp,
+                            tail_skinter_cc_Ssp, tail_skinter_cc_Hss, tail_skinter_cc_Sss])
+    tail_spline_ch = pack([tail_spline_ch_Hsp, tail_spline_ch_Ssp,
+                           tail_spline_ch_Hss, tail_spline_ch_Sss])
+    tail_skinter_ch = pack([tail_skinter_ch_Hsp, tail_skinter_ch_Ssp,
+                            tail_skinter_ch_Hss, tail_skinter_ch_Sss])
+    tail_spline_hh = pack([tail_spline_hh_Hss, tail_spline_hh_Sss])
+    tail_skinter_hh = pack([tail_skinter_hh_Hss, tail_skinter_hh_Sss])
+    assert torch.max(abs(tail_spline_cc - tail_skinter_cc)) < 1E-10, 'Tolerance check'
+    assert torch.max(abs(tail_spline_ch - tail_skinter_ch)) < 1E-10, 'Tolerance check'
+    assert torch.max(abs(tail_spline_hh - tail_skinter_hh)) < 1E-10, 'Tolerance check'
+
+
+def test_sk_pe_single():
+    """Test SK transformation values of single periodic molecule."""
+    latvec = torch.tensor([[4., 0., 0.], [0., 4., 0.], [0., 0., 4.]])
+    cutoff = torch.tensor([9.98])
+    positions = torch.tensor([[0., 0., 0.], [0., 2., 0.]])
+    numbers = torch.tensor([1, 1])
+    molecule = System(numbers, positions, latvec)
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
+    periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
+    skt = SKT(molecule, sktable, periodic)
+    ref_H = torch.tensor([[[-0.2400383294622024, -0.09890788917325767],
+                           [-0.09890788917325767, -0.2400383294622024]]])
+    ref_S = torch.tensor([[[1.001205766178933, 0.1364211414311132],
+                           [0.1364211414311132, 1.001205766178933]]])
+    assert torch.max(abs(skt.H - ref_H)) < 1E-10, 'Tolerance check'
+    assert torch.max(abs(skt.S - ref_S)) < 1E-10, 'Tolerance check'
 
 
 h_h2 = get_matrix('./sk/h2/hamsqr1.dat')

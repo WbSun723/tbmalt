@@ -18,9 +18,10 @@ class Gamma:
     """
 
     def __init__(self, U: Tensor, distance: Tensor,
-                 distance_periodic=None, **kwargs) -> Tensor:
+                 periodic=None, **kwargs) -> Tensor:
         self.U = U
         self.distance = distance
+        self.periodic = periodic
         self.gamma_type = kwargs.get('gamma_type', 'slater')
 
         # call gamma funcitons
@@ -41,7 +42,6 @@ class Gamma:
         # make sure the unfied dim for both periodic and non-periodic
         U = self.U.unsqueeze(1) if self.U.dim() == 2 else self.U
         dist = self.distance.unsqueeze(1) if self.distance.dim() == 3 else self.distance
-
         distance = dist[..., ut[0], ut[1]]
 
         # build the whole gamma, shortgamma (without 1/R) and triangular gamma
@@ -50,20 +50,132 @@ class Gamma:
 
         # add (0th row in cell dim) so called chemical hardness Hubbert
         gamma.diagonal(0, -1, -2)[:, 0] = -U[:, 0]
-
         alpha, beta = U[..., ut[0]] * 3.2, U[..., ut[1]] * 3.2
 
         # mask of homo or hetero Hubbert in triangular gamma
         mask_homo, mask_hetero = alpha == beta, alpha != beta
-
         mask_homo[distance.eq(0)], mask_hetero[distance.eq(0)] = False, False
+
+        # expcutoff for different atom pairs
+        expcutoff = self._expgamma_cutoff(alpha, beta, torch.clone(gamma_tr))
+
+        # new masks of homo or hetero Hubbert
+        mask_cutoff = distance < expcutoff
+        mask_homo = mask_homo & mask_cutoff
+        mask_hetero = mask_hetero & mask_cutoff
+
+        # triangular gamma values
+        gamma_tr = self._expgamma(distance, alpha, beta, mask_homo, mask_hetero, gamma_tr)
+
+        # symmetric gamma values
+        gamma[..., ut[0], ut[1]] = gamma_tr
+        gamma[..., ut[1], ut[0]] = gamma[..., ut[0], ut[1]]
+        gamma2 = gamma.sum(1)
+
+        # onsite part for periodic condition
+        if self.periodic:
+            # diagonal terms
+            gamma_on = torch.zeros(U.shape[0], U.shape[1], U.shape[2])
+            dist_on = dist.diagonal(0, -1, -2)
+            alpha_o, beta_o = U * 3.2, U * 3.2
+
+            # mask of homo or hetero Hubbert
+            mask_homo2, mask_hetero2 = alpha_o == beta_o, alpha_o != beta_o
+            mask_homo2[dist_on.eq(0)], mask_hetero2[dist_on.eq(0)] = False, False
+
+            # expcutoff for different atom pairs
+            expcutoff2 = self._expgamma_cutoff(alpha_o, beta_o, torch.clone(gamma_on))
+
+            # new masks of homo or hetero Hubbert
+            mask_cutoff2 = dist_on < expcutoff2
+            mask_homo2 = mask_homo2 & mask_cutoff2
+            mask_hetero2 = mask_hetero2 & mask_cutoff2
+
+            # gamma values of diagonal terms
+            gamma_on = self._expgamma(dist_on, alpha_o, beta_o, mask_homo2, mask_hetero2, gamma_on)
+            gamma_on = gamma_on.sum(1)
+
+            # add periodic diagonal terms to the whole gamma
+            _tem = gamma2.diagonal(0, -1, -2) + gamma_on
+            gamma2.diagonal(0, -1, -2)[:] = _tem[:]
+
+        return gamma2
+
+    def gaussian(self):
+        """Build the Gaussian type gamma in second-order term."""
+        raise NotImplementedError('Not implement gaussian yet.')
+
+    def _expgamma_cutoff(self, alpha, beta, gamma_tem,
+                         minshortgamma=1.0e-10, tolshortgamma=1.0e-10):
+        """The cutoff distance for short range part."""
+        # initial distance
+        rab = torch.ones_like(alpha)
+
+        # mask of homo or hetero Hubbert in triangular gamma
+        mask_homo, mask_hetero = alpha == beta, alpha != beta
+        mask_homo[alpha.eq(0)], mask_hetero[alpha.eq(0)] = False, False
+        mask_homo[beta.eq(0)], mask_hetero[beta.eq(0)] = False, False
+
+        # mask for batch calculation
+        gamma_init = self._expgamma(rab, alpha, beta, mask_homo,
+                                    mask_hetero, torch.clone(gamma_tem))
+        mask = gamma_init > minshortgamma
+
+        # determine rab
+        while True:
+            rab[mask] = 2.0 * rab[mask]
+            gamma_init[mask] = self._expgamma(rab[mask], alpha[mask], beta[mask], mask_homo[mask],
+                                              mask_hetero[mask], torch.clone(gamma_tem)[mask])
+            mask = gamma_init > minshortgamma
+            if (~mask).all() == True:
+                break
+
+        # bisection search for expcutoff
+        mincutoff = rab + 0.1
+        maxcutoff = 0.5 * rab - 0.1
+        cutoff = maxcutoff + 0.1
+        maxgamma = self._expgamma(maxcutoff, alpha, beta, mask_homo,
+                                  mask_hetero, torch.clone(gamma_tem))
+        mingamma = self._expgamma(mincutoff, alpha, beta, mask_homo,
+                                  mask_hetero, torch.clone(gamma_tem))
+        lowergamma = torch.clone(mingamma)
+        gamma = self._expgamma(cutoff, alpha, beta, mask_homo,
+                               mask_hetero, torch.clone(gamma_tem))
+
+        # mask for batch calculation
+        mask2 = (gamma - lowergamma) > tolshortgamma
+
+        # determine expcutoff
+        while True:
+            maxcutoff = 0.5 * (cutoff + mincutoff)
+            mask_search = (maxgamma >= mingamma) == (
+                minshortgamma >= self._expgamma(
+                    maxcutoff, alpha, beta, mask_homo, mask_hetero, torch.clone(gamma_tem)))
+            mask_a = mask2 & mask_search
+            mask_b = mask2 & (~mask_search)
+            mincutoff[mask_a] = maxcutoff[mask_a]
+            lowergamma[mask_a] = self._expgamma(mincutoff[mask_a], alpha[mask_a], beta[mask_a],
+                                                mask_homo[mask_a], mask_hetero[mask_a],
+                                                torch.clone(gamma_tem)[mask_a])
+            cutoff[mask_b] = maxcutoff[mask_b]
+            gamma[mask_b] = self._expgamma(cutoff[mask_b], alpha[mask_b], beta[mask_b], mask_homo[mask_b],
+                                           mask_hetero[mask_b], torch.clone(gamma_tem)[mask_b])
+            mask2 = (gamma - lowergamma) > tolshortgamma
+            if (~mask2).all() == True:
+                break
+
+        return mincutoff
+
+    def _expgamma(self, distance, alpha, beta, mask_homo, mask_hetero, gamma_tem):
+        """Calculate the value of short range gamma."""
+        # distance of site a and b
         r_homo, r_hetero = 1. / distance[mask_homo], 1. / distance[mask_hetero]
 
         # homo Hubbert
         aa, dd_homo = alpha[mask_homo], distance[mask_homo]
         taur = aa * dd_homo
         efac = torch.exp(-taur) / 48. * r_homo
-        gamma_tr[mask_homo] = \
+        gamma_tem[mask_homo] = \
             (48. + 33. * taur + 9. * taur ** 2 + taur ** 3) * efac
 
         # hetero Hubbert
@@ -77,17 +189,9 @@ class Gamma:
                           (bb6 - 3. * aa2 * bb4) * rab ** 3 * r_hetero)
         val_ba = exp_b * (0.5 * bb * aa4 * rba ** 2 -
                           (aa6 - 3. * bb2 * aa4) * rba ** 3 * r_hetero)
-        gamma_tr[mask_hetero] = val_ab + val_ba
+        gamma_tem[mask_hetero] = val_ab + val_ba
 
-        # return symmetric gamma values
-        gamma[..., ut[0], ut[1]] = gamma_tr
-        gamma[..., ut[1], ut[0]] = gamma[..., ut[0], ut[1]]
-
-        return gamma.sum(1)  # -> sum over cell dim and return gamma
-
-    def gaussian(self):
-        """Build the Gaussian type gamma in second-order term."""
-        raise NotImplementedError('Not implement gaussian yet.')
+        return gamma_tem
 
 
 def fermi(eigenvalue: Tensor, nelectron: Tensor, kT=0.):

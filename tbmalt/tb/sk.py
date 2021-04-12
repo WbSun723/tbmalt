@@ -56,6 +56,11 @@ class SKT:
         l_mat_f = basis.azimuthal_matrix(mask=True)
         l_mat_b = basis.azimuthal_matrix(block=True, mask=True)
 
+        # return all terms without mask for on-site terms when periodic
+        if periodic:
+            l_mat_f = basis.azimuthal_matrix(mask=False)
+            l_mat_b = basis.azimuthal_matrix(block=True, mask=False)
+
         # atom indices and atomic numbers
         i_mat_b = basis.index_matrix('block')
         an_mat_a = basis.atomic_number_matrix('atom')
@@ -77,8 +82,27 @@ class SKT:
             # gather atomic numbers, distances, directional cosigns
             gathered_an = an_mat_a[index_mask_a]
             gathered_dists = self._select_distance(index_mask_a)
+
+            # mask for on-site terms when distances are zero
+            mask_os = gathered_dists == 0
+
+            # replace the zero distances by a large value, return zero for integral
+            gathered_dists[mask_os] = 999
+
+            # mask for on-site terms
             gathered_vecs = self._select_position_vec(vec_mat_a, index_mask_a)
+            mask_os2 = torch.all(gathered_vecs == 0, -1)
+            gathered_vecs[mask_os2] = 999
+
             compr_pair = self._get_compr_pair(compr, index_mask_a)
+
+            if compr is not None:  # Construct compression radii pair
+                compr = compr if compr.dim() == 2 else compr.unsqueeze(0)
+                compr_pair = torch.stack([
+                    compr[index_mask_a[0], index_mask_a[1]],
+                    compr[index_mask_a[0], index_mask_a[2]]]).T
+            else:
+                compr_pair = None
 
             # request integrals from the integrals
             gathered_h, gathered_s = integral_retrieve(
@@ -116,9 +140,9 @@ class SKT:
             torch.arange(self.H.shape[0]).repeat_interleave(self.H.shape[1]),
             torch.arange(self.H.shape[1]).repeat(self.H.shape[0]),
             torch.arange(self.H.shape[2]).repeat(self.H.shape[0]))
-        self.H[mask_onsite] = onsite_retrieve(an_mat_a, sktable, self.H.shape,
-                                              **kwargs)
-        self.S[mask_onsite] = 1.
+        self.H[mask_onsite] = self.H[mask_onsite] + onsite_retrieve(an_mat_a, sktable,
+                                                                    self.H.shape, **kwargs)
+        self.S[mask_onsite] = self.S[mask_onsite] + 1.
 
         # return U Hubbert
         self.U = U_retrieve(an_mat_a, sktable, self.system.numbers.shape,
@@ -153,7 +177,8 @@ class SKT:
         if kpoint is None:
             batch_size = periodic.periodic_distances.shape[0]
             cell_vec = periodic.cellvec
-            kpoint = np.pi * torch.ones(batch_size, 1, 3)
+            # kpoint = np.pi * torch.ones(batch_size, 1, 3)
+            kpoint = torch.zeros(batch_size, 1, 3)
 
             # 1st dim of returned dot_product(kpoint, cellvec) is cellvec size
             return torch.bmm(kpoint[mask], cell_vec[mask]).squeeze(1).T
@@ -186,6 +211,7 @@ class SKT:
             # sum along cell vector dimension
             _h = (phase * h_data_shaped.reshape(cell_size, -1)).sum(0)
             _s = (phase * s_data_shaped.reshape(cell_size, -1)).sum(0)
+
             return _h, _s
 
 
@@ -211,7 +237,7 @@ def split_by_size(tensor: Tensor, split_sizes: Tensor, dim=0):
             split_sizes = split_sizes.repeat(expand)
         else:
             raise KeyError(
-                'split_sizes fails to match tensor length along specified dim')
+                'Sum of split sizes fails to match tensor length along specified dim')
 
     # Identify the slice positions
     splits = torch.cumsum(torch.Tensor([0, *split_sizes]), dim=0)[:-1]
@@ -229,9 +255,13 @@ def integral_retrieve(distances: Tensor, atom_pairs: Tensor, integral: object,
         sktable_h = torch.zeros(len(atom_pairs), l_pair.min() + 1)
         sktable_s = torch.zeros(len(atom_pairs), l_pair.min() + 1)
         distances = distances.flatten()
+
+        if compr_pair is not None:  # repeat the cell dimension
+            compr_pair = compr_pair.repeat(distances.shape[0], 1)
     else:
         sktable_h = torch.zeros(len(atom_pairs), l_pair.min() + 1)
         sktable_s = torch.zeros(len(atom_pairs), l_pair.min() + 1)
+
     unique_atom_pairs = atom_pairs.unique(dim=0)
     with_variable = kwargs.get('with_variable', False)
 

@@ -163,6 +163,31 @@ class Spline1d:
     def __init__(self, xx: Tensor, yy: Tensor, **kwargs):
         self.xp, self.yp = xx, yy
         self.kind = kwargs.get('kind', 'cubic')
+        self.incr = self.xp[1] - self.xp[0]
+
+        # Add points in the range (9.98, 10.98]
+        xtail = torch.from_numpy(np.linspace(9.98, 10.98, 51))
+        ninterp = 8
+        delta_r = 1E-5
+        l_tail = 1
+        dr = xtail - self.xp[-2] - l_tail
+        ilast = len(self.xp)
+
+        # get grid points and grid point values
+        xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
+        yb = self.yp[ilast - ninterp - 1: ilast - 1]
+        xa = xa.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
+        yb = yb.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
+
+        # get derivative
+        y0 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
+        y2 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
+        y1 = self.yp[ilast - 2]
+        y1p = (y2 - y0) / (2.0 * delta_r)
+        y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
+        tail_ = poly5_zero(y1, y1p, y1pp, dr, -1.0 * l_tail)
+        self.xp = torch.cat((self.xp[:-2], xtail))
+        self.yp = torch.cat((self.yp[:-2], tail_))
 
         if self.kind == 'cubic':
             if kwargs.get('abcd') is not None:
@@ -186,8 +211,8 @@ class Spline1d:
         self.xnew = xnew if xnew.dim() == 1 else xnew.unsqueeze(0)
         self.knot = [ii in self.xp for ii in self.xnew]
 
-        # boundary condition of xnew,  xp[0] < xnew < xp[-1]
-        assert self.xnew.ge(self.xp[0]).all()  # and self.xnew.le(self.xp[-1]).all()
+        # boundary condition of xnew,  xp[0] < xnew < xp[-1], now xp[-1] = 10.98
+        assert self.xnew.ge(self.xp[0]).all()
         self.mask = self.xnew.lt(self.xp[-1])
 
         # get the nearest grid point index of d in x
@@ -216,9 +241,9 @@ class Spline1d:
             aa, bb, cc, dd = self.aa, self.bb, self.cc, self.dd
         else:
             aa, bb, cc, dd = abcd[0], abcd[1], abcd[2], abcd[3]
+
         # calculate a, b, c, d parameters, need input x and y
         dx = self.xnew[self.mask] - self.xp[self.dind]
-
         intergal_ = aa[self.ind] + bb[self.ind] * dx + \
             cc[self.ind] * dx ** 2 + dd[self.ind] * dx ** 3
         integral = torch.zeros(self.xnew.shape[0], *intergal_.shape[1:])
@@ -278,7 +303,7 @@ class SKInterpolation:
             delta_r: Delta distance for 1st, 2nd derivative.
             tail: Distance to smooth the tail, unit is bohr.
         """
-        max_ind = self.ngridpoint - 1 + int(tail / self.incr)
+        ntail = int(tail / self.incr)
         rmax = (self.ngridpoint - 1) * self.incr + tail
         ind = (rr / self.incr).int()
         result = torch.zeros(rr.shape) if self.yy.dim() == 1 else torch.zeros(
@@ -304,6 +329,7 @@ class SKInterpolation:
             result[_mask] = poly_interp_2d(xa, yb, rr[_mask])
 
         # Beyond the grid => extrapolation with polynomial of 5th order
+        max_ind = self.ngridpoint - 1 + int(tail / self.incr)
         is_tail = ind.masked_fill(ind.ge(self.ngridpoint) * ind.le(max_ind), -1).eq(-1)
         if is_tail.any():
             dr = rr[is_tail] - rmax
@@ -313,7 +339,7 @@ class SKInterpolation:
             xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
             yb = self.yy[ilast - ninterp - 1: ilast - 1]
             xa = xa.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
-            yb = yb.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
+            yb = yb.unsqueeze(0).repeat_interleave(dr.shape[0], dim=0)
 
             # get derivative
             y0 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
@@ -321,6 +347,9 @@ class SKInterpolation:
             y1 = self.yy[ilast - 2]
             y1p = (y2 - y0) / (2.0 * delta_r)
             y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
+
+            if y1pp.dim() == 3:  # -> compression radii, not good
+                dr = dr.repeat(y1pp.shape[1], y1pp.shape[2], 1).transpose(-1, 0)
             result[is_tail] = poly5_zero(y1, y1p, y1pp, dr, -1.0 * tail)
 
         return result
