@@ -45,6 +45,8 @@ class Scc:
         self.params = parameter
         self.coulomb = coulomb
         self.periodic = periodic
+        if self.periodic:
+            self.mask_pe = periodic.mask_pe
 
         self.ham, self.over = skt.H, skt.S
         self._init_scc(**kwargs)
@@ -56,8 +58,6 @@ class Scc:
         # if 'homo_lumo' or 'gap' in properties:
         self.homo_lumo = self._homo_lumo()
         self.cpa = self._cpa()
-        # self.properties = Properties(properties, self.system, self.qzero,
-        #                              self.charge, self.over, self.rho)
 
     def _init_scc(self, **kwargs):
         """Initialize parameters for (non-) SCC DFTB calculations."""
@@ -96,6 +96,11 @@ class Scc:
             self.gamma = torch.zeros(*self.qzero.shape)
 
         self.inv_dist = self._inv_distance(self.system.distances)
+
+        # replace the ewald summation for non-periodic systems
+        if self.periodic:
+            if not self.mask_pe.all():
+                self.coulomb.invrmat[~self.mask_pe] = self.inv_dist[~self.mask_pe]
 
         self.shift = self._get_shift()
 

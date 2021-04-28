@@ -32,6 +32,7 @@ class Coulomb:
     def __init__(self, geometry: object, periodic: object, **kwargs):
         self.geometry = geometry
         self.latvec = geometry.cell
+        self.mask_pe = periodic.mask_pe
         self.natom = self.geometry.size_system
         self.coord = self.geometry.positions
         self.cellvol = periodic.cellvol
@@ -62,6 +63,8 @@ class Coulomb:
 
         # 1/R matrix for the periodic geometry
         self.invrmat = self.invr_periodic()
+        if not self.mask_pe.all():
+            self.invrmat[~self.mask_pe] = 0
 
     def update_latvec(self):
         """Update the lattice points for reciprocal Ewald summation."""

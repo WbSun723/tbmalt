@@ -36,6 +36,10 @@ class Periodic:
     def __init__(self, geometry: object, latvec: Tensor,
                  cutoff: Union[Tensor, float], **kwargs):
         self.geometry = geometry
+
+        # mask for periodic and non-periodic systems
+        self.mask_pe = self.geometry.is_periodic
+
         self.latvec, self.cutoff = self._check(latvec, cutoff, **kwargs)
         self._positions_check(**kwargs)
         dist_ext = kwargs.get('distance_extention', 1.0)
@@ -56,8 +60,6 @@ class Periodic:
 
     def _check(self, latvec, cutoff, **kwargs):
         """Check dimension, type of lattice vector and cutoff."""
-        _mask = self.geometry.is_periodic
-
         # Default lattice vector is from geometry, therefore default unit is bohr
         unit = kwargs.get('unit', 'bohr')
 
@@ -68,9 +70,9 @@ class Periodic:
             raise TypeError('Lattice vector is tensor or list of tensor.')
 
         if latvec.dim() == 2:
-            latvec = latvec.unsqueeze(0)[_mask]
+            latvec = latvec.unsqueeze(0)
         elif latvec.dim() == 3:
-            latvec = latvec[_mask]
+            latvec = latvec
         else:
             raise ValueError('lattice vector dimension should be 2 or 3')
 
@@ -104,22 +106,23 @@ class Periodic:
         is_frac = self.geometry.is_frac
 
         # transfer periodic positions to bohr
-        position_pe = self.geometry.positions[self.geometry.is_periodic]
+        position_pe = self.geometry.positions[self.mask_pe]
+        _mask = is_frac[self.mask_pe]
         if unit in ('angstrom', 'Angstrom'):
-            position_pe[~is_frac] = position_pe[~is_frac] / _bohr
+            position_pe[~_mask] = position_pe[~_mask] / _bohr
         elif unit not in ('bohr', 'Bohr'):
             raise ValueError('Please select either angstrom or bohr')
 
         # whether fraction coordinates in the range [0, 1)
-        if torch.any(position_pe[is_frac] >= 1) or torch.any(position_pe[is_frac] < 0):
-            position_pe[is_frac] = torch.abs(position_pe[is_frac]) - \
-                            torch.floor(torch.abs(position_pe[is_frac]))
+        if torch.any(position_pe[_mask] >= 1) or torch.any(position_pe[_mask] < 0):
+            position_pe[_mask] = torch.abs(position_pe[_mask]) - \
+                            torch.floor(torch.abs(position_pe[_mask]))
 
         # transfer from fraction to Bohr unit positions
-        position_pe[is_frac] = torch.matmul(
-            position_pe[is_frac], self.latvec[is_frac])
+        position_pe[_mask] = torch.matmul(
+            position_pe[_mask], self.latvec[is_frac])
 
-        self.geometry.positions[self.geometry.is_periodic] = position_pe
+        self.geometry.positions[self.mask_pe] = position_pe
 
     def get_cell_translations(self, **kwargs):
         """Get cell translation vectors."""
@@ -145,7 +148,7 @@ class Periodic:
                            ile[1]).repeat(ile[0]).repeat_interleave(ile[2]),
             torch.linspace(iran[0, 2], iran[1, 2],
                            ile[2]).repeat(ile[0] * ile[1])])
-            for ile, iran in zip(leng, ranges.transpose(1, 0))], value=1e4)
+                        for ile, iran in zip(leng, ranges.transpose(1, 0))], value=1e4)
 
         rcellvec = pack([(ilv.transpose(0, 1) @ icv.T.unsqueeze(-1)).squeeze(-1)
                          for ilv, icv in zip(self.latvec, cellvec)], value=1e4)
