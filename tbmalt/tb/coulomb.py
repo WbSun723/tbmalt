@@ -75,13 +75,6 @@ class Coulomb:
                           distance_extention=0, unit='Bohr')
         return update.periodic_distances, update.neighbour
 
-    # def update_shift(self, charge, qzero):
-    #     """Update potential shifts for scc calculation."""
-    #     deltaq_atom = charge - qzero
-    #     shiftperatom = torch.stack([torch.matmul(iinvr, idq)
-    #                                 for iinvr, idq in zip(self.invrmat, deltaq_atom)])
-    #     return deltaq_atom, shiftperatom
-
     def add_energy(self, shiftperatom, deltaq_atom, escc):
         """Add contribution from coulombic interaction to scc energy."""
         return escc + 0.5 * shiftperatom * deltaq_atom
@@ -160,15 +153,14 @@ class Coulomb:
         ierror = 0
 
         # Mask for batch calculation
-        mask_init = torch.tensor([True]).repeat(self.latvec.shape[0])
-        mask = diff[mask_init] < - self.tol_ewald
+        mask = diff < - self.tol_ewald
 
         # Loop to find the alpha
         while ((alpha[mask] < float('inf')).all()):
             alpha[mask] = 2.0 * alpha[mask]
             diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask],
                                             min_r[mask], self.cellvol[mask])
-            mask = diff[mask] < - self.tol_ewald
+            mask = diff < - self.tol_ewald
             if (~mask).all() == True:
                 break
         if torch.max(alpha >= float('inf')):
@@ -183,7 +175,7 @@ class Coulomb:
                 alpha[mask] = 2.0 * alpha[mask]
                 diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask],
                                                 min_r[mask], self.cellvol[mask])
-                mask = diff[mask] < self.tol_ewald
+                mask = diff < self.tol_ewald
                 if (~mask).all() == True:
                     break
 
@@ -223,14 +215,13 @@ class Coulomb:
         yy = self.gterm(xx, self.alpha, self.cellvol)
 
         # Mask for batch
-        mask_init = torch.tensor([True]).repeat(self.alpha.shape[0])
-        mask = yy[mask_init] > self.tol_ewald
+        mask = yy > self.tol_ewald
 
         # Loop
         while ((xx[mask] < float('inf')).all()):
             xx[mask] = xx[mask] * 2.0
             yy[mask] = self.gterm(xx[mask], self.alpha[mask], self.cellvol[mask])
-            mask = yy[mask_init] > self.tol_ewald
+            mask = yy > self.tol_ewald
             if (~mask).all() == True:
                 break
         if torch.max(xx >= float('inf')):
@@ -273,14 +264,13 @@ class Coulomb:
         yy = self.rterm(xx, self.alpha)
 
         # Mask for batch
-        mask_init = torch.tensor([True]).repeat(self.alpha.shape[0])
-        mask = yy[mask_init] > self.tol_ewald
+        mask = yy > self.tol_ewald
 
         # Loop
         while ((xx[mask] < float('inf')).all()):
             xx[mask] = xx[mask] * 2.0
             yy[mask] = self.rterm(xx[mask], self.alpha[mask])
-            mask = yy[mask_init] > self.tol_ewald
+            mask = yy > self.tol_ewald
             if (~mask).all() == True:
                 break
         if torch.max(xx >= float('inf')):

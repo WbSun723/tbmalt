@@ -93,3 +93,35 @@ def test_batch_pe():
         0.84545973258536744, 0.85069856480810924],
         [1.000000000000000, 1.000000000000000, 0.000000000000000,
          0.000000000000000, 0.000000000000000]]))) < 1E-8, 'Tolerance check'
+
+
+def test_batch_pe_2():
+    """Test scc batch calculation."""
+    latvec = [torch.tensor([[4., 4., 0.], [5., 0., 5.], [0., 6., 6.]]),
+              torch.tensor([[4., 0., 0.], [0., 4., 0.], [0., 0., 4.]]),
+              torch.tensor([[5., 0., 0.], [0., 5., 0.], [0., 0., 5.]]),
+              torch.tensor([[99., 0., 0.], [0., 99., 0.], [0., 0., 99.]])]
+    cutoff = torch.tensor([9.98])
+    positions = [torch.tensor([
+        [3., 3., 3.], [3.6, 3.6, 3.6], [2.4, 3.6, 3.6], [3.6, 2.4, 3.6], [3.6, 3.6, 2.4]]),
+         torch.tensor([[0., 0., 0.], [0., 2., 0.]]),
+         torch.tensor([[0.965, 0.075, 0.088], [1.954, 0.047, 0.056], [2.244, 0.660, 0.778]]),
+         torch.tensor([[0.965, 0.075, 0.088], [1.954, 0.047, 0.056], [2.244, 0.660, 0.778]])]
+    numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([1, 1]),
+               torch.tensor([1, 8, 1]), torch.tensor([1, 8, 1])]
+    molecule = System(numbers, positions, latvec)
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
+    periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
+    skt = SKT(molecule, sktable, periodic)
+    coulomb = Coulomb(molecule, periodic)
+    parameter = Parameter()
+    scc = Scc(molecule, skt, parameter, coulomb, periodic)
+    assert torch.max(abs(scc.charge - torch.tensor([[
+            4.6122976812946259, 0.83320615382097674, 0.85273810385371818,
+            0.85182728982744738, 0.84993077120323290],
+            [1.000000000000000, 1.000000000000000, 0.000000000000000,
+             0.000000000000000, 0.000000000000000],
+            [0.70282850018606047, 6.5936446382800851, 0.70352686153385458,
+             0.000000000000000, 0.000000000000000],
+            [0.70794447853157250, 6.5839848726758881, 0.70807064879254611,
+             0.000000000000000, 0.000000000000000]]))) < 1E-8, 'Tolerance check'
