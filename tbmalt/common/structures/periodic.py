@@ -42,6 +42,11 @@ class Periodic:
 
         self.latvec, self.cutoff = self._check(latvec, cutoff, **kwargs)
         self._positions_check(**kwargs)
+
+        # classify the periodic systems from the mix of periodic and non-periodic systems
+        if not self.mask_pe.all():
+            self.latvec, self.cutoff = self._check(latvec[self.mask_pe], cutoff, **kwargs)
+
         dist_ext = kwargs.get('distance_extention', 1.0)
 
         # Global cutoff for the diatomic interactions
@@ -57,6 +62,10 @@ class Periodic:
         self.cellvec, self.rcellvec, self.ncell = self.get_cell_translations(**kwargs)
 
         self.positions_vec, self.periodic_distances = self._get_periodic_distance()
+
+        # pad zeros for non-periodic systems
+        if not self.mask_pe.all():
+            self._padding()
 
     def _check(self, latvec, cutoff, **kwargs):
         """Check dimension, type of lattice vector and cutoff."""
@@ -148,23 +157,38 @@ class Periodic:
                            ile[1]).repeat(ile[0]).repeat_interleave(ile[2]),
             torch.linspace(iran[0, 2], iran[1, 2],
                            ile[2]).repeat(ile[0] * ile[1])])
-                        for ile, iran in zip(leng, ranges.transpose(1, 0))], value=1e4)
+                        for ile, iran in zip(leng, ranges.transpose(1, 0))], value=1e3)
 
         rcellvec = pack([(ilv.transpose(0, 1) @ icv.T.unsqueeze(-1)).squeeze(-1)
-                         for ilv, icv in zip(self.latvec, cellvec)], value=1e4)
+                         for ilv, icv in zip(self.latvec, cellvec)], value=1e3)
 
-        return cellvec, rcellvec, ncell
+        # mix batch of periodic and non-periodic systems -> pad zeros for non-periodic systems
+        if not self.mask_pe.all():
+            cv_mix = torch.zeros(self.mask_pe.size(0), cellvec.size(1), cellvec.size(2))
+            rcv_mix = torch.zeros(self.mask_pe.size(0), rcellvec.size(1), rcellvec.size(2))
+            ncell_mix = torch.ones(self.mask_pe.size(0), dtype=torch.long)
+            cv_mix[self.mask_pe],  rcv_mix[self.mask_pe], ncell_mix[self.mask_pe] =\
+                cellvec, rcellvec, ncell
+            return cv_mix, rcv_mix, ncell_mix
+        else:
+            return cellvec, rcellvec, ncell
 
     def _get_periodic_distance(self):
         """Get distances between central cell and neighbour cells."""
         positions = self.rcellvec.unsqueeze(2) + self.geometry.positions.unsqueeze(1)
         size_system = self.geometry.size_system
         positions_vec = (positions.unsqueeze(-3) - self.geometry.positions.unsqueeze(1).unsqueeze(-2))
+        distance = pack([torch.sqrt(((ipos[:, :inat].repeat(1, inat, 1) - torch.repeat_interleave(
+                        icp[:inat], inat, 0)) ** 2).sum(-1)).reshape(-1, inat, inat)
+                            for ipos, icp, inat in zip(
+                                positions, self.geometry.positions, size_system)], value=1e3)
 
-        return positions_vec, pack([torch.sqrt(((
-            ipos[:, :inat].repeat(1, inat, 1) - torch.repeat_interleave(
-                icp[:inat], inat, 0)) ** 2).sum(-1)).reshape(-1, inat, inat)
-            for ipos, icp, inat in zip(positions, self.geometry.positions, size_system)], value=1e4)
+        # mix batch of periodic and non-periodic systems -> pad zeros for non-periodic systems
+        if not self.mask_pe.all():
+            positions_vec[~self.mask_pe, 1:] = 0
+            distance[~self.mask_pe, 1:] = 0
+
+        return positions_vec, distance
 
     def _inverse_lattice(self):
         """Get inverse lattice vectors."""
@@ -178,6 +202,17 @@ class Periodic:
     def get_reciprocal_volume(self):
         """Get reciprocal lattice unit cell volume."""
         return abs(torch.det(2 * np.pi * (self.invlatvec.transpose(0, 1))))
+
+    def _padding(self):
+        """Padding zeros and correct the shape of materix for mix of periodic and non-periodic systems"""
+        latvec_mix = torch.zeros(self.mask_pe.size(0), self.latvec.size(1), self.latvec.size(2))
+        invlatvec_mix = torch.zeros(self.mask_pe.size(0), self.invlatvec.size(1), self.invlatvec.size(2))
+        recvec_mix = torch.zeros(self.mask_pe.size(0), self.recvec.size(1), self.recvec.size(2))
+        cellvol_mix = torch.zeros(self.mask_pe.size(0))
+        latvec_mix[self.mask_pe], invlatvec_mix[self.mask_pe], recvec_mix[self.mask_pe],\
+            cellvol_mix[self.mask_pe] = self.latvec, self.invlatvec, self.recvec, self.cellvol
+        self.latvec, self.invlatvec, self.recvec, self.cellvol =\
+            latvec_mix, invlatvec_mix, recvec_mix, cellvol_mix
 
     @property
     def neighbour(self):

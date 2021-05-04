@@ -30,9 +30,6 @@ class Cell:
         # non-periodic systems in cell will be zero
         is_periodic = torch.stack([ic.ne(0).any() for ic in cell])
 
-        # replace the lattice vector by a large number for non-periodic systems
-        cell[~is_periodic] += torch.tensor([[[99., 0., 0.], [0., 99., 0.], [0., 0., 99.]]])
-
         # some systems in batch is periodic
         if is_periodic.any():
             if pbc is None:
