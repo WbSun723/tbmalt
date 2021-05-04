@@ -14,11 +14,11 @@ class Cell:
     """Cell class."""
 
     def __init__(self, cell: Union[Tensor, List[Tensor]], pbc=None, frac=None, **kwargs):
-        self.cell, self.pbc, self.is_periodic, self.is_frac = self._check_cell(cell, pbc, frac)
+        self.cell, self.pbc, self.is_periodic, self.is_frac = self._check_cell(cell, pbc, frac, **kwargs)
 
     def _check_cell(self, cell, pbc, frac, **kwargs):
         """Check cell type and dimension, transfer to batch tensor."""
-        unit = kwargs.get('unit', 'angstrom')
+        unit = kwargs['unit'] if 'unit' in kwargs else 'angstrom'
         if type(cell) is list:
             cell = pack(cell)
         elif type(cell) is Tensor:

@@ -100,7 +100,9 @@ class Scc:
         # replace the ewald summation for non-periodic systems
         if self.periodic:
             if not self.mask_pe.all():
-                self.coulomb.invrmat[~self.mask_pe] = self.inv_dist[~self.mask_pe]
+                _invr = torch.clone(self.inv_dist)
+                _invr[self.mask_pe] = self.coulomb.invrmat
+                self.coulomb.invrmat = _invr
 
         self.shift = self._get_shift()
 

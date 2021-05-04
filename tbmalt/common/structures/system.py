@@ -62,7 +62,7 @@ class System:
 
         # bool tensor is_periodic defines which is solid and which is molecule
         if self.cell is not None:
-            self.cell, self.pbc, self.is_periodic, self.is_frac = self._cell()
+            self.cell, self.pbc, self.is_periodic, self.is_frac = self._cell(**kwargs)
             self.periodic = True if True in self.is_periodic else False
             self.positions, self.numbers, self.batch, self.is_periodic, self.is_frac = \
                 self._check(numbers, positions, self.is_periodic, self.is_frac, **kwargs)
@@ -131,9 +131,9 @@ class System:
 
         return positions, numbers, batch_, is_periodic, is_frac
 
-    def _cell(self):
+    def _cell(self, **kwargs):
         """Return cell information."""
-        _cell = Cell(self.cell, self.pbc, self.frac)
+        _cell = Cell(self.cell, self.pbc, self.frac, **kwargs)
         return _cell.cell, _cell.pbc, _cell.is_periodic, _cell.is_frac
 
     def _get_distances(self):

@@ -13,7 +13,7 @@ torch.set_printoptions(15)
 torch.set_default_dtype(torch.float64)
 
 
-# os.system('cp -r /home/gz_fan/Public/tbmalt/slko .')
+os.system('cp -r /home/gz_fan/Public/tbmalt/slko .')
 
 
 def test_scc_ch4_npe():

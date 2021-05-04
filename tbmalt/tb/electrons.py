@@ -22,6 +22,8 @@ class Gamma:
         self.U = U
         self.distance = distance
         self.periodic = periodic
+        if self.periodic:
+            self.mask_pe = self.periodic.mask_pe
         self.gamma_type = kwargs.get('gamma_type', 'slater')
 
         # call gamma funcitons
@@ -75,9 +77,9 @@ class Gamma:
         # onsite part for periodic condition
         if self.periodic:
             # diagonal terms
-            gamma_on = torch.zeros(U.shape[0], U.shape[1], U.shape[2])
-            dist_on = dist.diagonal(0, -1, -2)
-            alpha_o, beta_o = U * 3.2, U * 3.2
+            gamma_on = torch.zeros(U.shape[0], U.shape[1], U.shape[2])[self.mask_pe]
+            dist_on = dist[self.mask_pe].diagonal(0, -1, -2)
+            alpha_o, beta_o = U[self.mask_pe] * 3.2, U[self.mask_pe] * 3.2
 
             # mask of homo or hetero Hubbert
             mask_homo2, mask_hetero2 = alpha_o == beta_o, alpha_o != beta_o
@@ -96,8 +98,8 @@ class Gamma:
             gamma_on = gamma_on.sum(1)
 
             # add periodic diagonal terms to the whole gamma
-            _tem = gamma2.diagonal(0, -1, -2) + gamma_on
-            gamma2.diagonal(0, -1, -2)[:] = _tem[:]
+            gamma2.diagonal(0, -1, -2)[self.mask_pe] =\
+                gamma2.diagonal(0, -1, -2)[self.mask_pe] + gamma_on
 
         return gamma2
 

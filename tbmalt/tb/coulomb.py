@@ -2,6 +2,7 @@
 import torch
 import numpy as np
 from tbmalt.common.structures.periodic import Periodic
+from tbmalt.common.structures.system import System
 from tbmalt.common.batch import pack
 Tensor = torch.Tensor
 _bohr = 0.529177249
@@ -31,48 +32,58 @@ class Coulomb:
 
     def __init__(self, geometry: object, periodic: object, **kwargs):
         self.geometry = geometry
-        self.latvec = geometry.cell
+        self.periodic = periodic
         self.mask_pe = periodic.mask_pe
+
+        # classify the periodic systems from the mix of periodic and non-periodic systems
+        if not self.mask_pe.all():
+            self._update_geometry()
+
+        self.latvec = self.geometry.cell
         self.natom = self.geometry.size_system
         self.coord = self.geometry.positions
-        self.cellvol = periodic.cellvol
-        self.recvec = periodic.recvec
+        self.cellvol = self.periodic.cellvol[self.mask_pe]
+        self.recvec = self.periodic.recvec[self.mask_pe]
         self.tol_ewald = kwargs.get('tol_ewald', 1e-9)
         self.nsearchiter = kwargs.get('nsearchiter', 30)
 
         # Optimal alpha for the Ewald summation
-        self.alpha = self.get_alpha()
+        self.alpha = self._get_alpha()
 
         # The longest real space vector
-        self.maxr = self.get_maxr()
+        self.maxr = self._get_maxr()
 
         # The longest reciprocal vector
-        self.maxg = self.get_maxg()
+        self.maxg = self._get_maxg()
 
         # The updated lattice points
-        self.rcellvec_ud, self.ncell_ud = self.update_latvec()
+        self.rcellvec_ud, self.ncell_ud = self._update_latvec()
 
         # The updated neighbour lists
-        self.distmat, self.neighbour = self.update_neighbour()
+        self.distmat, self.neighbour = self._update_neighbour()
 
         # Real part of the Ewald summation
-        self.ewald_r, self.mask_g = self.invr_periodic_real()
+        self.ewald_r, self.mask_g = self._invr_periodic_real()
 
         # Reciprocal part of the Ewald summation
-        self.ewald_g = self.invr_periodic_reciprocal()
+        self.ewald_g = self._invr_periodic_reciprocal()
 
         # 1/R matrix for the periodic geometry
-        self.invrmat = self.invr_periodic()
-        if not self.mask_pe.all():
-            self.invrmat[~self.mask_pe] = 0
+        self.invrmat = self._invr_periodic()
 
-    def update_latvec(self):
+    def _update_geometry(self):
+        """update the object of geometry when mix batch calculation of periodic and non-periodic systems"""
+        self.geometry = System(self.geometry.numbers[self.mask_pe],
+                               self.geometry.positions[self.mask_pe],
+                               self.geometry.cell[self.mask_pe], unit='Bohr')
+
+    def _update_latvec(self):
         """Update the lattice points for reciprocal Ewald summation."""
         update = Periodic(self.geometry, self.recvec, cutoff=self.maxg,
                           distance_extention=0, positive_extention=0, negative_extention=0, unit='Bohr')
         return update.rcellvec, update.ncell
 
-    def update_neighbour(self):
+    def _update_neighbour(self):
         """Update the neighbour lists for real Ewald summation."""
         update = Periodic(self.geometry, self.latvec, cutoff=self.maxr,
                           distance_extention=0, unit='Bohr')
@@ -82,7 +93,7 @@ class Coulomb:
         """Add contribution from coulombic interaction to scc energy."""
         return escc + 0.5 * shiftperatom * deltaq_atom
 
-    def invr_periodic(self):
+    def _invr_periodic(self):
         """Calculate the 1/R matrix for the periodic geometry."""
         # Extra contribution for self interaction
         extra = torch.stack([torch.eye(self.ewald_r.size(1)) * 2.0 * self.alpha[ii] / np.sqrt(np.pi)
@@ -91,7 +102,7 @@ class Coulomb:
         invr[self.mask_g] = 0
         return invr
 
-    def invr_periodic_reciprocal(self):
+    def _invr_periodic_reciprocal(self):
         """Calculate the reciprocal part of 1/R matrix for the periodic geometry."""
         # Lattice points for the reciprocal sum.
         n_low = torch.ceil(torch.clone(self.ncell_ud / 2.0))
@@ -116,7 +127,7 @@ class Coulomb:
         rr = coord1 - coord2
 
         # The reciprocal Ewald sum
-        recsum = self.ewald_reciprocal(rr, gvec, self.alpha, self.cellvol)
+        recsum = self._ewald_reciprocal(rr, gvec, self.alpha, self.cellvol)
         ewald_g = pack([torch.unsqueeze(
             recsum[ibatch] - np.pi / (self.cellvol[ibatch] * self.alpha[ibatch] ** 2), 0)
             for ibatch in range(self.alpha.size(0))])
@@ -125,9 +136,9 @@ class Coulomb:
         ewald_g[self.mask_g] = 0
         return ewald_g
 
-    def invr_periodic_real(self):
+    def _invr_periodic_real(self):
         """Calculate the real part of 1/R matrix for the periodic geometry."""
-        ewaldr_tmp = self.ewald_real()
+        ewaldr_tmp = self._ewald_real()
 
         # Mask for summation
         mask = ewaldr_tmp < float('inf')
@@ -139,7 +150,7 @@ class Coulomb:
         mask_g = ewald_r == 0
         return ewald_r, mask_g
 
-    def get_alpha(self):
+    def _get_alpha(self):
         """Get optimal alpha for the Ewald sum."""
         # Ewald parameter
         alphainit = torch.tensor([1.0e-8]).repeat(self.latvec.shape[0])
@@ -152,7 +163,7 @@ class Coulomb:
         min_r = torch.sqrt(torch.min(torch.sum(self.latvec ** 2, -1), 1).values)
 
         # Difference between reciprocal and real parts of the decrease of Ewald sum
-        diff = self.diff_rec_real(alpha, min_g, min_r, self.cellvol)
+        diff = self._diff_rec_real(alpha, min_g, min_r, self.cellvol)
         ierror = 0
 
         # Mask for batch calculation
@@ -161,7 +172,7 @@ class Coulomb:
         # Loop to find the alpha
         while ((alpha[mask] < float('inf')).all()):
             alpha[mask] = 2.0 * alpha[mask]
-            diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask],
+            diff[mask] = self._diff_rec_real(alpha[mask], min_g[mask],
                                             min_r[mask], self.cellvol[mask])
             mask = diff < - self.tol_ewald
             if (~mask).all() == True:
@@ -176,7 +187,7 @@ class Coulomb:
             mask = diff < self.tol_ewald
             while((alpha[mask] < float('inf')).all()):
                 alpha[mask] = 2.0 * alpha[mask]
-                diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask],
+                diff[mask] = self._diff_rec_real(alpha[mask], min_g[mask],
                                                 min_r[mask], self.cellvol[mask])
                 mask = diff < self.tol_ewald
                 if (~mask).all() == True:
@@ -189,14 +200,14 @@ class Coulomb:
             alpharight = alpha
             alpha = (alphaleft + alpharight) / 2.0
             iiter = 0
-            diff = self.diff_rec_real(alpha, min_g, min_r, self.cellvol)
+            diff = self._diff_rec_real(alpha, min_g, min_r, self.cellvol)
             mask = torch.abs(diff) > self.tol_ewald
             while(iiter <= self.nsearchiter):
                 mask_neg = diff < 0
                 alphaleft[mask_neg] = alpha[mask_neg]
                 alpharight[~mask_neg] = alpha[~mask_neg]
                 alpha[mask] = (alphaleft[mask] + alpharight[mask]) / 2.0
-                diff[mask] = self.diff_rec_real(alpha[mask], min_g[mask],
+                diff[mask] = self._diff_rec_real(alpha[mask], min_g[mask],
                                                 min_r[mask], self.cellvol[mask])
                 mask = torch.abs(diff) > self.tol_ewald
                 iiter += 1
@@ -209,13 +220,13 @@ class Coulomb:
             raise ValueError('Fail to get optimal alpha for Ewald sum.')
         return alpha
 
-    def get_maxg(self):
+    def _get_maxg(self):
         """Get the longest reciprocal vector that gives a bigger
            contribution to the EWald sum than tolerance."""
         ginit = torch.tensor([1.0e-8]).repeat(self.alpha.shape[0])
         ierror = 0
         xx = torch.clone(ginit)
-        yy = self.gterm(xx, self.alpha, self.cellvol)
+        yy = self._gterm(xx, self.alpha, self.cellvol)
 
         # Mask for batch
         mask = yy > self.tol_ewald
@@ -223,7 +234,7 @@ class Coulomb:
         # Loop
         while ((xx[mask] < float('inf')).all()):
             xx[mask] = xx[mask] * 2.0
-            yy[mask] = self.gterm(xx[mask], self.alpha[mask], self.cellvol[mask])
+            yy[mask] = self._gterm(xx[mask], self.alpha[mask], self.cellvol[mask])
             mask = yy > self.tol_ewald
             if (~mask).all() == True:
                 break
@@ -235,14 +246,14 @@ class Coulomb:
         if ierror == 0:
             xleft = xx * 0.5
             xright = torch.clone(xx)
-            yleft = self.gterm(xleft, self.alpha, self.cellvol)
+            yleft = self._gterm(xleft, self.alpha, self.cellvol)
             yright = torch.clone(yy)
             iiter = 0
             mask = (yleft - yright) > self.tol_ewald
 
             while(iiter <= self.nsearchiter):
                 xx[mask] = 0.5 * (xleft[mask] + xright[mask])
-                yy[mask] = self.gterm(xx[mask], self.alpha[mask], self.cellvol[mask])
+                yy[mask] = self._gterm(xx[mask], self.alpha[mask], self.cellvol[mask])
                 mask_yy = yy >= self.tol_ewald
                 xleft[mask_yy] = xx[mask_yy]
                 yleft[mask_yy] = yy[mask_yy]
@@ -258,13 +269,13 @@ class Coulomb:
             raise ValueError('Fail to get maxg for Ewald sum.')
         return xx
 
-    def get_maxr(self):
+    def _get_maxr(self):
         """Get the longest real space vector that gives a bigger
            contribution to the EWald sum than tolerance."""
         rinit = torch.tensor([1.0e-8]).repeat(self.alpha.shape[0])
         ierror = 0
         xx = torch.clone(rinit)
-        yy = self.rterm(xx, self.alpha)
+        yy = self._rterm(xx, self.alpha)
 
         # Mask for batch
         mask = yy > self.tol_ewald
@@ -272,7 +283,7 @@ class Coulomb:
         # Loop
         while ((xx[mask] < float('inf')).all()):
             xx[mask] = xx[mask] * 2.0
-            yy[mask] = self.rterm(xx[mask], self.alpha[mask])
+            yy[mask] = self._rterm(xx[mask], self.alpha[mask])
             mask = yy > self.tol_ewald
             if (~mask).all() == True:
                 break
@@ -284,14 +295,14 @@ class Coulomb:
         if ierror == 0:
             xleft = xx * 0.5
             xright = torch.clone(xx)
-            yleft = self.rterm(xleft, self.alpha)
+            yleft = self._rterm(xleft, self.alpha)
             yright = torch.clone(yy)
             iiter = 0
             mask = (yleft - yright) > self.tol_ewald
 
             while(iiter <= self.nsearchiter):
                 xx[mask] = 0.5 * (xleft[mask] + xright[mask])
-                yy[mask] = self.rterm(xx[mask], self.alpha[mask])
+                yy[mask] = self._rterm(xx[mask], self.alpha[mask])
                 mask_yy = yy >= self.tol_ewald
                 xleft[mask_yy] = xx[mask_yy]
                 yleft[mask_yy] = yy[mask_yy]
@@ -307,7 +318,7 @@ class Coulomb:
             raise ValueError('Fail to get maxg for Ewald sum.')
         return xx
 
-    def ewald_reciprocal(self, rr, gvec, alpha, vol):
+    def _ewald_reciprocal(self, rr, gvec, alpha, vol):
         """Calculate the reciprocal part of the Ewald sum."""
         g2 = torch.sum(gvec ** 2, -1)
         dot = torch.tensor([[[igvec[0] @ irr[0] for igvec in zip(gvec[ibatch])]
@@ -318,24 +329,24 @@ class Coulomb:
         return torch.cat([torch.unsqueeze(2.0 * recsum[ibatch] * 4.0 * np.pi / vol[ibatch], 0)
                          for ibatch in range(alpha.size(0))])
 
-    def ewald_real(self):
+    def _ewald_real(self):
         """Batch calculation of the Ewald sum in the real part for a certain vector length."""
         return pack([torch.erfc(self.alpha[ibatch] * self.distmat[ibatch]) / self.distmat[ibatch]
                      for ibatch in range(self.alpha.size(0))])
 
-    def diff_rec_real(self, alpha, min_g, min_r, cellvol):
+    def _diff_rec_real(self, alpha, min_g, min_r, cellvol):
         """Returns the difference between reciprocal and real parts of the decrease of Ewald sum."""
-        return (self.gterm(4.0 * min_g, alpha, cellvol) - self.gterm(
-            5.0 * min_g, alpha, cellvol)) - (self.rterm(2.0 * min_r, alpha) -
-                                             self.rterm(3.0 * min_r, alpha))
+        return (self._gterm(4.0 * min_g, alpha, cellvol) - self._gterm(
+            5.0 * min_g, alpha, cellvol)) - (self._rterm(2.0 * min_r, alpha) -
+                                             self._rterm(3.0 * min_r, alpha))
 
-    def gterm(self, len_g, alpha, cellvol):
+    def _gterm(self, len_g, alpha, cellvol):
         """Returns the maximum value of the Ewald sum in the
            reciprocal part for a certain vector length."""
         return 4.0 * np.pi * (torch.exp((-0.25 * len_g ** 2) / (alpha ** 2))
                               / (cellvol * len_g ** 2))
 
-    def rterm(self, len_r, alpha):
+    def _rterm(self, len_r, alpha):
         """Returns the maximum value of the Ewald sum in the
            real part for a certain vector length."""
         return torch.erfc(alpha * len_r) / len_r
