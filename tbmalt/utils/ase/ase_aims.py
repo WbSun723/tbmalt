@@ -13,7 +13,7 @@ DFTB_ENERGY = {"H": -0.238600544, "C": -1.398493891, "N": -2.0621839400,
                "O": -3.0861916005}
 AIMS_ENERGY = {"H": -0.45891649, "C": -37.77330663, "N": -54.46973501,
                "O": -75.03140052}
-core_charge = {"H": 0, "C": 2, "N": 2, "O": 2}
+core_charge = {"H": 0, "C": 2, "N": 2, "O": 2, "Si": 10}
 HIRSH_VOL = {"H": 10.31539447, "C": 38.37861207, "N": 29.90025370,
              "O": 23.60491416}
 
@@ -29,6 +29,10 @@ class AseAims:
     def __init__(self, path_to_aims, aims_specie, **kwargs):
         self.aims = path_to_aims
         self.aims_specie = aims_specie
+        self.periodic = kwargs.get('periodic', False)
+        if self.periodic:
+            self.pbc = kwargs.get('pbc', [1, 1, 1])
+            self.kpoint = kwargs.get('kpoint', '1 1 1')
 
         self.set_env()  # set environment before calculations
 
@@ -49,16 +53,18 @@ class AseAims:
         os.environ['ASE_AIMS_COMMAND'] = path_bin + ' > PREFIX.out'
         os.environ['AIMS_SPECIES_DIR'] = self.aims_specie
 
-    def run_aims(self, positions, symbols, properties):
+    def run_aims(self, positions, symbols, latvecs, properties):
         """Run batch systems with ASE-DFTB."""
         self.symbols = symbols
+        self.latvecs = latvecs
         results = {}
         for iproperty in properties:
             results[iproperty] = []
 
-        for iposition, isymbol in zip(positions, symbols):
+        for iposition, isymbol, ilatvec in zip(positions, symbols, latvecs):
             # run each molecule in batches
-            self.symbol, self.position = isymbol, iposition
+            self.symbol, self.position,\
+                self.latvec = isymbol, iposition, ilatvec
             self.nat = len(iposition)
 
             self.ase_iaims()
@@ -75,17 +81,22 @@ class AseAims:
     def ase_iaims(self):
         """Build Aims input by ASE."""
         # set Atoms with molecule specie and coordinates
-        mol = Atoms(self.symbol, positions=self.position)
+        if not self.periodic:
+            mol = Atoms(self.symbol, positions=self.position)
+        elif self.periodic:
+            mol = Atoms(self.symbol, positions=self.position, cell=self.latvec,
+                        pbc=self.pbc)
 
         cal = Aims(xc='PBE',
-                   output=['dipole', 'mulliken'],
+                   output=['mulliken', 'dos -18.  5.  500  0.1'],
+                   dos_kgrid_factors='8 8 8',
                    sc_accuracy_etot=1e-6,
                    sc_accuracy_eev=1e-3,
                    sc_accuracy_rho=1e-6,
                    sc_accuracy_forces=1e-4,
                    many_body_dispersion=' ',
-                   # command="mpirun aims.x > aims.out")
-                   command="./aims.x > aims.out")
+                   k_grid=self.kpoint,
+                   command="ulimit -s unlimited; mpirun -np 4 ./aims.x > aims.out")
 
         # get calculators
         mol.calc = cal
@@ -148,6 +159,45 @@ class AseAims:
             np.asarray([float(i) for i in icharge.split('\n')[:-1]]))
         return self.remove_core_charge(charge, self.symbol)
 
+    def dos(self):
+        """Read DOS."""
+        lmf = lambda xx: list(map(float, xx.split()))
+        file = open('./KS_DOS_total.dat', 'r').read()
+        lines = file.split('\n')
+        dos = lines[3:]
+        return torch.tensor([lmf(dos[ii]) for ii in range(len(dos)-1)])
+
+    def dos_gamma(self):
+        """Read DOS."""
+        lmf = lambda xx: list(map(float, xx.split()))
+        file = open('./KS_DOS_total_gamma.dat', 'r').read()
+        lines = file.split('\n')
+        dos = lines[3:]
+        return torch.tensor([lmf(dos[ii]) for ii in range(len(dos)-1)])
+
+    def dos_raw(self):
+        """Read DOS_raw."""
+        lmf = lambda xx: list(map(float, xx.split()))
+        file = open('./KS_DOS_total_raw.dat', 'r').read()
+        lines = file.split('\n')
+        dos = lines[3:]
+        return torch.tensor([lmf(dos[ii]) for ii in range(len(dos)-1)])
+
+    def dos_raw_gamma(self):
+        """Read DOS_raw."""
+        lmf = lambda xx: list(map(float, xx.split()))
+        file = open('./KS_DOS_total_raw_gamma.dat', 'r').read()
+        lines = file.split('\n')
+        dos = lines[3:]
+        return torch.tensor([lmf(dos[ii]) for ii in range(len(dos)-1)])
+
+    def eigenvalue(self):
+        """Read eigenvalues."""
+        commh = "grep -A 642 'Writing Kohn-Sham eigenvalues.' " + \
+            self.aimsout + " | tail -n 640 | awk '{print $4}'"
+        eigval = subprocess.check_output(commh, shell=True).decode('utf-8').split()
+        return torch.tensor([float(eigval[ii]) for ii in range(len(eigval))])
+
     def hirshfeld_volume(self):
         """Read Hirshfeld volume."""
         cvol = "grep 'Hirshfeld volume        :' " + self.aimsout + \
@@ -176,3 +226,4 @@ class AseAims:
         """Remove all DFTB data after calculations."""
         os.system('rm aims.x aims.out control.in geometry.in')
         os.system('rm Mulliken.out parameters.ase')
+        os.system('rm KS_DOS_total.dat KS_DOS_total_raw.dat')

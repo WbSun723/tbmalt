@@ -42,7 +42,7 @@ def test_scc_ch4_pe():
     sktable = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
     periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
     skt = SKT(molecule, sktable, periodic)
-    coulomb = Coulomb(molecule, periodic)
+    coulomb = Coulomb(molecule, periodic, method='search')
     parameter = Parameter()
     scc = Scc(molecule, skt, parameter, coulomb, periodic)
     assert torch.max(abs(scc.charge - torch.tensor([
@@ -63,13 +63,31 @@ def test_scc_c2h6_pe():
     sktable = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
     periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
     skt = SKT(molecule, sktable, periodic)
-    coulomb = Coulomb(molecule, periodic)
+    coulomb = Coulomb(molecule, periodic, method='search')
     parameter = Parameter()
     scc = Scc(molecule, skt, parameter, coulomb, periodic)
     assert torch.max(abs(scc.charge - torch.tensor([
         4.1973198724049929, 4.1972128614775004, 0.93784050058296253,
         0.93230148676159263, 0.93253138404197577, 0.93268865020401870,
         0.93203620075479765, 0.93806904377216838]))) < 1E-8, 'Tolerance check'
+
+
+def test_scc_h2o_pe():
+    """Test SCC DFTB for h2o with periodic boundary condition."""
+    latvec = torch.tensor([[5., 0., 0.], [0., 5., 0.], [0., 0., 5.]])
+    cutoff = torch.tensor([9.98])
+    positions = torch.tensor([
+        [0.965, 0.075, 0.088], [1.954, 0.047, 0.056], [2.244, 0.660, 0.778]])
+    numbers = torch.tensor([1, 8, 1])
+    molecule = System(numbers, positions, latvec)
+    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
+    periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
+    skt = SKT(molecule, sktable, periodic)
+    coulomb = Coulomb(molecule, periodic, method='search')
+    parameter = Parameter()
+    scc = Scc(molecule, skt, parameter, coulomb, periodic)
+    assert torch.max(abs(scc.charge - torch.tensor([
+        0.70282850018606047, 6.5936446382800851, 0.70352686153385458]))) < 1E-9, 'Tolerance check'
 
 
 def test_batch_pe():
@@ -85,7 +103,7 @@ def test_batch_pe():
     sktable = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
     periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
     skt = SKT(molecule, sktable, periodic)
-    coulomb = Coulomb(molecule, periodic)
+    coulomb = Coulomb(molecule, periodic, method='search')
     parameter = Parameter()
     scc = Scc(molecule, skt, parameter, coulomb, periodic)
     assert torch.max(abs(scc.charge - torch.tensor([[
@@ -113,7 +131,7 @@ def test_batch_pe_2():
     sktable = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
     periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
     skt = SKT(molecule, sktable, periodic)
-    coulomb = Coulomb(molecule, periodic)
+    coulomb = Coulomb(molecule, periodic, method='search')
     parameter = Parameter()
     scc = Scc(molecule, skt, parameter, coulomb, periodic)
     assert torch.max(abs(scc.charge - torch.tensor([[
@@ -124,37 +142,4 @@ def test_batch_pe_2():
             [0.70282850018606047, 6.5936446382800851, 0.70352686153385458,
              0.000000000000000, 0.000000000000000],
             [0.70794447853157250, 6.5839848726758881, 0.70807064879254611,
-             0.000000000000000, 0.000000000000000]]))) < 1E-8, 'Tolerance check'
-
-
-def test_batch_pe_npe():
-    """Test scc batch calculation for mix of periodic and non-periodic systems."""
-    latvec = [torch.tensor([[4., 4., 0.], [5., 0., 5.], [0., 6., 6.]]),
-              torch.tensor([[0., 0., 0.], [0., 0., 0.], [0., 0., 0.]]),
-              torch.tensor([[4., 0., 0.], [0., 4., 0.], [0., 0., 4.]]),
-              torch.tensor([[0., 0., 0.], [0., 0., 0.], [0., 0., 0.]])]
-    cutoff = torch.tensor([9.98])
-    positions = [torch.tensor([
-            [3., 3., 3.], [3.6, 3.6, 3.6], [2.4, 3.6, 3.6], [3.6, 2.4, 3.6], [3.6, 3.6, 2.4]]),
-        torch.tensor([
-            [3., 3., 3.], [3.6, 3.6, 3.6], [2.4, 3.6, 3.6], [3.6, 2.4, 3.6], [3.6, 3.6, 2.4]]),
-        torch.tensor([[0., 0., 0.], [0., 2., 0.]]),
-        torch.tensor([[0.965, 0.075, 0.088], [1.954, 0.047, 0.056], [2.244, 0.660, 0.778]])]
-    numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([6, 1, 1, 1, 1]),
-               torch.tensor([1, 1]), torch.tensor([1, 8, 1])]
-    molecule = System(numbers, positions, latvec)
-    sktable = IntegralGenerator.from_dir('./slko/mio-1-1', molecule)
-    periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
-    skt = SKT(molecule, sktable, periodic)
-    coulomb = Coulomb(molecule, periodic)
-    parameter = Parameter()
-    scc = Scc(molecule, skt, parameter, coulomb, periodic)
-    assert torch.max(abs(scc.charge - torch.tensor([[
-            4.6122976812946259, 0.83320615382097674, 0.85273810385371818,
-            0.85182728982744738, 0.84993077120323290],
-            [4.6010835947475499, 0.84036067839669026, 0.85285190895192031,
-             0.85285190895192053, 0.85285190895192087],
-            [1.000000000000000, 1.000000000000000, 0.000000000000000,
-             0.000000000000000, 0.000000000000000],
-            [0.70794502349564015, 6.5839837819000406, 0.70807119460432610,
              0.000000000000000, 0.000000000000000]]))) < 1E-8, 'Tolerance check'

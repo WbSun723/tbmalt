@@ -2,6 +2,7 @@
 import torch
 import numpy as np
 from typing import Union, List
+from tbmalt.common.structures.system import System
 from tbmalt.common.batch import pack
 Tensor = torch.Tensor
 _bohr = 0.529177249
@@ -13,7 +14,7 @@ class Periodic:
     Arguments:
         latvec: Lattice vector describing the geometry of periodic geometry,
             with Bohr as unit.
-        cutoff: Interaction cutoff distance for reading  SK table.
+        cutoff: Interaction cutoff distance for reading SK table.
 
     Keyword Args:
         distance_extention: Extention of cutoff in SK tables to smooth the tail.
@@ -39,20 +40,15 @@ class Periodic:
 
         # mask for periodic and non-periodic systems
         self.mask_pe = self.geometry.is_periodic
-
         self.latvec, self.cutoff = self._check(latvec, cutoff, **kwargs)
         self._positions_check(**kwargs)
-
-        # classify the periodic systems from the mix of periodic and non-periodic systems
-        if not self.mask_pe.all():
-            self.latvec, self.cutoff = self._check(latvec[self.mask_pe], cutoff, **kwargs)
 
         dist_ext = kwargs.get('distance_extention', 1.0)
 
         # Global cutoff for the diatomic interactions
         self.cutoff = self.cutoff + dist_ext
 
-        self.invlatvec = self._inverse_lattice()
+        self.invlatvec, self.mask_zero = self._inverse_lattice()
 
         self.recvec = self._reciprocal_lattice()
 
@@ -62,10 +58,6 @@ class Periodic:
         self.cellvec, self.rcellvec, self.ncell = self.get_cell_translations(**kwargs)
 
         self.positions_vec, self.periodic_distances = self._get_periodic_distance()
-
-        # pad zeros for non-periodic systems
-        if not self.mask_pe.all():
-            self._padding()
 
     def _check(self, latvec, cutoff, **kwargs):
         """Check dimension, type of lattice vector and cutoff."""
@@ -130,7 +122,6 @@ class Periodic:
         # transfer from fraction to Bohr unit positions
         position_pe[_mask] = torch.matmul(
             position_pe[_mask], self.latvec[is_frac])
-
         self.geometry.positions[self.mask_pe] = position_pe
 
     def get_cell_translations(self, **kwargs):
@@ -140,6 +131,9 @@ class Periodic:
 
         _tmp = torch.floor(self.cutoff * torch.norm(self.invlatvec, dim=-1).T).T
         ranges = torch.stack([-(neg_ext + _tmp), pos_ext + _tmp])
+
+        # 1D/ 2D cell translation
+        ranges[torch.stack([self.mask_zero, self.mask_zero])] = 0
 
         # Length of the first, second and third column in ranges
         leng = ranges[1, :].long() - ranges[0, :].long() + 1
@@ -162,16 +156,7 @@ class Periodic:
         rcellvec = pack([(ilv.transpose(0, 1) @ icv.T.unsqueeze(-1)).squeeze(-1)
                          for ilv, icv in zip(self.latvec, cellvec)], value=1e3)
 
-        # mix batch of periodic and non-periodic systems -> pad zeros for non-periodic systems
-        if not self.mask_pe.all():
-            cv_mix = torch.zeros(self.mask_pe.size(0), cellvec.size(1), cellvec.size(2))
-            rcv_mix = torch.zeros(self.mask_pe.size(0), rcellvec.size(1), rcellvec.size(2))
-            ncell_mix = torch.ones(self.mask_pe.size(0), dtype=torch.long)
-            cv_mix[self.mask_pe],  rcv_mix[self.mask_pe], ncell_mix[self.mask_pe] =\
-                cellvec, rcellvec, ncell
-            return cv_mix, rcv_mix, ncell_mix
-        else:
-            return cellvec, rcellvec, ncell
+        return cellvec, rcellvec, ncell
 
     def _get_periodic_distance(self):
         """Get distances between central cell and neighbour cells."""
@@ -183,17 +168,19 @@ class Periodic:
                             for ipos, icp, inat in zip(
                                 positions, self.geometry.positions, size_system)], value=1e3)
 
-        # mix batch of periodic and non-periodic systems -> pad zeros for non-periodic systems
-        if not self.mask_pe.all():
-            positions_vec[~self.mask_pe, 1:] = 0
-            distance[~self.mask_pe, 1:] = 0
-
         return positions_vec, distance
 
     def _inverse_lattice(self):
         """Get inverse lattice vectors."""
-        return torch.transpose(torch.solve(torch.eye(
-                self.latvec.shape[-1]), self.latvec)[0], -1, -2)
+        # build a mask for zero vectors in 1D/ 2D lattice vectors
+        mask_zero = self.latvec.eq(0).all(-1)
+        _latvec = self.latvec + torch.diag_embed(mask_zero.type(self.latvec.dtype))
+
+        # inverse lattice vectors
+        _invlat = torch.transpose(torch.solve(torch.eye(
+            _latvec.shape[-1]), _latvec)[0], -1, -2)
+        _invlat[mask_zero] = 0
+        return _invlat, mask_zero
 
     def _reciprocal_lattice(self):
         """Get reciprocal lattice vectors"""
@@ -202,17 +189,6 @@ class Periodic:
     def get_reciprocal_volume(self):
         """Get reciprocal lattice unit cell volume."""
         return abs(torch.det(2 * np.pi * (self.invlatvec.transpose(0, 1))))
-
-    def _padding(self):
-        """Padding zeros and correct the shape of materix for mix of periodic and non-periodic systems"""
-        latvec_mix = torch.zeros(self.mask_pe.size(0), self.latvec.size(1), self.latvec.size(2))
-        invlatvec_mix = torch.zeros(self.mask_pe.size(0), self.invlatvec.size(1), self.invlatvec.size(2))
-        recvec_mix = torch.zeros(self.mask_pe.size(0), self.recvec.size(1), self.recvec.size(2))
-        cellvol_mix = torch.zeros(self.mask_pe.size(0))
-        latvec_mix[self.mask_pe], invlatvec_mix[self.mask_pe], recvec_mix[self.mask_pe],\
-            cellvol_mix[self.mask_pe] = self.latvec, self.invlatvec, self.recvec, self.cellvol
-        self.latvec, self.invlatvec, self.recvec, self.cellvol =\
-            latvec_mix, invlatvec_mix, recvec_mix, cellvol_mix
 
     @property
     def neighbour(self):

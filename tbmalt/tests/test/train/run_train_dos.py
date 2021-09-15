@@ -12,45 +12,94 @@ from tbmalt.tb.sk import SKT
 from tbmalt.tb.dftb.scc import Scc
 from tbmalt.common.structures.periodic import Periodic
 from tbmalt.tb.coulomb import Coulomb
+from tbmalt.tb.properties import dos
+from tbmalt.tb.properties import band_pass_state_filter
 import time
 
 torch.set_printoptions(6)
 torch.set_default_dtype(torch.float64)
-size_train, size_test = 20, 50
+size_train, size_test = 1, 1
 params = Parameter(ml_params=True)
 params.ml_params['task'] = 'mlIntegral'
-params.ml_params['steps'] = 10
-params.ml_params['target'] = ['gap']  # charge, dipole, gap, cpa, homo_lumo
+params.ml_params['steps'] = 100
+params.ml_params['target'] = ['dos_eigval']  # charge, dipole, gap, cpa, homo_lumo, dos
 params.ml_params['ml_method'] = 'forest'  # nn, linear, forest
+# params.ml_params['loss_function'] = 'KLDivLoss'
 # params.dftb_params['maxiter'] = 5
+params.dftb_params['sigma'] = 0.09
 params.dftb_params['with_periodic'] = True
 # params.dftb_params['mix'] = 'simple'
-dataset = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/dataset/test_aims_si_132.hdf'
-dataset_dftb = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/dataset/test_dftb_si_132.hdf'
+dataset = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/dataset/test_aims_si44.hdf'
+dataset_dftb = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/dataset/test_dftb_si44.hdf'
 
 
 def train():
     """Initialize parameters."""
     if params.ml_params['task'] == 'mlIntegral':
         params.dftb_params['path_to_skf'] = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/skf_pbc.hdf'
-        params.ml_params['lr'] = 0.00001
+        params.ml_params['lr'] = 0.000001
     elif params.ml_params['task'] == 'mlCompressionR':
         params.dftb_params['path_to_skf'] = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/skf.hdf.comprwav'
         params.ml_params['lr'] = 0.05
         params.ml_params['compression_radii_grid'] = torch.tensor([
             01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
             04.50, 05.00, 06.00, 08.00, 10.00])
-    # latvec = torch.tensor([[5., 0., 0.], [0., 5., 0.], [0., 0., 5.]])
 
     # build a random index
-    rand_index = torch.randperm(132)
+    rand_index = torch.randperm(1)
     train_index = rand_index[:size_train].tolist()
     test_index = rand_index[:size_test].tolist()
     f = open('rand_index.dat', 'w')
     np.savetxt(f, rand_index.detach())
     f.close()
+
     numbers_train, positions_train, latvecs_train, data_train = LoadHdf.load_reference_si(
-        dataset, train_index, ['charge', 'energy', 'homo_lumo'], periodic=True)
+        dataset, train_index, ['charge', 'energy', 'homo_lumo', 'dos', 'dos_raw',
+                               'dos_raw_gamma', 'eigenvalue'], periodic=True)
+    if 'dos' in params.ml_params['target']:
+        energies = data_train['dos_raw'][..., 0]
+        dos_values = data_train['dos_raw'][..., 1]
+        mask_mid = torch.stack([abs(energies[ii] -
+                                    data_train['homo_lumo'][..., 0][ii]) < 2E-2
+                                for ii in range(size_train)])
+        energy_mid = energies[mask_mid]
+        mask_vb = torch.stack([abs(energies[ii] - energy_mid[ii]) < 0.6
+                               for ii in range(size_train)])
+        dos_train = torch.stack([dos_values[ii][mask_vb[ii]]
+                                 for ii in range(size_train)])
+        energies_train = torch.stack([energies[ii][mask_vb[ii]]
+                                      for ii in range(size_train)])
+
+        data_train['dos'] = torch.cat((energies_train.unsqueeze(-1),
+                                       dos_train.unsqueeze(-1)), -1)
+
+    if 'dos_eigval' in params.ml_params['target']:
+        eigval_ref = data_train['eigenvalue']
+        print("eigval_ref", eigval_ref)
+        energies = torch.linspace(-18, 5, 500).repeat(size_train, 1)
+        dos_ref = dos((eigval_ref), energies,
+                      params.dftb_params['sigma'])
+        plt.plot(energies[0], dos_ref[0])
+        plt.xlim((-18.2, 5.2))
+        plt.ylim((-1, 30))
+        plt.title('dft')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('ref_dos_cal.png', dpi=300)
+        plt.show()
+        mask_mid = torch.stack([abs(energies[ii] -
+                                    data_train['homo_lumo'][..., 0][ii]) < 3E-2
+                                for ii in range(size_train)])
+        energy_mid = energies[mask_mid]
+
+        mask_vb = torch.stack([abs(energies[ii] - energy_mid[ii]) < 0.6
+                               for ii in range(size_train)])
+        dos_train = torch.stack([dos_ref[ii][mask_vb[ii]]
+                                 for ii in range(size_train)])
+        energies_train = torch.stack([energies[ii][mask_vb[ii]]
+                                      for ii in range(size_train)])
+        data_train['dos'] = torch.cat((energies_train.unsqueeze(-1),
+                                       dos_train.unsqueeze(-1)), -1)
 
     if params.dftb_params['with_periodic']:
         sys_train = System(numbers_train, positions_train, latvecs_train)
@@ -61,7 +110,8 @@ def train():
         periodic_train, coulomb_train = None, None
 
     numbers_test, positions_test, latvecs_test, data_test = LoadHdf.load_reference_si(
-        dataset, test_index, ['charge', 'energy', 'homo_lumo'], periodic=True)
+        dataset, test_index, ['charge', 'energy', 'homo_lumo', 'dos',
+                              'dos_raw', 'dos_raw_gamma', 'eigenvalue'], periodic=True)
     numbers_dftb_train, positions_dftb_train, latvecs_dftb_train, data_dftb_train = LoadHdf.load_reference_si(
         dataset_dftb, train_index, ['charge', 'energy', 'homo_lumo'], periodic=True)
     numbers_dftb, positions_dftb, latvecs_dftb, data_dftb = LoadHdf.load_reference_si(
@@ -99,6 +149,18 @@ def train():
             f = open('cpaRef.dat', 'w')
             np.savetxt(f, data_test['hirshfeld_volume_ratio'])
             f.close()
+        if 'dos' in params.ml_params['target']:
+            sk = IntegralGenerator.from_dir(
+                params.dftb_params['path_to_skf'], sys_test, repulsive=False, sk_type='h5py')
+            skt = SKT(sys_test, sk, periodic_test)
+            scc_dftb = Scc(sys_test, skt, params, coulomb_test, periodic_test,
+                           params.ml_params['target'])
+        if 'dos_eigval' in params.ml_params['target']:
+            sk = IntegralGenerator.from_dir(
+                params.dftb_params['path_to_skf'], sys_test, repulsive=False, sk_type='h5py')
+            skt = SKT(sys_test, sk, periodic_test)
+            scc_dftb = Scc(sys_test, skt, params, coulomb_test, periodic_test,
+                           params.ml_params['target'])
 
     elif params.ml_params['task'] == 'mlCompressionR':
         compr = CompressionRadii(sys_train, data_train, params,
@@ -223,6 +285,80 @@ def train():
         print('property:', 'cpa')
         print(abs((scc_pred.cpa - data_test['hirshfeld_volume_ratio'])).sum())
         print(abs((scc.cpa - data_test['hirshfeld_volume_ratio'])).sum())
+
+    if 'dos' in params.ml_params['target']:
+        print('property:', 'dos')
+        # Plot DFT dos
+        plt.plot(data_test['dos_raw'][..., 0][0], data_test['dos_raw'][..., 1][0])
+        plt.xlim((-18.2, 5.2))
+        plt.title('dft')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('ref_dos_kpoints.png', dpi=300)
+        plt.show()
+
+        plt.plot(data_test['dos_raw_gamma'][..., 0][0], data_test['dos_raw_gamma'][..., 1][0])
+        plt.title('dft')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('ref_dos_gamma.png', dpi=300)
+        plt.show()
+
+        # Plot DFTB dos
+        plt.plot(scc_dftb.dos_energy, scc_dftb.dos[0])
+        plt.xlim((-17, 5.2))
+        plt.ylim((-1, 30))
+        plt.title('before training')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('before_dos.png', dpi=300)
+        plt.show()
+
+        plt.plot(scc_pred.dos_energy.detach(), scc_pred.dos[0].detach())
+        plt.xlim((-17, 5.2))
+        plt.ylim((-1, 30))
+        plt.title('after training')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('after_dos.png', dpi=300)
+        plt.show()
+
+    if 'dos_eigval' in params.ml_params['target']:
+        print('property:', 'dos')
+        # Plot DFT dos
+        plt.plot(data_test['dos_raw'][..., 0][0], data_test['dos_raw'][..., 1][0])
+        plt.xlim((-18.2, 5.2))
+        plt.title('dft')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('ref_dos_kpoints.png', dpi=300)
+        plt.show()
+
+        plt.plot(data_test['dos_raw_gamma'][..., 0][0], data_test['dos_raw_gamma'][..., 1][0])
+        plt.title('dft')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('ref_dos_gamma.png', dpi=300)
+        plt.show()
+
+        # Plot DFTB dos
+        plt.plot(scc_dftb.dos_energy, scc_dftb.dos[0])
+        plt.xlim((-17, 5.2))
+        plt.ylim((-1, 31))
+        plt.title('before training')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('before_dos.png', dpi=300)
+        plt.show()
+
+        plt.plot(scc_pred.dos_energy.detach(), scc_pred.dos[0].detach())
+        plt.xlim((-17, 5.2))
+        plt.ylim((-1, 31))
+        plt.title('after training')
+        plt.xlabel("Energy [eV]")
+        plt.ylabel("DOS")
+        plt.savefig('after_dos.png', dpi=300)
+        plt.show()
 
 
 def test():

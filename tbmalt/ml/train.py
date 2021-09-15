@@ -1,25 +1,28 @@
 """Train code."""
-import torch
 import numpy as np
+import torch
 from torch.autograd import Variable
 from tbmalt.common.parameter import Parameter
+import tbmalt.common.maths as tb_math
 from tbmalt.tb.sk import SKT
 from tbmalt.common.batch import pack
 from tbmalt.tb.dftb.scc import Scc
+from tbmalt.tb.properties import dos
 from tbmalt.io.loadskf import IntegralGenerator
 import matplotlib.pyplot as plt
 from tbmalt.ml.feature import Dscribe
-from tbmalt.ml.scikitlearn import SciKitLearn
+# from tbmalt.ml.scikitlearn import SciKitLearn
 
 
 class Train:
     """Train class."""
 
-    def __init__(self, system, reference, variable, parameter, **kwargs):
+    def __init__(self, system, reference, variable, parameter=None, **kwargs):
         self.system = system
         self.reference = reference
-        self.periodic = kwargs.get('periodic', None)
-        self.coulomb = kwargs.get('coulomb', None)
+        self.loss_list = []
+        self.loss_list.append(0)
+        self.loss_tol = kwargs.get('tol', 1E-8)
 
         if type(variable) is torch.Tensor:
             self.variable = Variable(variable, requires_grad=True)
@@ -27,6 +30,8 @@ class Train:
             self.variable = variable
 
         self.params = Parameter if parameter is None else parameter
+        self.coulomb = kwargs.get('coulomb', None)
+        self.periodic = kwargs.get('periodic', None)
         self.lr = self.params.ml_params['lr']
 
         # get loss function type
@@ -34,6 +39,9 @@ class Train:
             self.criterion = torch.nn.MSELoss(reduction='sum')
         elif self.params.ml_params['loss_function'] == 'L1Loss':
             self.criterion = torch.nn.L1Loss(reduction='sum')
+        elif self.params.ml_params['loss_function'] == 'KLDivLoss':
+            self.criterion = torch.nn.KLDivLoss(reduction='sum')
+            # self.criterion = tb_math.hellinger
 
         # get optimizer
         if self.params.ml_params['optimizer'] == 'SCG':
@@ -55,16 +63,53 @@ class Train:
         if 'charge' in self.properties:
             self.loss = self.loss + self.criterion(
                 results.charge, self.reference['charge'])
+            print("results.charge", results.charge)
         if 'gap' in self.properties:
             homolumo = results.homo_lumo
             refhl = pack(self.reference['homo_lumo'])
             gap = homolumo[:, 1] - homolumo[:, 0]
+            print("gap:", gap)
             refgap = refhl[:, 1] - refhl[:, 0]
+            print("refgap:", refgap)
             self.loss = self.loss + self.criterion(gap, refgap)
+        if 'homo_lumo' in self.properties:
+            homolumo = results.homo_lumo
+            refhl = pack(self.reference['homo_lumo'])
+            self.loss = self.loss + self.criterion(homolumo, refhl)
         if 'cpa' in self.properties:
             cpa = results.cpa
             refcpa = self.reference['hirshfeld_volume_ratio']
             self.loss = self.loss + self.criterion(cpa, refcpa)
+        if 'dos' in self.properties:
+            ref = self.reference['dos']
+            refenergies = ref[..., 0]
+            refdos = ref[..., 1]
+            _shift = torch.stack([refenergies[ii] - self.reference['homo_lumo'][..., 0][ii]
+                                  for ii in range(refenergies.size(0))])
+            homo_dftb = results.homo_lumo[..., 0]
+            energies_dftb = torch.stack([_shift[ii] + homo_dftb[ii]
+                                         for ii in range(refenergies.size(0))])
+            dos_dftb = dos((results.eigenvalue),
+                           energies_dftb, results.params.dftb_params['sigma'])
+            self.loss = self.loss + self.criterion(dos_dftb, refdos)
+
+        # dos calculated from dft eigenvalues
+        if 'dos_eigval' in self.properties:
+            ref = self.reference['dos']
+            refenergies = ref[..., 0]
+            refdos = ref[..., 1]
+            _shift = torch.stack([refenergies[ii] - self.reference['homo_lumo'][..., 0][ii]
+                                  for ii in range(refenergies.size(0))])
+            homo_dftb = results.homo_lumo[..., 0]
+            energies_dftb = torch.stack([_shift[ii] + homo_dftb[ii]
+                                         for ii in range(refenergies.size(0))])
+            dos_dftb = dos((results.eigenvalue),
+                           energies_dftb, results.params.dftb_params['sigma'])
+            self.loss = self.loss + self.criterion(dos_dftb, refdos)
+
+        self.loss_list.append(self.loss.detach())
+        self.reach_convergence = abs((self.loss_list[-1] - self.loss_list[-2]) /
+                                     (self.loss_list[1])) < self.loss_tol
 
     def __predict__(self, system):
         """Predict with training results."""
@@ -76,6 +121,8 @@ class Train:
 
         # plot loss
         plt.plot(np.linspace(1, steps, steps), loss)
+        plt.xlabel("Iteration")
+        plt.ylabel("MSE Loss")
         plt.show()
 
         # plot compression radii
@@ -98,29 +145,41 @@ class Integal(Train):
         self.ml_variable = self.sk.sktable_dict['variable']
         super().__init__(system, reference, self.ml_variable, parameter, **kwargs)
 
-    def __call__(self, target, plot=True):
+    def __call__(self, target, plot=True, save=True):
         """Train spline parameters with target properties."""
         super().__call__(target)
         self._loss = []
         for istep in range(self.steps):
+            print('istep', istep)
             self._update_train()
             self._loss.append(self.loss.detach())
 
+            if self.reach_convergence:
+                break
+
         if plot:
-            super().__plot__(self.steps, self._loss)
+            super().__plot__(istep + 1, self.loss_list[1:])
+
+        if save:
+            f = open('loss.dat', 'w')
+            np.savetxt(f, torch.tensor(self.loss_list[1:]))
+            f.close()
+            f = open('charge.dat', 'w')
+            np.savetxt(f, self.scc.charge.detach() - self.scc.qzero)
+            f.close()
 
     def _update_train(self):
         skt = SKT(self.system, self.sk, self.periodic, with_variable=True,
                   fix_onsite=True, fix_U=True)
-        scc = Scc(self.system, skt, self.params, self.coulomb, self.periodic, self.properties)
-        super().__loss__(scc)
+        self.scc = Scc(self.system, skt, self.params, self.coulomb, self.periodic, self.properties)
+        super().__loss__(self.scc)
         self.optimizer.zero_grad()
         self.loss.backward(retain_graph=True)
         self.optimizer.step()
 
-    def predict(self, system, coulomb=None, periodic=None):
+    def predict(self, system, coulomb, periodic):
         """Predict with optimized Hamiltonian and overlap."""
-        skt = SKT(system, self.sk, with_variable=True,
+        skt = SKT(system, self.sk, periodic, with_variable=True,
                   fix_onsite=True, fix_U=True)
         return Scc(system, skt, self.params, coulomb, periodic, self.properties)
 
@@ -139,22 +198,40 @@ class CompressionRadii(Train):
             compression_radii_grid=parameter.ml_params['compression_radii_grid'])
         super().__init__(system, reference, [self.ml_variable], parameter, **kwargs)
 
-    def __call__(self, target, plot=True):
+    def __call__(self, target, plot=True, save=True):
         """Train compression radii with target properties."""
         super().__call__(target)
-        self._loss, self._compr = [], []
+        self._compr = []
         for istep in range(self.steps):
             self._update_train()
+            print('step:', istep, self.loss)
+            print('grad', self.ml_variable.grad)
+
+            if self.reach_convergence:
+                break
 
         if plot:
-            super().__plot__(self.steps, self._loss, compression_radii=self._compr)
+            super().__plot__(istep + 1, self.loss_list[1:], compression_radii=self._compr)
+
+        if save:
+            f = open('compr.dat', 'w')
+            np.savetxt(f, self.ml_variable.detach())
+            f.close()
+            f = open('loss.dat', 'w')
+            np.savetxt(f, torch.tensor(self.loss_list[1:]))
+            f.close()
+            f = open('charge.dat', 'w')
+            np.savetxt(f, self.scc.charge.detach() - self.scc.qzero)
+            f.close()
+
+        return self.scc
 
     def _update_train(self):
-        skt = SKT(self.system, self.sk, self.periodic, compression_radii=self.ml_variable,
-                  fix_onsite=True, fix_U=True)
-        scc = Scc(self.system, skt, self.params, self.coulomb, self.periodic, self.properties)
-        super().__loss__(scc)
-        self._loss.append(self.loss.detach())
+        self.skt = SKT(self.system, self.sk, self.periodic,
+                       compression_radii=self.ml_variable, fix_onsite=True, fix_U=True)
+        self.scc = Scc(self.system, self.skt, self.params, self.coulomb,
+                       self.periodic, self.properties)
+        super().__loss__(self.scc)
         self._compr.append(self.ml_variable.detach().clone())
 
         self.optimizer.zero_grad()
@@ -178,7 +255,7 @@ class CompressionRadii(Train):
                 self.ml_variable.clamp_(para.ml_params['compression_radii_min'],
                                         para.ml_params['compression_radii_max'])
 
-    def predict(self, system):
+    def predict(self, system, coulomb, periodic):
         """Predict with optimized Hamiltonian and overlap."""
         feature_type = 'acsf'
         targets = self.ml_variable
@@ -192,10 +269,33 @@ class CompressionRadii(Train):
         predict_compr = torch.clamp(
             predict_compr, self.params.ml_params['compression_radii_min'],
             self.params.ml_params['compression_radii_max'])
-        print('predicted compr', predict_compr)
+
         skt = SKT(system, self.sk, compression_radii=predict_compr,
                   fix_onsite=True, fix_U=True)
-        return Scc(system, skt, self.params, self.properties)
+        return Scc(system, skt, self.params, coulomb, periodic, self.properties)
+
+    @staticmethod
+    def predict_(params, compr_train, system_train, system_test, sk, properties=[]):
+        """Predict with optimized Hamiltonian and overlap."""
+        feature_type = 'acsf'
+        feature = Dscribe(system_train, feature_type=feature_type).features
+        feature_pred = Dscribe(system_test, feature_type=feature_type).features
+        split_ratio = 0.5
+        predict_compr = SciKitLearn(
+            system_train, feature, compr_train.detach(), system_pred=system_test,
+            feature_pred=feature_pred, ml_method=params.ml_params['ml_method'],
+            split_ratio=split_ratio).prediction
+        predict_compr = torch.clamp(
+            predict_compr, params.ml_params['compression_radii_min'],
+            params.ml_params['compression_radii_max'])
+
+        f = open('compr.dat', 'w')
+        np.savetxt(f, predict_compr)
+        f.close()
+
+        skt = SKT(system_test, sk, compression_radii=predict_compr,
+                  fix_onsite=True, fix_U=True)
+        return Scc(system_test, skt, params, properties)
 
 
 class Charge(Train):

@@ -4,12 +4,12 @@ import numpy as np
 import torch
 from tbmalt.common.batch import pack
 from tbmalt.common.data import bohr, atom_name, val_elect, l_num
-from tbmalt.common.structures.cell import Cell
+from tbmalt.common.structures.cell import Pbc
 Tensor = torch.Tensor
 
 
 class System:
-    r"""Geometry object.
+    """Geometry object.
 
     This object will generate single geometry (molecule, unit cell)
     information, or a list of geometry information from dataset. The
@@ -55,14 +55,12 @@ class System:
 
     def __init__(self, numbers: Union[Tensor, List[Tensor]],
                  positions: Union[Tensor, List[Tensor]],
-                 cell=None, pbc=None, lattice=None, frac=None, **kwargs):
-        self.cell = cell
-        self.pbc = pbc
-        self.frac = frac
-
+                 cell=None, frac=None, **kwargs):
         # bool tensor is_periodic defines which is solid and which is molecule
-        if self.cell is not None:
-            self.cell, self.pbc, self.is_periodic, self.is_frac = self._cell(**kwargs)
+        if cell is not None:
+            self._cell = Pbc(cell, frac, **kwargs)
+            self.cell, self.is_periodic, self.is_frac, self.pbc =\
+                self._cell.cell, self._cell.is_periodic, self._cell.is_frac, self._cell.pbc
             self.periodic = True if True in self.is_periodic else False
             self.positions, self.numbers, self.batch, self.is_periodic, self.is_frac = \
                 self._check(numbers, positions, self.is_periodic, self.is_frac, **kwargs)
@@ -128,13 +126,7 @@ class System:
 
         assert positions.shape[0] == numbers.shape[0]
         batch_ = True if numbers.shape[0] != 1 else False
-
         return positions, numbers, batch_, is_periodic, is_frac
-
-    def _cell(self, **kwargs):
-        """Return cell information."""
-        _cell = Cell(self.cell, self.pbc, self.frac, **kwargs)
-        return _cell.cell, _cell.pbc, _cell.is_periodic, _cell.is_frac
 
     def _get_distances(self):
         """Return distances between a list of atoms for each geometry."""
@@ -158,12 +150,12 @@ class System:
         l_max = pack([torch.tensor([l_num[ii - 1] for ii in inum[inum.ne(0)]])
                       for inum in self.numbers], value=-1)
 
-        # max valence orbital number for each atom and each geometry
+        # max valence orbital number for each atom and each system
         atom_orbitals = pack([torch.tensor([(ii + 1) ** 2 for ii in lm])
                               for lm in l_max])
-        geometry_orbitals = pack([sum(iao) for iao in atom_orbitals])
+        system_orbitals = pack([sum(iao) for iao in atom_orbitals])
 
-        return l_max, atom_orbitals, geometry_orbitals
+        return l_max, atom_orbitals, system_orbitals
 
     def _get_hs_shape(self):
         """Return shapes of each single and batch Hamiltonian and overlap."""
@@ -189,8 +181,9 @@ class System:
             valence_electrons: Valence electrons of each system for batch.
 
         """
-        return pack([torch.tensor([val_elect[ii] for ii in isym], dtype=dtype)
-                     for isym in self.symbols])
+        return pack([torch.tensor([val_elect[ii - 1]
+                                   for ii in inum[inum.ne(0)]], dtype=dtype)
+                     for inum in self.numbers])
 
     def get_global_species(self):
         """Get global element information for single or multi geometry.

@@ -85,6 +85,7 @@ class AniDataloader:
     def size(self):
         count = 0
         for g in self.store.values():
+            print(g.items())
             count = count + len(g.items())
         return count
 
@@ -112,6 +113,9 @@ class LoadHdf:
         if hdf_type == 'ANI-1':
             self.numbers, self.positions, self.symbols, \
                 self.atom_specie_global = self.load_ani1(**kwargs)
+        elif hdf_type == 'Si':
+            self.numbers, self.positions, self.symbols, \
+                self.atom_specie_global, self.latvec = self.load_si(**kwargs)
         elif hdf_type == 'hdf_reference':
             self.load_reference()
 
@@ -140,7 +144,6 @@ class LoadHdf:
 
         # such as for ani_gdb_s01.h5, there are 3 species: CH4, NH3, H2O
         for iadl, data in enumerate(adl):
-
             # get each molecule specie size
             size_ani = len(data['coordinates'])
             isize = min(self.in_size, size_ani)
@@ -166,20 +169,88 @@ class LoadHdf:
             symbols.extend([_specie[ispe]] * isize)
             numbers.extend([_number[ispe]] * isize)
 
-            # add coordinates
+            # add coordinates and cells
             positions.extend([icoor for icoor in _coorall[ispe][:isize]])
 
         return numbers, positions, symbols, atom_specie_global
 
+    def load_si(self, **kwargs):
+        """Load the data from hdf type input files."""
+        dtype = kwargs.get('dtype', np.float64)
+
+        # define the output
+        numbers, positions, latvec = [], [], []
+
+        # symbols for each molecule, global atom specie
+        symbols, atom_specie_global = [], []
+
+        # temporal coordinates for all
+        _coorall = []
+
+        # temporal cells for all
+        _cellall = []
+
+        # temporal molecule species for all
+        _specie, _number = [], []
+
+        # temporal number of molecules in all molecule species
+        n_molecule = []
+
+        # load each ani_gdb_s0*.h5 data in datalist
+        adl = AniDataloader(self.dataset)
+        # self.in_size = round(self.size / adl.size())  # each group size
+        self.in_size = self.size
+
+        # such as for ani_gdb_s01.h5, there are 3 species: CH4, NH3, H2O
+        for iadl, data in enumerate(adl):
+
+            # get each molecule specie size
+            size_ani = len(data['coordinates'])
+            isize = min(self.in_size, size_ani)
+
+            # global species
+            for ispe in data['species']:
+                if ispe not in atom_specie_global:
+                    atom_specie_global.append(ispe)
+
+            # size of each molecule specie
+            n_molecule.append(isize)
+
+            # selected coordinates of each molecule specie
+            _coorall.append(torch.from_numpy(
+                data['coordinates'][:isize].astype(dtype)))
+
+            # selected lattice vectors of each molecule specie
+            _cellall.append(torch.from_numpy(
+                data['cells'][:isize].astype(dtype)))
+
+            # add atom species in each molecule specie
+            _specie.append(data['species'])
+            _number.append(System.to_element_number(data['species']).squeeze())
+
+        for ispe, isize in enumerate(n_molecule):
+            # get symbols of each atom
+            symbols.extend([_specie[ispe]] * isize)
+            numbers.extend([_number[ispe]] * isize)
+
+            # add coordinates and cells
+            positions.extend([icoor for icoor in _coorall[ispe][:isize]])
+            latvec.extend([icell for icell in _cellall[ispe][:isize]])
+
+        return numbers, positions, symbols, atom_specie_global, latvec
+
     @classmethod
     def load_reference(cls, dataset, size, properties, **kwargs):
         """Load reference from hdf type data."""
+        _periodic = kwargs.get('periodic', False)
         out_type = kwargs.get('output_type', Tensor)
         data = {}
         for ipro in properties:
             data[ipro] = []
 
         positions, numbers = [], []
+        if _periodic:
+            latvecs = []
 
         with h5py.File(dataset, 'r') as f:
             gg = f['global_group']
@@ -201,12 +272,62 @@ class LoadHdf:
                     _position = g[str(imol + 1) + 'position'][()]
                     positions.append(LoadHdf.to_out_type(_position, out_type))
                     numbers.append(LoadHdf.to_out_type(g.attrs['numbers'], out_type))
+                    if _periodic:
+                        _latvec = g[str(imol + 1) + 'lattice vector'][()]
+                        latvecs.append(LoadHdf.to_out_type(_latvec, out_type))
 
         if out_type is Tensor:
             for ipro in properties:  # loop for each property
                 data[ipro] = pack(data[ipro])
 
-        return numbers, positions, data
+        if _periodic:
+            return numbers, positions, latvecs, data
+        else:
+            return numbers, positions, data
+
+    @classmethod
+    def load_reference_si(cls, dataset, index, properties, **kwargs):
+        """Load reference from hdf type data."""
+        _periodic = kwargs.get('periodic', False)
+        out_type = kwargs.get('output_type', Tensor)
+        data = {}
+        for ipro in properties:
+            data[ipro] = []
+
+        positions, numbers = [], []
+        if _periodic:
+            latvecs = []
+
+        with h5py.File(dataset, 'r') as f:
+            gg = f['global_group']
+            molecule_specie = gg.attrs['molecule_specie_global']
+
+            # add atom name and atom number
+            for imol_spe in molecule_specie:
+                g = f[imol_spe]
+                g_size = g.attrs['n_molecule']
+
+                for imol in index:  # loop for the same molecule specie
+
+                    for ipro in properties:  # loop for each property
+                        idata = g[str(imol + 1) + ipro][()]
+                        data[ipro].append(LoadHdf.to_out_type(idata, out_type))
+
+                    _position = g[str(imol + 1) + 'position'][()]
+                    positions.append(LoadHdf.to_out_type(_position, out_type))
+                    numbers.append(LoadHdf.to_out_type(g.attrs['numbers'], out_type))
+                    if _periodic:
+                        _latvec = g[str(imol + 1) + 'lattice vector'][()]
+                        latvecs.append(LoadHdf.to_out_type(_latvec, out_type))
+
+        if out_type is Tensor:
+            for ipro in properties:  # loop for each property
+                data[ipro] = pack(data[ipro])
+
+        if _periodic:
+            return numbers, positions, latvecs, data
+        else:
+            return numbers, positions, data
 
     @classmethod
     def to_out_type(cls, data, out_type):

@@ -30,6 +30,7 @@ class CalReference:
         self.path_input = path_to_input
         self.input_type = input_type
         self.reference_type = reference_type
+        self.periodic = kwargs.get('periodic', False)
 
         if self.reference_type == 'dftbplus':
             self.path_to_dftbplus = kwargs.get('path_to_dftbplus', './dftb+')
@@ -44,10 +45,13 @@ class CalReference:
         self.positions = dataset.positions
         self.symbols = dataset.symbols
         self.atom_specie_global = dataset.atom_specie_global
+        self.latvecs = dataset.latvec if self.input_type == 'Si' else None
 
     def _load_input(self, size):
         """Load."""
         if self.input_type == 'ANI-1':
+            return LoadHdf(self.path_input, size, self.input_type)
+        elif self.input_type == 'Si':
             return LoadHdf(self.path_input, size, self.input_type)
 
     def __call__(self, properties: list, **kwargs):
@@ -61,13 +65,13 @@ class CalReference:
 
         """
         if self.reference_type == 'aims':
-            aims = AseAims(self.path_to_aims, self.path_to_aims_specie, **kwargs)
-            result = aims.run_aims(self.positions, self.symbols, properties)
+            aims = AseAims(self.path_to_aims, self.path_to_aims_specie, periodic='self.periodic')
+            result = aims.run_aims(self.positions, self.symbols, self.latvecs, properties)
 
         elif self.reference_type == 'dftbplus':
             dftb = AseDftb(self.path_to_dftbplus, self.path_to_skf,
                            properties, **kwargs)
-            result = dftb.run_dftb(self.positions, self.symbols, properties)
+            result = dftb.run_dftb(self.positions, self.symbols, self.latvecs, properties)
         return result
 
     @classmethod
@@ -83,9 +87,12 @@ class CalReference:
         Keyword Args:
             mode: a: append, w: write into new output file.
         """
+        input_type = kwargs.get('input_type', 'ANI-1')
         numbers = cal_reference.numbers
         symbols = cal_reference.symbols
         positions = cal_reference.positions
+        if input_type == 'Si':
+            latvec = cal_reference.latvecs
         atom_specie_global = cal_reference.atom_specie_global
         output_name = kwargs.get('output_name', 'reference.hdf')
         mode = kwargs.get('mode', 'a')  # -> if override output file
@@ -126,6 +133,8 @@ class CalReference:
                 n_system = g.attrs['n_molecule']  # each molecule specie number
                 g.attrs['n_molecule'] = n_system + 1
                 g.create_dataset(str(n_system + 1) + 'position', data=positions[ii])
+                if input_type == 'Si':
+                    g.create_dataset(str(n_system + 1) + 'lattice vector', data=latvec[ii])
 
                 for iproperty in properties:
                     iname = str(n_system + 1) + iproperty

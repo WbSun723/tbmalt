@@ -1,66 +1,64 @@
-"""
-Created on Wed Feb 10 10:54:18 2021
-
-@author: gz_fan
-"""
 import torch
 from typing import Union, List
 from tbmalt.common.batch import pack
+import numpy as np
 Tensor = torch.Tensor
 _bohr = 0.529177249
+_pbc = ['cluster', '1d', '2d', '3d', 'mix']
 
 
-class Cell:
+class Pbc:
     """Cell class."""
 
-    def __init__(self, cell: Union[Tensor, List[Tensor]], pbc=None, frac=None, **kwargs):
-        self.cell, self.pbc, self.is_periodic, self.is_frac = self._check_cell(cell, pbc, frac, **kwargs)
-
-    def _check_cell(self, cell, pbc, frac, **kwargs):
+    def __init__(self, cell: Union[Tensor, List[Tensor]], frac=None, **kwargs):
         """Check cell type and dimension, transfer to batch tensor."""
         unit = kwargs['unit'] if 'unit' in kwargs else 'angstrom'
-        if type(cell) is list:
-            cell = pack(cell)
-        elif type(cell) is Tensor:
-            if cell.dim() == 2:
-                cell = cell.unsqueeze(0)
-            elif cell.dim() < 2 or cell.dim() > 3:
+        self.cell = cell
+        if type(self.cell) is list:
+            self.cell = pack(self.cell)
+        elif type(self.cell) is Tensor:
+            if self.cell.dim() == 2:
+                self.cell = self.cell.unsqueeze(0)
+            elif self.cell.dim() < 2 or cell.dim() > 3:
                 raise ValueError('input cell dimension is not 2 or 3')
 
-        # non-periodic systems in cell will be zero
-        is_periodic = torch.stack([ic.ne(0).any() for ic in cell])
+        if self.cell.size(dim=-2) != 3:
+            raise ValueError('input cell should be defined by three lattice vectors')
 
-        # some systems in batch is periodic
-        if is_periodic.any():
-            if pbc is None:
-                pbc = torch.ones(*cell.shape, dtype=bool)
-            elif type(pbc) is list:
-                assert type(pbc[0]) is Tensor
-                assert pbc[0].dtype is torch.bool
-                pbc = pack(pbc)
-            elif type(pbc) is Tensor:
-                assert pbc.dtype is torch.bool
-                if pbc.dim() == 1:
-                    pbc = pbc.unsqueeze(0)
-                elif pbc.dim() > 3:
-                    raise ValueError('pbc dimension error')
-            else:
-                raise TypeError('pbc is torch.Tensor or list of torch.Tensor.')
+        # non-periodic systems in cell will be zero
+        self.is_periodic = torch.stack([ic.ne(0).any() for ic in self.cell])
 
         # some systems in batch is fraction coordinate
         if frac is not None:
-            is_frac = torch.stack([ii.ne(0).any() for ii in frac]) & is_periodic
+            self.is_frac = torch.stack([ii.ne(0).any() for ii in frac]) & self.is_periodic
         else:
-            is_frac = torch.zeros(cell.size(0), dtype=bool)
+            self.is_frac = torch.zeros(self.cell.size(0), dtype=bool)
 
         # transfer positions from angstrom to bohr
         if unit in ('angstrom', 'Angstrom'):
-            cell = cell / _bohr
+            self.cell = self.cell / _bohr
         elif unit not in ('bohr', 'Bohr'):
             raise ValueError('Please select either angstrom or bohr')
 
-        return cell, pbc, is_periodic, is_frac
+        # Sum of the dimensions of periodic boundary condition
+        self.sum_dim = self.cell.ne(0).any(-1).sum(dim=-1)
+
+        if not torch.all(torch.tensor([isd == self.sum_dim[0] for isd in self.sum_dim])):
+            self.pbc = [_pbc[isd] for isd in self.sum_dim]
+        else:
+            self.pbc = _pbc[self.sum_dim[0]]
 
     @property
-    def get_reciprocal_cell(self):
-        """Get reciprocal cell."""
+    def get_cell_lengths(self):
+        """Get the length of each lattice vector."""
+        return torch.linalg.norm(self.cell, dim=-1)
+
+    @property
+    def get_cell_angles(self):
+        """Get the angles alpha, beta and gamma of lattice vectors."""
+        _cos = torch.nn.CosineSimilarity(dim=0)
+        cosine = torch.stack([torch.tensor([_cos(self.cell[ibatch, 1], self.cell[ibatch, 2]),
+                                            _cos(self.cell[ibatch, 0], self.cell[ibatch, 2]),
+                                            _cos(self.cell[ibatch, 0], self.cell[ibatch, 1])])
+                              for ibatch in range(self.cell.size(0))])
+        return torch.acos(cosine) * 180 / np.pi

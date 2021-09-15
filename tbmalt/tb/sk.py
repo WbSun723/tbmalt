@@ -284,6 +284,7 @@ def integral_retrieve(distances: Tensor, atom_pairs: Tensor, integral: object,
             sktable_s[index_mask] = integral(compr_pair[index_mask],
                                              atom_pair, l_pair, hs_type='S',
                                              input2=distances[index_mask])
+            # print('distance', distances[index_mask], '\n compr_pair[index_mask]', compr_pair[index_mask])
 
         elif with_variable:  # Hamiltonian as ML variable
             sktable_h[index_mask] = integral(

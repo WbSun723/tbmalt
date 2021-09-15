@@ -7,7 +7,7 @@ from scipy.interpolate import CubicSpline
 from tbmalt.common.batch import pack
 from tbmalt.common.maths.interpolator import SKInterpolation, BicubInterp, Spline1d, smooth_tail_batch
 Tensor = torch.Tensor
-_orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 15: 'p', 16: 'p', 79: 'd'}
+_orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 14:'p', 15: 'p', 16: 'p', 79: 'd'}
 _onsite = {(1, 1, 'onsite'): torch.tensor([-2.386005440483E-01]),
            (6, 6, 'onsite'): torch.tensor([
                -5.048917654803E-01, -1.943551799182E-01, -1.943551799182E-01,
@@ -17,11 +17,15 @@ _onsite = {(1, 1, 'onsite'): torch.tensor([-2.386005440483E-01]),
                -2.607280834222E-01]),
            (8, 8, 'onsite'): torch.tensor([
                -8.788325840767E-01, -3.321317735288E-01, -3.321317735288E-01,
-               -3.321317735288E-01])}
+               -3.321317735288E-01]),
+           (14, 14, 'onsite'): torch.tensor([
+               -0.39572506, -0.15031380, -0.15031380,
+               -0.15031380])}
 _U = {(1, 1, 'U'): torch.tensor([4.196174261214E-01]),
       (6, 6, 'U'): torch.tensor([3.646664973641E-01]),
       (7, 7, 'U'): torch.tensor([4.308879578818E-01]),
-      (8, 8, 'U'): torch.tensor([4.954041702122E-01])}
+      (8, 8, 'U'): torch.tensor([4.954041702122E-01]),
+      (14, 14, 'U'): torch.tensor([0.247609])}
 
 
 class IntegralGenerator:

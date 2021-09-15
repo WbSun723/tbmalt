@@ -44,8 +44,12 @@ class Parameter:
         """Parameter for DFTB."""
         _dftb_params = {
             'mix': 'Anderson',  # -> Anderson, Simple
+            'mix_param': 0.2,  # -> mix factor
+            'generations': 3,  # -> how many generations for mixing
+            'tolerance': 1E-10,  # tolerance for convergence
             'scc': 'scc',  # 'scc', 'nonscc', 'xlbomd'
-            'maxiter': 60  # -> max SCC loop
+            'maxiter': 60,  # -> max SCC loop
+            'sigma': 0.1  # -> Gaussian smearing
             }
 
         if dftb_params is not None:

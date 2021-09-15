@@ -22,8 +22,6 @@ class Gamma:
         self.U = U
         self.distance = distance
         self.periodic = periodic
-        if self.periodic:
-            self.mask_pe = self.periodic.mask_pe
         self.gamma_type = kwargs.get('gamma_type', 'slater')
 
         # call gamma funcitons
@@ -44,6 +42,7 @@ class Gamma:
         # make sure the unfied dim for both periodic and non-periodic
         U = self.U.unsqueeze(1) if self.U.dim() == 2 else self.U
         dist = self.distance.unsqueeze(1) if self.distance.dim() == 3 else self.distance
+
         distance = dist[..., ut[0], ut[1]]
 
         # build the whole gamma, shortgamma (without 1/R) and triangular gamma
@@ -52,6 +51,7 @@ class Gamma:
 
         # add (0th row in cell dim) so called chemical hardness Hubbert
         gamma.diagonal(0, -1, -2)[:, 0] = -U[:, 0]
+
         alpha, beta = U[..., ut[0]] * 3.2, U[..., ut[1]] * 3.2
 
         # mask of homo or hetero Hubbert in triangular gamma
@@ -76,30 +76,21 @@ class Gamma:
 
         # onsite part for periodic condition
         if self.periodic:
-            # diagonal terms
-            gamma_on = torch.zeros(U.shape[0], U.shape[1], U.shape[2])[self.mask_pe]
-            dist_on = dist[self.mask_pe].diagonal(0, -1, -2)
-            alpha_o, beta_o = U[self.mask_pe] * 3.2, U[self.mask_pe] * 3.2
-
-            # mask of homo or hetero Hubbert
+            gamma_tem = torch.zeros(U.shape[0], U.shape[1], U.shape[2])
+            dist_on = dist.diagonal(0, -1, -2)
+            alpha_o, beta_o = U * 3.2, U * 3.2
             mask_homo2, mask_hetero2 = alpha_o == beta_o, alpha_o != beta_o
             mask_homo2[dist_on.eq(0)], mask_hetero2[dist_on.eq(0)] = False, False
-
-            # expcutoff for different atom pairs
-            expcutoff2 = self._expgamma_cutoff(alpha_o, beta_o, torch.clone(gamma_on))
-
-            # new masks of homo or hetero Hubbert
+            expcutoff2 = self._expgamma_cutoff(alpha_o, beta_o, torch.clone(gamma_tem))
             mask_cutoff2 = dist_on < expcutoff2
             mask_homo2 = mask_homo2 & mask_cutoff2
             mask_hetero2 = mask_hetero2 & mask_cutoff2
+            gamma_tem = self._expgamma(dist_on, alpha_o, beta_o, mask_homo2, mask_hetero2, gamma_tem)
+            gamma_on = gamma_tem.sum(1)
 
-            # gamma values of diagonal terms
-            gamma_on = self._expgamma(dist_on, alpha_o, beta_o, mask_homo2, mask_hetero2, gamma_on)
-            gamma_on = gamma_on.sum(1)
-
-            # add periodic diagonal terms to the whole gamma
-            gamma2.diagonal(0, -1, -2)[self.mask_pe] =\
-                gamma2.diagonal(0, -1, -2)[self.mask_pe] + gamma_on
+            # add periodic onsite part to the whole gamma
+            _tem = gamma2.diagonal(0, -1, -2) + gamma_on
+            gamma2.diagonal(0, -1, -2)[:] = _tem[:]
 
         return gamma2
 
@@ -146,8 +137,6 @@ class Gamma:
 
         # mask for batch calculation
         mask2 = (gamma - lowergamma) > tolshortgamma
-
-        # determine expcutoff
         while True:
             maxcutoff = 0.5 * (cutoff + mincutoff)
             mask_search = (maxgamma >= mingamma) == (

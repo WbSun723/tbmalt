@@ -7,10 +7,13 @@ import tbmalt.common.maths as maths
 from tbmalt.tb.electrons import fermi
 from tbmalt.tb.properties import mulliken
 from tbmalt.common.maths.mixer import Simple, Anderson
-from tbmalt.tb.properties import Properties
+# from tbmalt.tb.properties import Properties
+from tbmalt.tb.properties import dos, pdos, band_pass_state_filter
 from tbmalt.common.batch import pack
 from tbmalt.tb.electrons import Gamma
 from tbmalt.tb.coulomb import Coulomb
+from tbmalt.common.units import AUEV
+Tensor = torch.Tensor
 
 
 class Scc:
@@ -144,21 +147,23 @@ class Scc:
                 self.charge = q_new
             else:
                 if iiter == 0:
-                    self.eigenvalue = torch.zeros(*epsilon.shape)
+                    self.epsilon = torch.zeros(*epsilon.shape)
+                    self.eigenvector = torch.zeros(*eigvec.shape)
                     self.nocc = torch.zeros(*nocc.shape)
                     self.density = torch.zeros(*self.rho.shape)
                 self.qmix, self.converge = self.mixer(q_new)
-                self._update_scc(self.qmix, epsilon, nocc)
+                self._update_scc(self.qmix, epsilon, eigvec, nocc)
 
                 if (self.converge == True).all():
                     break  # -> all system reach convergence
 
         return self.charge
 
-    def _update_scc(self, qmix, epsilon, nocc):
+    def _update_scc(self, qmix, epsilon, eigvec, nocc):
         """Update charge according to convergence in last step."""
         self.charge[self.mask] = qmix
-        self.eigenvalue[self.mask, :epsilon.shape[1]] = epsilon
+        self.epsilon[self.mask, :epsilon.shape[1]] = epsilon
+        self.eigenvector[self.mask, :eigvec.shape[1], :eigvec.shape[2]] = eigvec
         self.nocc[self.mask] = nocc
         self.density[self.mask, :self.rho.shape[1], :self.rho.shape[2]] = self.rho
         self.mask = ~self.converge
@@ -171,8 +176,12 @@ class Scc:
     def _homo_lumo(self):
         """Return dipole moments."""
         # get HOMO-LUMO, not orbital resolved
+        _mask = torch.stack([
+            ieig[int(iocc)] - ieig[int(iocc - 1)] < 1E-10
+            for ieig, iocc in zip(self.eigenvalue, self.nocc)])
+        self.nocc[_mask] = self.nocc[_mask] + 1
         return torch.stack([
-            ieig[int(iocc) - 1:int(iocc) + 1] * 27.2113845
+            ieig[int(iocc) - 1:int(iocc) + 1]
             for ieig, iocc in zip(self.eigenvalue, self.nocc)])
 
     def _onsite_population(self):
@@ -229,3 +238,69 @@ class Scc:
         """Expand Hubbert U for periodic system."""
         shape_cell = self.distances.shape[1]
         return u.repeat(shape_cell, 1, 1).transpose(0, 1)
+
+    @property
+    def ini_charge(self):
+        """Return initial charge."""
+        return self.qzero
+
+    @property
+    def eigenvalue(self):
+        """Return eigenvalue."""
+        return self.epsilon * AUEV
+
+    @property
+    def fermi(self):
+        """Fermi energy."""
+        return self.homo_lumo.sum(-1) / 2.0
+
+    @property
+    def dos_energy(self, unit='eV', ext=1, grid=1000):
+        """Energy distribution of (P)DOS.
+
+        Arguments:
+            unit: The unit of distribution of (P)DOS energy.
+
+        """
+        self.unit = unit
+        e_min = torch.min(self.eigenvalue.detach()) - ext
+        e_max = torch.max(self.eigenvalue.detach()) + ext
+
+        if unit in ('eV', 'EV', 'ev'):
+            return torch.linspace(e_min, e_max, grid)
+        elif unit in ('hartree', 'Hartree'):
+            return torch.linspace(e_min, e_max, grid) * AUEV
+        else:
+            raise ValueError('unit of energy in DOS should be eV or Hartree.')
+
+    @property
+    def pdos(self):
+        """Return PDOS."""
+        energy = torch.linspace(-1, 1, 200)
+        return pdos(self.eigenvector, self.over, self.eigenvalue, energy)
+
+    @property
+    def dos(self):
+        """Return energy distribution and DOS with fermi energy correction."""
+        sigma = self.params.dftb_params['sigma']
+        energy = self.dos_energy
+        energy = energy.repeat(self.system.size_batch, 1)  # -> to batch
+
+        # make sure the 1st dimension is batch
+        if self.unit in ('eV', 'EV', 'ev'):
+            return dos((self.eigenvalue),
+                       energy, sigma)  # , mask=self.band_filter)
+        elif self.unit in ('hartree', 'Hartree'):
+            return dos(self.eigenvalue,
+                       energy, sigma)  # , mask=self.band_filter)
+
+    @property
+    def band_filter(self, n_homo=torch.tensor([3]), n_lumo=torch.tensor([3]),
+                    band_filter=True) -> Tensor:
+        """Return filter of states."""
+        if band_filter:
+            n_homo = n_homo.repeat(self.eigenvalue.shape[0])
+            n_lumo = n_lumo.repeat(self.eigenvalue.shape[0])
+            return band_pass_state_filter(self.eigenvalue, n_homo, n_lumo, self.fermi)
+        else:
+            return None

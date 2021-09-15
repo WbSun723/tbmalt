@@ -52,26 +52,43 @@ class AseDftb:
         os.environ['ASE_DFTB_COMMAND'] = path_bin + ' > PREFIX.out'
         os.environ['DFTB_PREFIX'] = self.slko_path
 
-    def run_dftb(self, positions, symbols, properties):
+    def run_dftb(self, positions, symbols, latvecs, properties):
         """Run batch systems with ASE-DFTB."""
         self.symbols = symbols
+        self.latvecs = latvecs
         results = {}
         for iproperty in properties:
             results[iproperty] = []
 
-        for iposition, isymbol in zip(positions, symbols):
-            # run each molecule in batches
-            self.position, self.symbol = iposition, isymbol
-            self.nat = len(iposition)
+        if self.latvecs is None:
+            for iposition, isymbol in zip(positions, symbols):
+                # run each molecule in batches
+                self.position, self.symbol = iposition, isymbol
+                self.nat = len(iposition)
 
-            fun_dftb = getattr(AseDftb, self.dftb_type)
-            fun_dftb(self)
+                fun_dftb = getattr(AseDftb, self.dftb_type)
+                fun_dftb(self)
 
-            # process each result (overmat, eigenvalue, eigenvect, dipole)
-            for iproperty in properties:
-                func = getattr(AseDftb, iproperty)
-                self.symbol = isymbol
-                results[iproperty].append(func(self))
+                # process each result (overmat, eigenvalue, eigenvect, dipole)
+                for iproperty in properties:
+                    func = getattr(AseDftb, iproperty)
+                    self.symbol = isymbol
+                    results[iproperty].append(func(self))
+        else:
+            for iposition, isymbol, ilatvec in zip(positions, symbols, latvecs):
+                # run each molecule in batches
+                self.position, self.symbol,\
+                    self.latvec = iposition, isymbol, ilatvec
+                self.nat = len(iposition)
+
+                fun_dftb = getattr(AseDftb, self.dftb_type)
+                fun_dftb(self)
+
+                # process each result (overmat, eigenvalue, eigenvect, dipole)
+                for iproperty in properties:
+                    func = getattr(AseDftb, iproperty)
+                    self.symbol = isymbol
+                    results[iproperty].append(func(self))
 
         self.remove()  # remove all the DFTB+ related files
 
@@ -116,6 +133,7 @@ class AseDftb:
                    Hamiltonian_MaxAngularMomentum_C='p',
                    Hamiltonian_MaxAngularMomentum_N='p',
                    Hamiltonian_MaxAngularMomentum_O='p',
+                   Hamiltonian_MaxAngularMomentum_Si='p',
                    Options_='',
                    Analysis_='',
                    Analysis_MullikenAnalysis='Yes',
@@ -123,6 +141,64 @@ class AseDftb:
                    Analysis_EigenvectorsAsText='Yes',
                    ParserOptions_='',
                    ParserOptions_IgnoreUnprocessedNodes='Yes')
+
+        # get calculators
+        mol.calc = cal
+        mol.get_potential_energy()
+
+    def scc_pbc(self):
+        """Build DFTB input by ASE."""
+        # set Atoms with molecule specie and coordinates
+        mol = Atoms(self.symbol, positions=self.position, pbc=True,
+                    cell=[5.0, 5.0, 5.0])
+
+        # set DFTB caulation parameters
+        cal = Dftb(Hamiltonian_='DFTB',
+                   Hamiltonian_SCC='yes',
+                   Hamiltonian_SCCTolerance=1e-8,
+                   Hamiltonian_MaxAngularMomentum_='',
+                   Hamiltonian_MaxAngularMomentum_H='s',
+                   Hamiltonian_MaxAngularMomentum_C='p',
+                   Hamiltonian_MaxAngularMomentum_N='p',
+                   Hamiltonian_MaxAngularMomentum_O='p',
+                   Hamiltonian_MaxAngularMomentum_Si='p',
+                   Options_='',
+                   Analysis_='',
+                   Analysis_MullikenAnalysis='Yes',
+                   Analysis_WriteEigenvectors='Yes',
+                   Analysis_EigenvectorsAsText='Yes',
+                   ParserOptions_='',
+                   ParserOptions_IgnoreUnprocessedNodes='Yes',
+                   kpts=(1, 1, 1))
+
+        # get calculators
+        mol.calc = cal
+        mol.get_potential_energy()
+
+    def scc_si_pbc(self):
+        """Build DFTB input by ASE."""
+        # set Atoms with molecule specie and coordinates
+        mol = Atoms(self.symbol, positions=self.position, pbc=True,
+                    cell=self.latvec)
+
+        # set DFTB caulation parameters
+        cal = Dftb(Hamiltonian_='DFTB',
+                   Hamiltonian_SCC='yes',
+                   Hamiltonian_SCCTolerance=1e-8,
+                   Hamiltonian_MaxAngularMomentum_='',
+                   Hamiltonian_MaxAngularMomentum_H='s',
+                   Hamiltonian_MaxAngularMomentum_C='p',
+                   Hamiltonian_MaxAngularMomentum_N='p',
+                   Hamiltonian_MaxAngularMomentum_O='p',
+                   Hamiltonian_MaxAngularMomentum_Si='p',
+                   Options_='',
+                   Analysis_='',
+                   Analysis_MullikenAnalysis='Yes',
+                   Analysis_WriteEigenvectors='Yes',
+                   Analysis_EigenvectorsAsText='Yes',
+                   ParserOptions_='',
+                   ParserOptions_IgnoreUnprocessedNodes='Yes',
+                   kpts=(1, 1, 1))
 
         # get calculators
         mol.calc = cal
@@ -187,9 +263,9 @@ class AseDftb:
         """Read charges."""
         return read_detailed_out(self.nat)[1]
 
-    def dipole(self):
-        """Read dipole."""
-        return read_detailed_out(self.nat)[2]
+    # def dipole(self):
+    #     """Read dipole."""
+    #     return read_detailed_out(self.nat)[2]
 
     def hamiltonian(self, hamiltonian_name='hamsqr1.dat'):
         """Read and return Hamiltonian."""
@@ -274,12 +350,14 @@ def read_detailed_out(natom):
     qatom_ = re.findall(r"[-+]?\d*\.\d+", text2)[:natom]
     [charge.append(float(ii)) for ii in qatom_]
 
-    # read dipole (Debye)
-    text3 = re.search('(?<=Dipole moment:).+(?=\n)',
-                      text, flags=re.DOTALL | re.MULTILINE).group(0)
-    # if tail is [-3::], read Debye dipole, [:3] will read au dipole
-    dip_ = re.findall(r"[-+]?\d*\.\d+", text3)[:3]
-    [dipole.append(float(ii)) for ii in dip_]
+    return float(E_tot), torch.from_numpy(np.asarray(charge))
 
-    return float(E_tot), torch.from_numpy(np.asarray(charge)), \
-        torch.from_numpy(np.asarray(dipole))
+    # read dipole (Debye)
+    # text3 = re.search('(?<=Dipole moment:).+(?=\n)',
+    #                   text, flags=re.DOTALL | re.MULTILINE).group(0)
+    # # if tail is [-3::], read Debye dipole, [:3] will read au dipole
+    # dip_ = re.findall(r"[-+]?\d*\.\d+", text3)[:3]
+    # [dipole.append(float(ii)) for ii in dip_]
+
+    # return float(E_tot), torch.from_numpy(np.asarray(charge)), \
+    #     torch.from_numpy(np.asarray(dipole))
