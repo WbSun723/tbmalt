@@ -123,6 +123,7 @@ class SKT:
                                        for group in groups_h])
             s_data_shaped = torch.cat([group.transpose(1, 0).flatten()
                                        for group in groups_s])
+
             h_data_shaped, s_data_shaped = self._reshape_hs(
                 h_data_shaped, s_data_shaped, self.periodic, kpoint, index_mask_a[0])
 

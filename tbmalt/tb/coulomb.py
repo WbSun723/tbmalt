@@ -145,7 +145,7 @@ class Ewald(ABC):
         """Update the lattice points for reciprocal Ewald summation."""
         update = Periodic(self.geometry, self.recvec, cutoff=self.maxg,
                           distance_extention=0, positive_extention=0,
-                          negative_extention=0, unit='Bohr')
+                          negative_extention=0, unit='Bohr', return_distance='False')
         return update.rcellvec, update.ncell
 
     def _update_neighbour(self):
@@ -157,9 +157,8 @@ class Ewald(ABC):
     def _invr_periodic(self):
         """Calculate the 1/R matrix for the periodic geometry."""
         # Extra contribution for self interaction
-        extra = torch.stack([torch.eye(self._max_natoms) * 2.0 * self.alpha[ii] / np.sqrt(np.pi)
-                             for ii in range(self._n_batch)])
-
+        extra = torch.eye(self._max_natoms).unsqueeze(0).repeat_interleave(
+            self._n_batch, dim=0) * (2.0 * self.alpha / np.sqrt(np.pi)).unsqueeze(-1).unsqueeze(-1)
         invr = self.ewald_r + self.ewald_g - extra
         invr[self.mask_g] = 0
         return invr
@@ -175,17 +174,13 @@ class Ewald(ABC):
             ibatch, int(n_low[ibatch]): int(2 * n_low[ibatch] - 1)], 0)
             for ibatch in range(self._n_batch)], value=1e3)
         dd2 = torch.sum(torch.clone(gvec_tem) ** 2, -1)
-        mask = torch.cat([torch.unsqueeze(dd2[ibatch] < self.maxg[ibatch] ** 2, 0)
-                          for ibatch in range(self._n_batch)])
+        mask = dd2 < self.maxg.unsqueeze(-1).unsqueeze(-1) ** 2
         gvec = pack([gvec_tem[ibatch, mask[ibatch]]
                      for ibatch in range(self._n_batch)], value=1e3)
 
         # Vectors for calculating the reciprocal Ewald sum
-        rr = pack([self.coord[ibatch].repeat(self._max_natoms, 1)
-                   for ibatch in range(self._n_batch)]) -\
-            pack([torch.cat(([self.coord[ibatch, iatom].repeat(self._max_natoms, 1)
-                              for iatom in range(self.natom[ibatch])]))
-                  for ibatch in range(self._n_batch)])
+        rr = self.coord.repeat(1, self._max_natoms, 1) - self.coord.repeat(
+            1, 1, self._max_natoms).view(self._n_batch, -1, 3)
 
         # The reciprocal Ewald sum
         recsum = self._ewald_reciprocal(rr, gvec, self.alpha, self.param)
@@ -219,14 +214,12 @@ class Ewald(ABC):
         # Ewald parameter
         alphainit = torch.tensor([1.0e-8]).repeat(self._n_batch)
         # Length of the shortest vector in reciprocal space
-        min_g = torch.sqrt(torch.min(torch.sum(torch.stack(
-            [self.recvec[ibatch][maskg[ibatch]] for ibatch in range(
-                self._n_batch)]) ** 2, -1), 1).values)
+        min_g = torch.sqrt(torch.min(torch.sum(self.recvec[maskg].unsqueeze(
+            0).view(self._n_batch, -1, 3) ** 2, -1), 1).values)
 
         # Length of the shortest vector in real space
-        min_r = torch.sqrt(torch.min(torch.sum(torch.stack(
-            [self.latvec[ibatch][maskr[ibatch]] for ibatch in range(
-                self._n_batch)]) ** 2, -1), 1).values)
+        min_r = torch.sqrt(torch.min(torch.sum(self.latvec[maskr].unsqueeze(
+            0).view(self._n_batch, -1, 3) ** 2, -1), 1).values)
 
         alpha = torch.clone(alphainit)
 
@@ -389,13 +382,8 @@ class Ewald(ABC):
     def _ewald_real(self):
         """Batch calculation of the Ewald sum in the real part for a certain
         vector length."""
-        return pack([torch.erfc(self.alpha[ibatch] * self.distmat[ibatch]) / self.distmat[ibatch]
-                     for ibatch in range(self._n_batch)])
-
-    def _ewald_real_simple(self):
-        """Batch calculation of the Ewald sum in the real part for a certain
-        vector length."""
-        return torch.erfc(self.alpha * self.distmat) / self.distmat
+        return torch.erfc(self.alpha.unsqueeze(-1).unsqueeze(
+            -1).unsqueeze(-1) * self.distmat) / self.distmat
 
     def _diff_rec_real(self, alpha, min_g, min_r, param):
         """Returns the difference between reciprocal and real parts of the
@@ -419,19 +407,12 @@ class Ewald3d(Ewald):
     def _ewald_reciprocal(self, rr, gvec, alpha, vol):
         """Calculate the reciprocal part of the Ewald sum."""
         g2 = torch.sum(gvec ** 2, -1)
-        dot = torch.tensor([[[igvec @ irr for igvec in gvec[ibatch]]
-                             for irr in rr[ibatch]]
-                            for ibatch in range(self._n_batch)])
+        dot = torch.matmul(rr, gvec.transpose(-1, -2))
 
-        recsum = torch.cat([torch.unsqueeze(torch.sum((torch.exp(
-            - g2[ibatch] / (4.0 * alpha[ibatch] ** 2)) / g2[ibatch]) *
-            torch.cos(dot[ibatch]), -1), 0) for ibatch in range(self._n_batch)])
-        tem = torch.cat([torch.unsqueeze(2.0 * recsum[ibatch]
-                                         * 4.0 * np.pi / vol[ibatch], 0)
-                         for ibatch in range(self._n_batch)])
-        return pack([torch.unsqueeze(
-                tem[ibatch] - np.pi / (self.param[ibatch] * self.alpha[ibatch] ** 2), 0)
-                for ibatch in range(self._n_batch)])
+        recsum = torch.sum((torch.exp(- g2 / (4.0 * alpha.unsqueeze(-1) ** 2)
+                                      ) / g2).unsqueeze(-2) * torch.cos(dot), -1)
+        tem = 2.0 * recsum * 4.0 * np.pi / vol.unsqueeze(-1)
+        return (tem - (np.pi / (self.param * self.alpha ** 2)).unsqueeze(-1)).unsqueeze(-2)
 
     def _gterm(self, len_g, alpha, cellvol):
         """Returns the maximum value of the Ewald sum in the
@@ -468,48 +449,38 @@ class Ewald2d(Ewald):
 
         g2 = torch.sum(gvec ** 2, -1)
         gg = torch.sqrt(g2)
-        dot = torch.tensor([[[igvec @ irr
-                              for igvec in gvec[ibatch]]
-                             for irr in rr[ibatch]]
-                            for ibatch in range(self._n_batch)])
+        dot = torch.matmul(rr, gvec.transpose(-1, -2))
 
         # Reciprocal, L
-        tem = torch.tensor([[[igg * irr[_index_pd[ibatch]]
-                              for igg in gg[ibatch]]
-                             for irr in rr[ibatch]]
-                            for ibatch in range(self._n_batch)])
+        tem = gg.unsqueeze(-2).repeat_interleave(rr.size(-2), -2) * rr[
+            torch.arange(self._n_batch), :, _index_pd].unsqueeze(-2).transpose(-1, -2)
 
         aa = torch.exp(tem)
-        tem2 = torch.stack([gg[ibatch] / (alpha[ibatch] * 2.0)
-                            for ibatch in range(self._n_batch)])
+        tem2 = gg / (alpha.unsqueeze(-1) * 2.0)
 
-        bb = torch.tensor([[[itt + alpha[ibatch] * irr[_index_pd[ibatch]]
-                             for itt in tem2[ibatch]]
-                            for irr in rr[ibatch]]
-                           for ibatch in range(self._n_batch)])
+        bb = bb = tem2.unsqueeze(-2).repeat_interleave(rr.size(-2), -2) + (
+            alpha.unsqueeze(-1) * rr[torch.arange(self._n_batch), :, _index_pd]
+            ).unsqueeze(-1).repeat_interleave(tem2.size(-1), -1)
 
         cc = torch.exp(- tem)
-        dd = torch.tensor([[[itt - alpha[ibatch] * irr[_index_pd[ibatch]]
-                             for itt in tem2[ibatch]]
-                            for irr in rr[ibatch]]
-                           for ibatch in range(self._n_batch)])
+        dd = tem2.unsqueeze(-2).repeat_interleave(rr.size(-2), -2) - (
+            alpha.unsqueeze(-1) * rr[torch.arange(self._n_batch), :, _index_pd]
+            ).unsqueeze(-1).repeat_interleave(tem2.size(-1), -1)
 
         yyt = aa * torch.erfc(bb) + cc * torch.erfc(dd)
-        yy = torch.stack([iyy / igg for iyy, igg in zip(yyt, gg)])
+        yy = yyt / gg.unsqueeze(-2)
         yy[yy != yy] = 0
-        recl = torch.stack([torch.sum(torch.cos(idot) * iyy, -1)
-                            * 2.0 * np.pi / (ilen[0] * ilen[1])
-                            for idot, iyy, ilen in zip(dot, yy, _length)])
+        recl = torch.sum(torch.cos(dot) * yy, -1) * 2.0 * np.pi / (
+            _length[:, 0] * _length[:, 1]).unsqueeze(-1)
 
         # Reciprocal, 0
-        tem3 = torch.stack([torch.exp(- alpha[ibatch] ** 2 *
-                                      rr[ibatch, :, _index_pd[ibatch]] ** 2) /
-                            alpha[ibatch] + (np.pi) ** 0.5 *
-                            rr[ibatch, :, _index_pd[ibatch]] *
-                            torch.erf(alpha[ibatch] * rr[ibatch, :, _index_pd[ibatch]])
-                            for ibatch in range(self._n_batch)])
-        rec0 = torch.stack([item * (- 2.0 * np.pi ** 0.5 / (ilen[0] * ilen[1]))
-                            for item, ilen in zip(tem3, _length)])
+        tem3 = torch.exp(- alpha.unsqueeze(-1) ** 2 * rr[torch.arange(
+            self._n_batch), :, _index_pd] ** 2) / alpha.unsqueeze(-1) + (
+                np.pi) ** 0.5 * rr[torch.arange(self._n_batch), :, _index_pd] * torch.erf(
+            alpha.unsqueeze(-1) * rr[torch.arange(self._n_batch), :, _index_pd])
+        rec0 = tem3 * (- 2.0 * np.pi ** 0.5 / ((
+            _length[:, 0] * _length[:, 1]).unsqueeze(-1)))
+
         return recl + rec0
 
     def _gterm(self, len_g, alpha, length):
@@ -546,18 +517,13 @@ class Ewald1d(Ewald):
             self._n_batch, 1)[~_mask_pd].reshape(self._n_batch, 2)
 
         g2 = torch.sum(gvec ** 2, -1)
-        dot = torch.tensor([[[igvec @ irr
-                              for igvec in gvec[ibatch]]
-                             for irr in rr[ibatch]]
-                            for ibatch in range(self._n_batch)])
+        dot = torch.matmul(rr, gvec.transpose(-1, -2))
 
         # Reciprocal, L
-        aa = torch.stack([g2[ibatch] / (4 * alpha[ibatch] ** 2)
-                          for ibatch in range(self._n_batch)])
+        aa = g2 / (4 * alpha.unsqueeze(-1) ** 2)
 
-        bb = torch.stack([(rr[ibatch, :, _index_pd[ibatch, 0]] ** 2 +
-                           rr[ibatch, :, _index_pd[ibatch, 1]] ** 2) * alpha[ibatch] ** 2
-                          for ibatch in range(self._n_batch)])
+        bb = (rr[torch.arange(self._n_batch), :, _index_pd[:, 0]] ** 2 + rr[
+            torch.arange(self._n_batch), :, _index_pd[:, 1]] ** 2) * alpha.unsqueeze(-1) ** 2
 
         xx = torch.linspace(10.0 ** -20, 1.0, 5000)
         kk0 = torch.tensor([[[torch.trapz(1.0 / xx * torch.exp(-iaa / xx - ibb * xx), xx)
@@ -565,24 +531,21 @@ class Ewald1d(Ewald):
                              for ibb in bb[ibatch]]
                             for ibatch in range(self._n_batch)])
 
-        recl = torch.stack([torch.sum(torch.cos(idot) * ikk, -1) * 2.0 / ilen
-                            for idot, ikk, ilen in zip(dot, kk0, length)])
+        recl = torch.sum(torch.cos(dot) * kk0, -1) * 2.0 / length.unsqueeze(-1)
 
         # Reciprocal, 0
         rec0 = torch.zeros_like(bb)
         mask = bb != 0
 
-        for ibatch in range(self._n_batch):
-            rec0[ibatch][mask[ibatch]] = (
-                - _euler - torch.log(bb[ibatch][mask[ibatch]])
-                - special.exp1(bb[ibatch][mask[ibatch]])) / length[ibatch]
+        rec0[mask] = (- _euler - torch.log(bb[mask])
+                      - special.exp1(bb[mask])) / length.unsqueeze(
+                      -1).repeat_interleave(bb.size(-1), -1)[mask]
 
         return recl + rec0
 
     def _gterm(self, len_g, alpha, length):
         """Returns the maximum value of the Ewald sum in the
            reciprocal part for a certain vector length."""
-
         return special.exp1(len_g ** 2 / (4 * alpha ** 2)) / length
 
     def _rterm(self, len_r, alpha):

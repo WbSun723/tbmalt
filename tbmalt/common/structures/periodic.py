@@ -44,6 +44,7 @@ class Periodic:
         self._positions_check(**kwargs)
 
         dist_ext = kwargs.get('distance_extention', 1.0)
+        return_distance = kwargs.get('return_distance', True)
 
         # Global cutoff for the diatomic interactions
         self.cutoff = self.cutoff + dist_ext
@@ -57,7 +58,8 @@ class Periodic:
 
         self.cellvec, self.rcellvec, self.ncell = self.get_cell_translations(**kwargs)
 
-        self.positions_vec, self.periodic_distances = self._get_periodic_distance()
+        if return_distance is True:
+            self.positions_vec, self.periodic_distances = self._get_periodic_distance()
 
     def _check(self, latvec, cutoff, **kwargs):
         """Check dimension, type of lattice vector and cutoff."""
@@ -139,8 +141,7 @@ class Periodic:
         leng = ranges[1, :].long() - ranges[0, :].long() + 1
 
         # Number of cells
-        ncell = torch.tensor([leng[ibatch, 0] * leng[ibatch, 1] * leng[ibatch, 2]
-                              for ibatch in range(leng.size(0))])
+        ncell = leng[..., 0] * leng[..., 1] * leng[..., 2]
 
         # Cell translation vectors in relative coordinates
         # Large values are padded at the end of short cell vectors to exceed cutoff distance
@@ -153,7 +154,7 @@ class Periodic:
                            ile[2]).repeat(ile[0] * ile[1])])
                         for ile, iran in zip(leng, ranges.transpose(1, 0))], value=1e3)
 
-        rcellvec = pack([(ilv.transpose(0, 1) @ icv.T.unsqueeze(-1)).squeeze(-1)
+        rcellvec = pack([torch.matmul(ilv.transpose(0, 1), icv.T.unsqueeze(-1)).squeeze(-1)
                          for ilv, icv in zip(self.latvec, cellvec)], value=1e3)
 
         return cellvec, rcellvec, ncell

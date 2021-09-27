@@ -94,7 +94,9 @@ class Scc:
             self.u = self.skt.U
 
         if self.scc in ('scc', 'xlbomd'):
-            self.gamma = Gamma(self.u, self.distances, self.periodic).gamma
+            self.method = kwargs.get('gamma_method', 'read')
+            self.gamma = Gamma(self.u, self.distances, self.system.numbers,
+                               self.periodic, method=self.method).gamma
         else:
             self.gamma = torch.zeros(*self.qzero.shape)
 

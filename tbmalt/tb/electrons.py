@@ -3,6 +3,29 @@ import torch
 import torch.nn.functional as F
 from tbmalt.common.batch import pack
 Tensor = torch.Tensor
+_expcutoff = {(1, 1, 'cutoff'): torch.tensor([20.024999999999999]),
+              (1, 6, 'cutoff'): torch.tensor([22.037500000000001]),
+              (1, 7, 'cutoff'): torch.tensor([19.521874999999998]),
+              (1, 8, 'cutoff'): torch.tensor([18.515625000000000]),
+              (6, 1, 'cutoff'): torch.tensor([22.037500000000001]),
+              (6, 6, 'cutoff'): torch.tensor([22.540625000000002]),
+              (6, 7, 'cutoff'): torch.tensor([22.037500000000001]),
+              (6, 8, 'cutoff'): torch.tensor([20.528124999999999]),
+              (7, 1, 'cutoff'): torch.tensor([19.521874999999998]),
+              (7, 6, 'cutoff'): torch.tensor([22.037500000000001]),
+              (7, 7, 'cutoff'): torch.tensor([20.024999999999999]),
+              (7, 8, 'cutoff'): torch.tensor([19.018749999999997]),
+              (8, 1, 'cutoff'): torch.tensor([18.515625000000000]),
+              (8, 6, 'cutoff'): torch.tensor([20.528124999999999]),
+              (8, 7, 'cutoff'): torch.tensor([19.018749999999997]),
+              (8, 8, 'cutoff'): torch.tensor([17.006250000000001]),
+              (14, 14, 'cutoff'): torch.tensor([33.003124999999997]),
+              (0, 0, 'cutoff'): torch.tensor([1.1]), (0, 1, 'cutoff'): torch.tensor([1.1]),
+              (0, 6, 'cutoff'): torch.tensor([1.1]), (0, 7, 'cutoff'): torch.tensor([1.1]),
+              (0, 8, 'cutoff'): torch.tensor([1.1]), (0, 14, 'cutoff'): torch.tensor([1.1]),
+              (1, 0, 'cutoff'): torch.tensor([1.1]), (6, 0, 'cutoff'): torch.tensor([1.1]),
+              (7, 0, 'cutoff'): torch.tensor([1.1]), (8, 0, 'cutoff'): torch.tensor([1.1]),
+              (14, 0, 'cutoff'): torch.tensor([1.1])}
 
 
 class Gamma:
@@ -18,11 +41,13 @@ class Gamma:
     """
 
     def __init__(self, U: Tensor, distance: Tensor,
-                 periodic=None, **kwargs) -> Tensor:
+                 number: Tensor, periodic=None, **kwargs) -> Tensor:
         self.U = U
         self.distance = distance
         self.periodic = periodic
+        self.number = number
         self.gamma_type = kwargs.get('gamma_type', 'slater')
+        self.method = kwargs.get('method', 'read')
 
         # call gamma funcitons
         if self.gamma_type == 'slater':
@@ -53,13 +78,20 @@ class Gamma:
         gamma.diagonal(0, -1, -2)[:, 0] = -U[:, 0]
 
         alpha, beta = U[..., ut[0]] * 3.2, U[..., ut[1]] * 3.2
+        aa, bb = self.number[..., ut[0]], self.number[..., ut[1]]
 
         # mask of homo or hetero Hubbert in triangular gamma
         mask_homo, mask_hetero = alpha == beta, alpha != beta
         mask_homo[distance.eq(0)], mask_hetero[distance.eq(0)] = False, False
 
         # expcutoff for different atom pairs
-        expcutoff = self._expgamma_cutoff(alpha, beta, torch.clone(gamma_tr))
+        if self.method == 'read':
+            expcutoff = torch.stack([torch.cat([_expcutoff[(*[ii.tolist(), jj.tolist()], 'cutoff')]
+                                                for ii, jj in zip(aa[ibatch], bb[ibatch])])
+                                     for ibatch in range(aa.size(0))]).unsqueeze(
+                                             -2).repeat_interleave(alpha.size(-2), dim=-2)
+        else:
+            expcutoff = self._expgamma_cutoff(alpha, beta, torch.clone(gamma_tr))
 
         # new masks of homo or hetero Hubbert
         mask_cutoff = distance < expcutoff
@@ -81,7 +113,14 @@ class Gamma:
             alpha_o, beta_o = U * 3.2, U * 3.2
             mask_homo2, mask_hetero2 = alpha_o == beta_o, alpha_o != beta_o
             mask_homo2[dist_on.eq(0)], mask_hetero2[dist_on.eq(0)] = False, False
-            expcutoff2 = self._expgamma_cutoff(alpha_o, beta_o, torch.clone(gamma_tem))
+            if self.method == 'read':
+                expcutoff2 = torch.stack([torch.cat([_expcutoff[(*[ii.tolist(), ii.tolist()], 'cutoff')]
+                                                     for ii in self.number[ibatch]])
+                                          for ibatch in range(aa.size(0))]).unsqueeze(
+                                                 -2).repeat_interleave(U.size(-2), dim=-2)
+            else:
+                expcutoff2 = self._expgamma_cutoff(alpha_o, beta_o, torch.clone(gamma_tem))
+
             mask_cutoff2 = dist_on < expcutoff2
             mask_homo2 = mask_homo2 & mask_cutoff2
             mask_hetero2 = mask_hetero2 & mask_cutoff2
