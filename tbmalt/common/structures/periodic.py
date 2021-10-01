@@ -60,6 +60,7 @@ class Periodic:
 
         if return_distance is True:
             self.positions_vec, self.periodic_distances = self._get_periodic_distance()
+            self.neighbour_vec, self.neighbour_dis = self._neighbourlist()
 
     def _check(self, latvec, cutoff, **kwargs):
         """Check dimension, type of lattice vector and cutoff."""
@@ -94,6 +95,9 @@ class Periodic:
                     'cutoff should be 0, 1 dimension tensor or float')
         elif type(cutoff) is not float:
             raise TypeError('cutoff should be tensor or float')
+
+        if latvec.size(0) != 1 and cutoff.size(0) == 1:
+            cutoff = cutoff.repeat_interleave(latvec.size(0))
 
         if unit in ('angstrom', 'Angstrom'):
             latvec = latvec / _bohr
@@ -170,6 +174,15 @@ class Periodic:
                                 positions, self.geometry.positions, size_system)], value=1e3)
 
         return positions_vec, distance
+
+    def _neighbourlist(self):
+        """Get distance matrix of neighbour list according to periodic boundary condition."""
+        _mask = self.neighbour.any(-1).any(-1)
+        neighbour_vec = pack([self.positions_vec[ibatch][_mask[ibatch]]
+                              for ibatch in range(self.cutoff.size(0))], value=1e3)
+        neighbour_dis = pack([self.periodic_distances[ibatch][_mask[ibatch]]
+                              for ibatch in range(self.cutoff.size(0))], value=1e3)
+        return neighbour_vec, neighbour_dis
 
     def _inverse_lattice(self):
         """Get inverse lattice vectors."""

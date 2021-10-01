@@ -53,11 +53,12 @@ class SKT:
         basis = Basis(self.system)
 
         # create mask matrices which show full/block orbital information
-        l_mat_f = basis.azimuthal_matrix(mask=True)
-        l_mat_b = basis.azimuthal_matrix(block=True, mask=True)
+        if not periodic:
+            l_mat_f = basis.azimuthal_matrix(mask=True)
+            l_mat_b = basis.azimuthal_matrix(block=True, mask=True)
 
         # return all terms without mask for on-site terms when periodic
-        if periodic:
+        else:
             l_mat_f = basis.azimuthal_matrix(mask=False)
             l_mat_b = basis.azimuthal_matrix(block=True, mask=False)
 
@@ -81,7 +82,7 @@ class SKT:
 
             # gather atomic numbers, distances, directional cosigns
             gathered_an = an_mat_a[index_mask_a]
-            gathered_dists = self._select_distance(index_mask_a)
+            gathered_dists, _ncell = self._select_distance(index_mask_a)
 
             # mask for on-site terms when distances are zero
             mask_os = gathered_dists == 0
@@ -112,29 +113,40 @@ class SKT:
             h_data = f(gathered_vecs, gathered_h)
             s_data = f(gathered_vecs, gathered_s)
 
-            # Group SK blocks by the row, or system & row for batch mode
-            groupings = torch.stack(index_mask_b[:-1]).unique_consecutive(
-                dim=1, return_counts=True)[1]
-            groups_h = split_by_size(h_data, groupings)
-            groups_s = split_by_size(s_data, groupings)
-
-            # Concatenate each group of SK blocks & flatten the result
-            h_data_shaped = torch.cat([group.transpose(1, 0).flatten()
-                                       for group in groups_h])
-            s_data_shaped = torch.cat([group.transpose(1, 0).flatten()
-                                       for group in groups_s])
+            if l_pair[0] != 0:
+                nr, nc = l_pair * 2 + 1  # № of rows/columns of this sub-block
+                # № of sub-blocks in each system.
+                nl = index_mask_b[0].unique(return_counts=True)[1]
+                # Indices of each row
+                r_offset = torch.arange(nr).expand(len(index_mask_b[-1]), nc).T
+                # Index list to order the rows of all ℓ₁-ℓ₂ sub-blocks so that
+                # the results can be assigned back into the H/S tensors without
+                # mangling.
+                r = (r_offset + index_mask_b[-2]).T.flatten().split((
+                    nr * nl).tolist())
+                r, _mask = pack(r, value=99, return_mask=True)
+                r = r.cpu().sort(stable=True).indices
+                # Correct the index list.
+                r[1:] = r[1:] + (nl.cumsum(0)[:-1] * nr).unsqueeze(
+                    -1).repeat_interleave((r.shape[-1]), dim=-1)
+                r = r[_mask]
+                # The "r" tensor only takes into account the central image, thus
+                # the other images must now be taken into account.
+                n = int(h_data.nelement() / (r.nelement() * nr))
+                r = (r + (torch.arange(n) * len(r)).view(-1, 1)).flatten()
+                # Perform the reordering
+                h_data, s_data = h_data.view(-1, nc)[r], s_data.view(-1, nc)[r]
 
             h_data_shaped, s_data_shaped = self._reshape_hs(
-                h_data_shaped, s_data_shaped, self.periodic, kpoint, index_mask_a[0])
+                h_data.flatten(), s_data.flatten(), self.periodic, kpoint,
+                index_mask_a[0], _ncell)
 
             # Create the full size index mask which will assign the results
             index_mask_f = torch.where((l_mat_f == l_pair).all(dim=-1))
             self.H[index_mask_f] = h_data_shaped
-            self.H[index_mask_f[0], index_mask_f[2], index_mask_f[1]] = \
-                h_data_shaped
+            self.H.transpose(-1, -2)[index_mask_f] = h_data_shaped
             self.S[index_mask_f] = s_data_shaped
-            self.S[index_mask_f[0], index_mask_f[2], index_mask_f[1]] =\
-                s_data_shaped
+            self.S.transpose(-1, -2)[index_mask_f] = s_data_shaped
 
         # get all the onsite mask for batch system
         mask_onsite = (
@@ -152,9 +164,10 @@ class SKT:
     def _select_distance(self, index_mask_a):
         """Gather distance."""
         if self.periodic is None:  # -> molecule
-            return self.system.distances[index_mask_a]
+            return self.system.distances[index_mask_a], torch.tensor([1])
         else:  # -> solid, first dim is batch, second is cell
-            return self.periodic.periodic_distances.permute(0, 2, 3, 1)[index_mask_a].T
+            dis = self.periodic.neighbour_dis
+            return dis.permute(0, 2, 3, 1)[index_mask_a].T, dis.size(-3)
 
     def _position_vec(self):
         if self.periodic is None:
@@ -162,7 +175,7 @@ class SKT:
                 self.system.positions.unsqueeze(-2)
             return torch.nn.functional.normalize(vec_mat_a, p=2, dim=-1)
         else:
-            vec_mat_a = self.periodic.positions_vec
+            vec_mat_a = self.periodic.neighbour_vec
             return torch.nn.functional.normalize(vec_mat_a, p=2, dim=-1)
 
     def _select_position_vec(self, vec_mat_a, index_mask_a):
@@ -197,21 +210,14 @@ class SKT:
         else:
             return None
 
-    def _reshape_hs(self, h_data_shaped, s_data_shaped, periodic, kpoint, mask):
+    def _reshape_hs(self, h_data_shaped, s_data_shaped, periodic, kpoint, mask, cell_size):
         """Reshape periodic H and S and sum over cell dimension."""
         if periodic is None:
             return h_data_shaped, s_data_shaped
         else:
-            cell_size = periodic.periodic_distances.shape[1]
-            phase = torch.exp((0. + 1j) * self._select_kpoint(kpoint, periodic, mask)).real
-
-            # repeat if there are p, d orbitals
-            phase = phase.repeat_interleave(int(h_data_shaped.reshape(
-                cell_size, -1).shape[1] / phase.shape[1]), 1)
-
             # sum along cell vector dimension
-            _h = (phase * h_data_shaped.reshape(cell_size, -1)).sum(0)
-            _s = (phase * s_data_shaped.reshape(cell_size, -1)).sum(0)
+            _h = (h_data_shaped.reshape(cell_size, -1)).sum(0)
+            _s = (s_data_shaped.reshape(cell_size, -1)).sum(0)
 
             return _h, _s
 
