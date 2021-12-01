@@ -118,11 +118,11 @@ class SKT:
                 # № of sub-blocks in each system.
                 nl = index_mask_b[0].unique(return_counts=True)[1]
                 # Indices of each row
-                r_offset = torch.arange(nr).expand(len(index_mask_b[-1]), nc).T
+                r_offset = torch.arange(nr).expand(len(index_mask_b[-1]), nr).T
                 # Index list to order the rows of all ℓ₁-ℓ₂ sub-blocks so that
                 # the results can be assigned back into the H/S tensors without
                 # mangling.
-                r = (r_offset + index_mask_b[-2]).T.flatten().split((
+                r = (r_offset + index_mask_b[-2] * 3).T.flatten().split((
                     nr * nl).tolist())
                 r, _mask = pack(r, value=99, return_mask=True)
                 r = r.cpu().sort(stable=True).indices
@@ -132,7 +132,7 @@ class SKT:
                 r = r[_mask]
                 # The "r" tensor only takes into account the central image, thus
                 # the other images must now be taken into account.
-                n = int(h_data.nelement() / (r.nelement() * nr))
+                n = int(h_data.nelement() / (r.nelement() * nc))
                 r = (r + (torch.arange(n) * len(r)).view(-1, 1)).flatten()
                 # Perform the reordering
                 h_data, s_data = h_data.view(-1, nc)[r], s_data.view(-1, nc)[r]
