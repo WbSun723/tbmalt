@@ -7,20 +7,20 @@ from scipy.interpolate import CubicSpline
 from tbmalt.common.batch import pack
 from tbmalt.common.maths.interpolator import SKInterpolation, BicubInterp, Spline1d, smooth_tail_batch
 Tensor = torch.Tensor
-_orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 14:'p', 15: 'p', 16: 'p', 79: 'd'}
+_orb = {1: 's', 6: 'p', 7: 'p', 8: 'p', 14: 'p', 15: 'p', 16: 'p', 79: 'd'}
 _onsite = {(1, 1, 'onsite'): torch.tensor([-2.386005440483E-01]),
            (6, 6, 'onsite'): torch.tensor([
-               -5.048917654803E-01, -1.943551799182E-01, -1.943551799182E-01,
-               -1.943551799182E-01]),
+                -5.048917654803E-01, -1.943551799182E-01, -1.943551799182E-01,
+                -1.943551799182E-01]),
            (7, 7, 'onsite'): torch.tensor([
-               -6.400000000000E-01, -2.607280834222E-01, -2.607280834222E-01,
-               -2.607280834222E-01]),
+                -6.400000000000E-01, -2.607280834222E-01, -2.607280834222E-01,
+                -2.607280834222E-01]),
            (8, 8, 'onsite'): torch.tensor([
-               -8.788325840767E-01, -3.321317735288E-01, -3.321317735288E-01,
-               -3.321317735288E-01]),
+                -8.788325840767E-01, -3.321317735288E-01, -3.321317735288E-01,
+                -3.321317735288E-01]),
            (14, 14, 'onsite'): torch.tensor([
-               -0.39572506, -0.15031380, -0.15031380,
-               -0.15031380])}
+                -0.39572506, -0.15031380, -0.15031380,
+                -0.15031380])}
 _U = {(1, 1, 'U'): torch.tensor([4.196174261214E-01]),
       (6, 6, 'U'): torch.tensor([3.646664973641E-01]),
       (7, 7, 'U'): torch.tensor([4.308879578818E-01]),
@@ -84,6 +84,16 @@ class IntegralGenerator:
             raise NotImplementedError('Not implement orbital resolved U.')
 
         sk_interp = kwargs.get('interpolation', 'sk_interpolation')
+        siband = kwargs.get('siband', False)
+
+        # Update values for siliocn of siband parameter set
+        if siband:
+            _orb[14] = 'd'
+            _onsite[14, 14, 'onsite'] = torch.tensor([
+                -3.972859571743E-01, -1.499389528184E-01, -1.499389528184E-01,
+                -1.499389528184E-01, 1.975009233745E-01, 1.975009233745E-01,
+                1.975009233745E-01, 1.975009233745E-01, 1.975009233745E-01])
+            _U[14, 14, 'U'] = torch.tensor([2.480782252217E-01])
 
         # The interactions: ddσ, ddπ, ddδ, ...
         interactions = [(2, 2, 0), (2, 2, 1), (2, 2, 2), (1, 2, 0), (1, 2, 1),
@@ -225,6 +235,7 @@ class IntegralGenerator:
         """Return cutoff for all atom pairs."""
         return self.sktable_dict['sk_cutoff_element_pair']
 
+
 def _get_element_info(elements: list):
     """Generate element pair information."""
     _elements_dict = {"H": 1, "Li": 3, "B": 5, "C": 6, "N": 7, "O": 8, "F": 9,
@@ -249,16 +260,16 @@ def _get_hs_dict(sktable_dict: dict, interpolator: object,
     """
     sk_interp = kwargs.get('interpolation', 'sk_interpolation')
     with_variable = kwargs.get('with_variable', False)
-    # sktable_dict['variable'] = [] if with_variable else None
+    sk_type = kwargs.get('sk_type', 'normal')
 
-    # if sk_type != 'compression_radii':
     if sk_interp in ('sk_interpolation', 'numpy_interpolation'):
+        _tail = 0 if sk_type == 'h5py' else 1
 
         for ii, name in enumerate(interactions):
             sktable_dict[(*skf.elements.tolist(), *name, 'H')] = \
-                interpolator(skf.hs_grid, skf.hamiltonian.T[ii])
+                interpolator(skf.hs_grid, skf.hamiltonian.T[ii], tail=_tail)
             sktable_dict[(*skf.elements.tolist(), *name, 'S')] = \
-                interpolator(skf.hs_grid, skf.overlap.T[ii])
+                interpolator(skf.hs_grid, skf.overlap.T[ii], tail=_tail)
 
     elif sk_interp == 'bicubic_interpolation':
         compr_grid = kwargs.get('compression_radii_grid')

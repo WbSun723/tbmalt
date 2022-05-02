@@ -163,31 +163,6 @@ class Spline1d:
     def __init__(self, xx: Tensor, yy: Tensor, **kwargs):
         self.xp, self.yp = xx, yy
         self.kind = kwargs.get('kind', 'cubic')
-        self.incr = self.xp[1] - self.xp[0]
-
-        # Add points in the range (9.98, 10.98]
-        xtail = torch.from_numpy(np.linspace(9.98, 10.98, 51))
-        ninterp = 8
-        delta_r = 1E-5
-        l_tail = 1
-        dr = xtail - self.xp[-2] - l_tail
-        ilast = len(self.xp)
-
-        # get grid points and grid point values
-        xa = (ilast - ninterp + torch.arange(ninterp)) * self.incr
-        yb = self.yp[ilast - ninterp - 1: ilast - 1]
-        xa = xa.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
-        yb = yb.repeat(dr.shape[0]).reshape(dr.shape[0], -1)
-
-        # get derivative
-        y0 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] - delta_r)
-        y2 = poly_interp_2d(xa, yb, xa[:, ninterp - 1] + delta_r)
-        y1 = self.yp[ilast - 2]
-        y1p = (y2 - y0) / (2.0 * delta_r)
-        y1pp = (y2 + y0 - 2.0 * y1) / (delta_r * delta_r)
-        tail_ = poly5_zero(y1, y1p, y1pp, dr, -1.0 * l_tail)
-        self.xp = torch.cat((self.xp[:-2], xtail))
-        self.yp = torch.cat((self.yp[:-2], tail_))
 
         if self.kind == 'cubic':
             if kwargs.get('abcd') is not None:
@@ -209,7 +184,7 @@ class Spline1d:
         """
         # according to the order to choose spline method
         self.xnew = xnew if xnew.dim() == 1 else xnew.unsqueeze(0)
-        self.knot = [ii in self.xp for ii in self.xnew]
+        # self.knot = [ii in self.xp for ii in self.xnew]
 
         # boundary condition of xnew,  xp[0] < xnew < xp[-1], now xp[-1] = 10.98
         assert self.xnew.ge(self.xp[0]).all()
@@ -287,23 +262,24 @@ class SKInterpolation:
     Arguments:
         xx: Grid points of distances.
         yy: Integral tables.
+        tail: Distance to smooth the tail, unit is bohr.
     """
 
-    def __init__(self, xx: Tensor, yy: Tensor):
+    def __init__(self, xx: Tensor, yy: Tensor, tail: int):
         self.yy = yy
         self.incr = xx[1] - xx[0]
         self.ngridpoint = len(xx)
+        self.tail = tail
 
-    def __call__(self, rr: Tensor, ninterp=8, delta_r=1E-5, tail=1) -> Tensor:
+    def __call__(self, rr: Tensor, ninterp=8, delta_r=1E-5) -> Tensor:
         """Interpolation SKF according to distance from integral tables.
 
         Arguments:
             rr: interpolation points for batch.
             ninterp: Number of total interpolation grid points.
             delta_r: Delta distance for 1st, 2nd derivative.
-            tail: Distance to smooth the tail, unit is bohr.
         """
-        ntail = int(tail / self.incr)
+        tail = self.tail
         rmax = (self.ngridpoint - 1) * self.incr + tail
         ind = (rr / self.incr).int()
         result = torch.zeros(rr.shape) if self.yy.dim() == 1 else torch.zeros(

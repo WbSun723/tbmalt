@@ -56,6 +56,10 @@ class System:
     def __init__(self, numbers: Union[Tensor, List[Tensor]],
                  positions: Union[Tensor, List[Tensor]],
                  cell=None, frac=None, **kwargs):
+        # whether using siband parameter
+        _siband = kwargs.get('siband', False)
+        l_num[13] = 2 if _siband else 1
+
         # bool tensor is_periodic defines which is solid and which is molecule
         if cell is not None:
             self._cell = Pbc(cell, frac, **kwargs)

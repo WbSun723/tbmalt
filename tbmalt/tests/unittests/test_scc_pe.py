@@ -143,3 +143,53 @@ def test_batch_pe_2():
              0.000000000000000, 0.000000000000000],
             [0.70794447853157250, 6.5839848726758881, 0.70807064879254611,
              0.000000000000000, 0.000000000000000]]))) < 1E-8, 'Tolerance check'
+
+
+def test_scc_si_3d_pbc():
+    """Test SCC DFTB for si with periodic boundary condition."""
+    latvec = torch.tensor([[5.8, 0., 0.], [0., 5.8, 0.], [0., 0., 5.8]])
+    cutoff = torch.tensor([9.98])
+    positions = torch.tensor([
+        [0.0, 0.0, 0.0],
+        [1.45, 1.45, 1.45],
+        [1.45, 4.35, 4.35],
+        [4.35, 1.45, 4.35],
+        [4.35, 4.35, 1.45],
+        [2.9, 2.9, 0.0],
+        [2.9, 0.0, 2.9],
+        [0.0, 2.9, 2.9]])
+    numbers = torch.tensor([14, 14, 14, 14, 14, 14, 14, 14])
+    molecule = System(numbers, positions, latvec)
+    sktable = IntegralGenerator.from_dir('./slko/pbc/pbc-0-3', molecule)
+    periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
+    skt = SKT(molecule, sktable, periodic)
+    coulomb = Coulomb(molecule, periodic)
+    parameter = Parameter()
+    scc = Scc(molecule, skt, parameter, coulomb, periodic)
+    assert torch.max(abs(scc.homo_lumo - torch.tensor([[
+        -4.736521272801378, -1.941658062769718]]))) < 1E-8, 'Tolerance check'
+
+
+def test_scc_si_3d_siband():
+    """Test SCC DFTB for si with periodic boundary condition."""
+    latvec = torch.tensor([[5.8, 0., 0.], [0., 5.8, 0.], [0., 0., 5.8]])
+    cutoff = torch.tensor([18.0])
+    positions = torch.tensor([
+        [0.0, 0.0, 0.0],
+        [1.45, 1.45, 1.45],
+        [1.45, 4.35, 4.35],
+        [4.35, 1.45, 4.35],
+        [4.35, 4.35, 1.45],
+        [2.9, 2.9, 0.0],
+        [2.9, 0.0, 2.9],
+        [0.0, 2.9, 2.9]])
+    numbers = torch.tensor([14, 14, 14, 14, 14, 14, 14, 14])
+    molecule = System(numbers, positions, latvec, siband=True)
+    sktable = IntegralGenerator.from_dir('./slko/siband/siband-1-1', molecule, siband=True)
+    periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
+    skt = SKT(molecule, sktable, periodic)
+    coulomb = Coulomb(molecule, periodic)
+    parameter = Parameter()
+    scc = Scc(molecule, skt, parameter, coulomb, periodic)
+    assert torch.max(abs(scc.homo_lumo - torch.tensor([[
+        -4.470602063036233, -3.555044832944658]]))) < 1E-8, 'Tolerance check'
