@@ -3,453 +3,434 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from torch.autograd import Variable
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.data.distributed import DistributedSampler
 from tbmalt.common.structures.system import System
 from tbmalt.io.loadskf import IntegralGenerator
-from tbmalt.ml.train import Integal, CompressionRadii
 from tbmalt.common.parameter import Parameter
+from tbmalt.common.data import additional_para
 from tbmalt.io.loadhdf import LoadHdf
 from tbmalt.tb.sk import SKT
 from tbmalt.tb.dftb.scc import Scc
 from tbmalt.common.structures.periodic import Periodic
 from tbmalt.tb.coulomb import Coulomb
 from tbmalt.tb.properties import dos
-from tbmalt.tb.properties import band_pass_state_filter
+from tbmalt.common.batch import pack
+import tbmalt.common.maths as tb_math
 import time
 
-torch.set_printoptions(6)
+# Set general parameters for training and DFTB calculations
+torch.set_printoptions(6, profile='full')
 torch.set_default_dtype(torch.float64)
 size_train, size_test = 1, 1
 params = Parameter(ml_params=True)
 params.ml_params['task'] = 'mlIntegral'
-params.ml_params['steps'] = 100
-params.ml_params['target'] = ['dos_eigval']  # charge, dipole, gap, cpa, homo_lumo, dos
-params.ml_params['ml_method'] = 'forest'  # nn, linear, forest
-# params.ml_params['loss_function'] = 'KLDivLoss'
-# params.dftb_params['maxiter'] = 5
+params.ml_params['steps'] = 500
+params.ml_params['lr'] = 0.000005
+params.ml_params['test'] = True
+# Taget systems include 'Si_V', 'SiC_V', 'Si_I_100', 'Si_I_110'
+params.ml_params['target'] = 'Si_V'
+# Transfer prediction types include 'none' (valid for Si_V and SiC_V),
+# 'large' (vaild for all targets), 'other defects' (valid for Si_V)
+params.ml_params['transfer_type'] = 'none'
+params.ml_params['loss_function'] = 'HellingerLoss'
+_para = additional_para[(params.ml_params['target'], params.ml_params['transfer_type'])]
 params.dftb_params['sigma'] = 0.09
 params.dftb_params['with_periodic'] = True
-# params.dftb_params['mix'] = 'simple'
-dataset = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/dataset/test_aims_si44.hdf'
-dataset_dftb = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/dataset/test_dftb_si44.hdf'
+params.dftb_params['siband'] = _para[3]
+params.dftb_params['path_to_skf'] = _para[2]
+if params.ml_params['transfer_type'] == 'large':
+    params.dftb_params['maxiter'] = 1
+dataset_train = _para[0]
+dataset_test = _para[1]
+points = _para[4]
 
 
-def train():
+class SiliconDataset(Dataset):
+    """Build training and testing dataset."""
+
+    def __init__(self, numbers, positions, latvecs, homo_lumos, eigenvalues):
+        self.numbers = numbers
+        self.positions = positions
+        self.latvecs = latvecs
+        self.homo_lumos = homo_lumos
+        self.eigenvalues = eigenvalues
+
+    def __len__(self):
+        return len(self.numbers)
+
+    def __getitem__(self, idx):
+        number = self.numbers[idx]
+        position = self.positions[idx]
+        latvec = self.latvecs[idx]
+        homo_lumo = self.homo_lumos[idx]
+        eigenvalue = self.eigenvalues[idx]
+        system = {"number": number, "position": position, "latvec": latvec,
+                  "homo_lumo": homo_lumo, "eigenvalue": eigenvalue, "idx": idx}
+
+        return system
+
+
+def prepare_data():
     """Initialize parameters."""
-    if params.ml_params['task'] == 'mlIntegral':
-        params.dftb_params['path_to_skf'] = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/skf_pbc.hdf'
-        params.ml_params['lr'] = 0.000001
-    elif params.ml_params['task'] == 'mlCompressionR':
-        params.dftb_params['path_to_skf'] = '/home/wbsun/DFTBMaLT/preiodic_train_clean/tbmalt/tbmalt/tests/test/train/skf.hdf.comprwav'
-        params.ml_params['lr'] = 0.05
-        params.ml_params['compression_radii_grid'] = torch.tensor([
-            01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
-            04.50, 05.00, 06.00, 08.00, 10.00])
+    try:
+        os.mkdir('./result')
+    except FileExistsError:
+        pass
 
-    # build a random index
-    rand_index = torch.randperm(1)
+    # Build a random index to select geometries for training and testing
+    rand_index = torch.randperm(80)
     train_index = rand_index[:size_train].tolist()
-    test_index = rand_index[:size_test].tolist()
-    f = open('rand_index.dat', 'w')
+    test_index = rand_index[60: 60 + size_test].tolist()
+    f = open('./result/rand_index.dat', 'w')
     np.savetxt(f, rand_index.detach())
     f.close()
 
+    # Read geometries from dataset
     numbers_train, positions_train, latvecs_train, data_train = LoadHdf.load_reference_si(
-        dataset, train_index, ['charge', 'energy', 'homo_lumo', 'dos', 'dos_raw',
-                               'dos_raw_gamma', 'eigenvalue'], periodic=True)
-    if 'dos' in params.ml_params['target']:
-        energies = data_train['dos_raw'][..., 0]
-        dos_values = data_train['dos_raw'][..., 1]
-        mask_mid = torch.stack([abs(energies[ii] -
-                                    data_train['homo_lumo'][..., 0][ii]) < 2E-2
-                                for ii in range(size_train)])
-        energy_mid = energies[mask_mid]
-        mask_vb = torch.stack([abs(energies[ii] - energy_mid[ii]) < 0.6
-                               for ii in range(size_train)])
-        dos_train = torch.stack([dos_values[ii][mask_vb[ii]]
-                                 for ii in range(size_train)])
-        energies_train = torch.stack([energies[ii][mask_vb[ii]]
-                                      for ii in range(size_train)])
-
-        data_train['dos'] = torch.cat((energies_train.unsqueeze(-1),
-                                       dos_train.unsqueeze(-1)), -1)
-
-    if 'dos_eigval' in params.ml_params['target']:
-        eigval_ref = data_train['eigenvalue']
-        print("eigval_ref", eigval_ref)
-        energies = torch.linspace(-18, 5, 500).repeat(size_train, 1)
-        dos_ref = dos((eigval_ref), energies,
-                      params.dftb_params['sigma'])
-        plt.plot(energies[0], dos_ref[0])
-        plt.xlim((-18.2, 5.2))
-        plt.ylim((-1, 30))
-        plt.title('dft')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('ref_dos_cal.png', dpi=300)
-        plt.show()
-        mask_mid = torch.stack([abs(energies[ii] -
-                                    data_train['homo_lumo'][..., 0][ii]) < 3E-2
-                                for ii in range(size_train)])
-        energy_mid = energies[mask_mid]
-
-        mask_vb = torch.stack([abs(energies[ii] - energy_mid[ii]) < 0.6
-                               for ii in range(size_train)])
-        dos_train = torch.stack([dos_ref[ii][mask_vb[ii]]
-                                 for ii in range(size_train)])
-        energies_train = torch.stack([energies[ii][mask_vb[ii]]
-                                      for ii in range(size_train)])
-        data_train['dos'] = torch.cat((energies_train.unsqueeze(-1),
-                                       dos_train.unsqueeze(-1)), -1)
-
-    if params.dftb_params['with_periodic']:
-        sys_train = System(numbers_train, positions_train, latvecs_train)
-        periodic_train = Periodic(sys_train, sys_train.cell, cutoff=9.98)
-        coulomb_train = Coulomb(sys_train, periodic_train)
-    else:
-        sys_train = System(numbers_train, positions_train)
-        periodic_train, coulomb_train = None, None
-
+        dataset_train, train_index, ['homo_lumo', 'eigenvalue'], periodic=True)
     numbers_test, positions_test, latvecs_test, data_test = LoadHdf.load_reference_si(
-        dataset, test_index, ['charge', 'energy', 'homo_lumo', 'dos',
-                              'dos_raw', 'dos_raw_gamma', 'eigenvalue'], periodic=True)
-    numbers_dftb_train, positions_dftb_train, latvecs_dftb_train, data_dftb_train = LoadHdf.load_reference_si(
-        dataset_dftb, train_index, ['charge', 'energy', 'homo_lumo'], periodic=True)
-    numbers_dftb, positions_dftb, latvecs_dftb, data_dftb = LoadHdf.load_reference_si(
-        dataset_dftb, test_index, ['charge', 'energy', 'homo_lumo'], periodic=True)
-    if params.dftb_params['with_periodic']:
-        sys_test = System(numbers_test, positions_test, latvecs_test)
-        periodic_test = Periodic(sys_test, sys_test.cell, cutoff=9.98)
-        coulomb_test = Coulomb(sys_test, periodic_test)
+        dataset_test, test_index, ['homo_lumo', 'eigenvalue'], periodic=True)
+
+    # Build datasets
+    train_dataset = SiliconDataset(pack(numbers_train), pack(positions_train),
+                                   pack(latvecs_train), data_train['homo_lumo'],
+                                   data_train['eigenvalue'])
+    test_dataset = SiliconDataset(pack(numbers_test), pack(positions_test),
+                                  pack(latvecs_test), data_test['homo_lumo'],
+                                  data_test['eigenvalue'])
+
+    # Build objects for DFTB calculation
+    system_train = System(pack(numbers_train), pack(positions_train),
+                          pack(latvecs_train), siband=params.dftb_params['siband'])
+    system_test = System(pack(numbers_test), pack(positions_test),
+                         pack(latvecs_test), siband=params.dftb_params['siband'])
+    sk_grad = IntegralGenerator.from_dir(
+            params.dftb_params['path_to_skf'], system_train, repulsive=False,
+            interpolation='spline', sk_type='h5py', with_variable=True,
+            siband=params.dftb_params['siband'])
+    sk_origin = IntegralGenerator.from_dir(
+            params.dftb_params['path_to_skf'], system_test,
+            repulsive=False, sk_type='h5py',
+            siband=params.dftb_params['siband'])
+
+    # Calculate reference dos and implement sampling
+    ref_ev = data_train['eigenvalue']
+    energies = torch.linspace(-18, 5, 500).repeat(size_train, 1)
+    dos_ref = dos((ref_ev), energies,
+                  params.dftb_params['sigma'])
+
+    # Plot training data
+    dos_ref_mean = dos_ref.mean(dim=0)
+    dos_ref_std = dos_ref.std(dim=0)
+    plt.plot(energies[0], dos_ref_mean, '-', linewidth=1.0)
+    plt.fill_between(energies[0], dos_ref_mean + dos_ref_std,
+                     dos_ref_mean - dos_ref_std, alpha=0.5, facecolor='darkred')
+    plt.tick_params(direction='in', labelsize='13', width=1.1, top='on',
+                    right='on', zorder=10)
+    plt.xlim((-18.2, 5.2))
+    plt.ylim((-1, 70))
+    plt.xlabel("Energy [eV]", fontsize=14)
+    plt.ylabel("DOS", fontsize=14)
+    plt.savefig('./result/ref_dos_cal.png', dpi=500)
+    plt.show()
+
+    # Sampling
+    fermi_train = data_train['homo_lumo'].mean(dim=1)
+    homo_train = data_train['homo_lumo'][..., 0]
+    align_train = fermi_train if params.dftb_params['siband'] else homo_train
+    energies_train = points.unsqueeze(0).repeat_interleave(
+        size_train, 0) + align_train.unsqueeze(-1)
+
+    dos_train = dos((ref_ev), energies_train,
+                    params.dftb_params['sigma'])
+    data_train_dos = torch.cat((energies_train.unsqueeze(-1),
+                                dos_train.unsqueeze(-1)), -1)
+
+    # Plot training range
+    plt.plot(energies[0], dos_ref_mean, zorder=0)
+    plt.fill_between(energies_train.mean(dim=0), -1, 80, alpha=0.2,
+                     facecolor='darkred', zorder=0)
+    plt.tick_params(direction='in', labelsize='13', width=1.1, top='on',
+                    right='on', zorder=10)
+    plt.xlim((-18.2, 5.2))
+    plt.ylim((-1, 70))
+    plt.xlabel("Energy [eV]", fontsize=14)
+    plt.ylabel("DOS", fontsize=14)
+    plt.savefig('./result/training_range.png', dpi=500)
+    plt.show()
+
+    return train_dataset, test_dataset, sk_grad, sk_origin, data_train_dos
+
+
+def data_split(rank, world_size, dataset, batch_size=1, pin_memory=False,
+               num_workers=0):
+    """Prepare the training data for distributed environment."""
+    dataset = dataset
+    sampler = DistributedSampler(dataset, num_replicas=world_size, rank=rank,
+                                 shuffle=False, drop_last=False)
+    dataloader = DataLoader(dataset, batch_size=batch_size,
+                            pin_memory=pin_memory, num_workers=num_workers,
+                            drop_last=False, shuffle=False, sampler=sampler)
+    return dataloader
+
+
+def dftb_result(number, position, latvec, sk, **kwargs):
+    """Carry out original DFTB calculations."""
+    with_grad = kwargs.get('with_grad', False)
+    pred = kwargs.get('pred', False)
+    dftb = kwargs.get('dftb', False)
+    idx = kwargs.get('idx', None)
+    sys = System(number, position, latvec,
+                 siband=params.dftb_params['siband'])
+    cutoff = torch.tensor([18.0]) if params.dftb_params['siband'] else torch.tensor([9.98])
+    periodic = Periodic(sys, sys.cell, cutoff=cutoff)
+    coulomb = Coulomb(sys, periodic)
+
+    if with_grad:
+        skt = SKT(sys, sk, periodic, with_variable=True,
+                  fix_onsite=True, fix_U=True)
     else:
-        sys_test = System(numbers_test, positions_test)
-        periodic_test, coulomb_test = None, None
+        skt = SKT(sys, sk, periodic)
 
-    # optimize integrals directly
+    scc = Scc(sys, skt, params, coulomb, periodic)
+
+    if pred:
+        f = open('./result/test/Pred_overlap' + str(int(idx) + 1) + '.dat', 'w')
+        np.savetxt(f, skt.S[0].detach())
+        f.close()
+        f = open('./result/test/Pred_H' + str(int(idx) + 1) + '.dat', 'w')
+        np.savetxt(f, skt.H[0].detach())
+        f.close()
+
+    if dftb:
+        f = open('./result/test/dftb_overlap' + str(int(idx) + 1) + '.dat', 'w')
+        np.savetxt(f, skt.S[0])
+        f.close()
+        f = open('./result/test/dftb_H' + str(int(idx) + 1) + '.dat', 'w')
+        np.savetxt(f, skt.H[0])
+        f.close()
+
+    return scc
+
+
+def loss_fn(results, ref_dos, ibatch):
+    """Calculate loss during training."""
+    loss = 0.
+    # Get type of loss function.
+    if params.ml_params['loss_function'] == 'MSELoss':
+        criterion = torch.nn.MSELoss(reduction='mean')
+    elif params.ml_params['loss_function'] == 'L1Loss':
+        criterion = torch.nn.L1Loss(reduction='sum')
+    elif params.ml_params['loss_function'] == 'KLDivLoss':
+        criterion = torch.nn.KLDivLoss(reduction='sum')
+    elif params.ml_params['loss_function'] == 'HellingerLoss':
+        criterion = tb_math.HellingerLoss()
+
+    # Calculate loss
+    ref = ref_dos[..., 1][ibatch]
+    fermi_dftb = results.homo_lumo.mean(dim=1)
+    homo_dftb = results.homo_lumo[..., 0]
+    align_dftb = fermi_dftb if params.dftb_params['siband'] else homo_dftb
+    energies_dftb = points + align_dftb
+    dos_dftb = dos((results.eigenvalue),
+                   energies_dftb, results.params.dftb_params['sigma'])
+    loss = loss + criterion(dos_dftb, ref)
+
+    return loss
+
+
+def main(rank, world_size, train_dataset,
+         sk_grad, data_train_dos):
+    """ML training to optimize DFTB H and S matrix."""
+    # Initialize training parameters
+    try:
+        os.mkdir('./result/test')
+    except FileExistsError:
+        pass
+    try:
+        os.mkdir('./result/abcd')
+    except FileExistsError:
+        pass
+
+    train_data = data_split(rank, world_size, train_dataset)
+    variable = sk_grad.sktable_dict['variable']
+    if type(variable) is torch.Tensor:
+        variable = Variable(variable, requires_grad=True)
+    elif type(variable) is list:
+        variable = variable
+    if params.ml_params['optimizer'] == 'SGD':
+        optimizer = torch.optim.SGD(variable, lr=params.ml_params['lr'])
+    elif params.ml_params['optimizer'] == 'Adam':
+        optimizer = torch.optim.Adam(variable, lr=params.ml_params['lr'])
+    loss_list = []
+    loss_list.append(0)
     time1 = time.time()
-    if params.ml_params['task'] == 'mlIntegral':
-        integral = Integal(sys_train, data_train, params,
-                           coulomb=coulomb_train, periodic=periodic_train)
-        integral(params.ml_params['target'])
-        print('numbers_test', len(numbers_test))
-        time2 = time.time()
-        scc_pred = integral.predict(sys_test, coulomb_test, periodic_test)
 
-        if 'cpa' in params.ml_params['target']:
-            sk = IntegralGenerator.from_dir(
-                './slko/skf.hdf.mio', sys_test, repulsive=False, sk_type='h5py')
-            skt = SKT(sys_test, sk, periodic_test)
-            scc_dftb = Scc(sys_test, skt, params, coulomb_test, periodic_test,
-                           params.ml_params['target'])
-            f = open('cpaPred.dat', 'w')
-            np.savetxt(f, scc_pred.cpa.detach())
-            f.close()
-            f = open('cpaDftb.dat', 'w')
-            np.savetxt(f, scc_dftb.cpa)
-            f.close()
-            f = open('cpaRef.dat', 'w')
-            np.savetxt(f, data_test['hirshfeld_volume_ratio'])
-            f.close()
-        if 'dos' in params.ml_params['target']:
-            sk = IntegralGenerator.from_dir(
-                params.dftb_params['path_to_skf'], sys_test, repulsive=False, sk_type='h5py')
-            skt = SKT(sys_test, sk, periodic_test)
-            scc_dftb = Scc(sys_test, skt, params, coulomb_test, periodic_test,
-                           params.ml_params['target'])
-        if 'dos_eigval' in params.ml_params['target']:
-            sk = IntegralGenerator.from_dir(
-                params.dftb_params['path_to_skf'], sys_test, repulsive=False, sk_type='h5py')
-            skt = SKT(sys_test, sk, periodic_test)
-            scc_dftb = Scc(sys_test, skt, params, coulomb_test, periodic_test,
-                           params.ml_params['target'])
+    # Training
+    for istep in range(params.ml_params['steps']):
+        _loss = 0
+        print('istep', istep)
+        train_data.sampler.set_epoch(istep)
+        for ibatch, data in enumerate(train_data):
+            scc = dftb_result(data['number'], data['position'],
+                              data['latvec'], sk_grad, with_grad=True)
+            loss = loss_fn(scc, data_train_dos, data['idx'])
+            _loss = _loss + loss
+        optimizer.zero_grad()
+        _loss.retain_grad()
+        _loss.backward(retain_graph=True)
+        optimizer.step()
+        print("loss:", _loss)
+        loss_list.append(_loss.detach())
 
-    elif params.ml_params['task'] == 'mlCompressionR':
-        compr = CompressionRadii(sys_train, data_train, params,
-                                 coulomb=coulomb_train, periodic=periodic_train)
-        _train = compr(params.ml_params['target'])
-        print('property:', 'dipole train')
-        print(abs((_train.dipole - data_train['dipole'])).sum())
-        print(abs((data_dftb_train['dipole'] - data_train['dipole'])).sum())
+    time2 = time.time()
+    print("time:", time2 - time1)
 
-        scc_pred = compr.predict(sys_test, coulomb_test, periodic_test)
-
-    if 'charge' in params.ml_params['target']:
-        print('time:', time2 - time1)
-        print('property:', 'charge')
-        print(abs((scc_pred.charge - data_test['charge'])).sum())
-        print(abs((data_dftb['charge'] - data_test['charge'])).sum())
-        print('predict', scc_pred.charge)
-        print('ref', data_test['charge'])
-        f = open('netchargePred.dat', 'w')
-        np.savetxt(f, scc_pred.charge.detach() - scc_pred.qzero)
-        f.close()
-        f = open('netchargeDftb.dat', 'w')
-        np.savetxt(f, data_dftb['charge'] - scc_pred.qzero)
-        f.close()
-        f = open('netchargeRef.dat', 'w')
-        np.savetxt(f, data_test['charge'] - scc_pred.qzero)
-        f.close()
-        f = open('Predcharge.dat', 'w')
-        np.savetxt(f, scc_pred.charge.detach())
-        f.close()
-        f = open('DFTBcharge.dat', 'w')
-        np.savetxt(f, data_dftb['charge'])
-        f.close()
-        f = open('Refcharge.dat', 'w')
-        np.savetxt(f, data_test['charge'])
-        f.close()
-        heavy_mask = data_test['charge'].gt(1.5)
-        heavy_qzero = torch.floor(data_test['charge'][heavy_mask])
-        xx = torch.linspace(1, heavy_qzero.shape[0], heavy_qzero.shape[0])
-        plt.plot(xx, scc_pred.charge.detach()[heavy_mask] - heavy_qzero, 'xr', label='predict')
-        plt.legend()
-        plt.show()
-
-    if 'dipole' in params.ml_params['target']:
-        print('property:', 'dipole')
-        print(abs((scc_pred.dipole - data_test['dipole'])).sum())
-        print(abs((data_dftb['dipole'] - data_test['dipole'])).sum())
-        plt.plot(data_test['dipole'], scc_pred.dipole.detach(), 'xr', label='predict')
-        plt.plot(data_test['dipole'], data_dftb['dipole'], 'vb', label='previous parameters')
-        plt.plot(torch.linspace(-0.8, 0.8, 10), torch.linspace(-0.8, 0.8, 10), color='k')
-        plt.legend()
-        plt.show()
-        print('scc_pred.dipole', len(scc_pred.dipole))
-        f = open('dipolePred.dat', 'w')
-        np.savetxt(f, scc_pred.dipole.detach())
-        f.close()
-        f = open('dipoleDftb.dat', 'w')
-        np.savetxt(f, data_dftb['dipole'])
-        f.close()
-        f = open('dipoleRef.dat', 'w')
-        np.savetxt(f, data_test['dipole'])
-        f.close()
-
-    if 'homo_lumo' in params.ml_params['target']:
-        print('time:', time2 - time1)
-        print('property:', 'homo_lumo')
-        hl_pred = scc_pred.homo_lumo
-        hl_ref = data_test['homo_lumo']
-        hl_dftb = data_dftb['homo_lumo']
-        print(abs((hl_pred - hl_ref)).sum())
-        print(abs((hl_dftb - hl_ref)).sum())
-        f = open('Pred_homo_lumo.dat', 'w')
-        np.savetxt(f, hl_pred.detach())
-        f.close()
-        f = open('DFTBcharge.dat', 'w')
-        np.savetxt(f, data_dftb['homo_lumo'])
-        f.close()
-        f = open('Refcharge.dat', 'w')
-        np.savetxt(f, data_test['homo_lumo'])
-        f.close()
-        plt.plot(hl_ref, hl_pred.detach(), 'xr', label='predict')
-        plt.plot(hl_ref, hl_dftb, 'vb', label='previous parameters')
-        plt.plot(torch.linspace(-0.8, 0.8, 10), torch.linspace(-0.8, 0.8, 10), color='k')
-        plt.legend()
-        plt.show()
-
-    if 'gap' in params.ml_params['target']:
-        print('property:', 'gap')
-        gap_pred = scc_pred.homo_lumo[:, 1] - scc_pred.homo_lumo[:, 0]
-        gap_ref = data_test['homo_lumo'][:, 1] - data_test['homo_lumo'][:, 0]
-        gap_dftb = data_dftb['homo_lumo'][:, 1] - data_dftb['homo_lumo'][:, 0]
-        print(abs((gap_pred - gap_ref)).sum())
-        print(abs((gap_dftb - gap_ref)).sum())
-        f = open('Pred_gap.dat', 'w')
-        np.savetxt(f, gap_pred.detach())
-        f.close()
-        f = open('DFTB_gap.dat', 'w')
-        np.savetxt(f, gap_dftb.detach())
-        f.close()
-        f = open('Ref_gap.dat', 'w')
-        np.savetxt(f, gap_ref.detach())
-        f.close()
-        f = open('Pred_homo_lumo.dat', 'w')
-        np.savetxt(f, scc_pred.homo_lumo.detach())
-        f.close()
-        f = open('DFTB_hl.dat', 'w')
-        np.savetxt(f, data_dftb['homo_lumo'])
-        f.close()
-        f = open('Ref_hl.dat', 'w')
-        np.savetxt(f, data_test['homo_lumo'])
-        plt.plot(gap_ref, gap_pred.detach(), 'xr', label='predict')
-        plt.plot(gap_ref, gap_dftb, 'vb', label='previous parameters')
-        plt.plot(torch.linspace(-0.8, 0.8, 10), torch.linspace(-0.8, 0.8, 10), color='k')
-        plt.legend()
-        plt.show()
-
-    if 'cpa' in params.ml_params['target']:
-        sys_dftb = System(numbers_dftb, positions_dftb)
-        sk = IntegralGenerator.from_dir('./slko/skf.hdf.init', sys_dftb, sk_type='h5py')
-        skt = SKT(sys_dftb, sk)
-        scc = Scc(sys_dftb, skt, params, ['cpa'])
-        print('property:', 'cpa')
-        print(abs((scc_pred.cpa - data_test['hirshfeld_volume_ratio'])).sum())
-        print(abs((scc.cpa - data_test['hirshfeld_volume_ratio'])).sum())
-
-    if 'dos' in params.ml_params['target']:
-        print('property:', 'dos')
-        # Plot DFT dos
-        plt.plot(data_test['dos_raw'][..., 0][0], data_test['dos_raw'][..., 1][0])
-        plt.xlim((-18.2, 5.2))
-        plt.title('dft')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('ref_dos_kpoints.png', dpi=300)
-        plt.show()
-
-        plt.plot(data_test['dos_raw_gamma'][..., 0][0], data_test['dos_raw_gamma'][..., 1][0])
-        plt.title('dft')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('ref_dos_gamma.png', dpi=300)
-        plt.show()
-
-        # Plot DFTB dos
-        plt.plot(scc_dftb.dos_energy, scc_dftb.dos[0])
-        plt.xlim((-17, 5.2))
-        plt.ylim((-1, 30))
-        plt.title('before training')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('before_dos.png', dpi=300)
-        plt.show()
-
-        plt.plot(scc_pred.dos_energy.detach(), scc_pred.dos[0].detach())
-        plt.xlim((-17, 5.2))
-        plt.ylim((-1, 30))
-        plt.title('after training')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('after_dos.png', dpi=300)
-        plt.show()
-
-    if 'dos_eigval' in params.ml_params['target']:
-        print('property:', 'dos')
-        # Plot DFT dos
-        plt.plot(data_test['dos_raw'][..., 0][0], data_test['dos_raw'][..., 1][0])
-        plt.xlim((-18.2, 5.2))
-        plt.title('dft')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('ref_dos_kpoints.png', dpi=300)
-        plt.show()
-
-        plt.plot(data_test['dos_raw_gamma'][..., 0][0], data_test['dos_raw_gamma'][..., 1][0])
-        plt.title('dft')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('ref_dos_gamma.png', dpi=300)
-        plt.show()
-
-        # Plot DFTB dos
-        plt.plot(scc_dftb.dos_energy, scc_dftb.dos[0])
-        plt.xlim((-17, 5.2))
-        plt.ylim((-1, 31))
-        plt.title('before training')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('before_dos.png', dpi=300)
-        plt.show()
-
-        plt.plot(scc_pred.dos_energy.detach(), scc_pred.dos[0].detach())
-        plt.xlim((-17, 5.2))
-        plt.ylim((-1, 31))
-        plt.title('after training')
-        plt.xlabel("Energy [eV]")
-        plt.ylabel("DOS")
-        plt.savefig('after_dos.png', dpi=300)
-        plt.show()
+    # plot loss
+    steps = params.ml_params['steps']
+    plt.plot(np.linspace(1, steps, steps), loss_list[1:])
+    plt.tick_params(direction='in', labelsize='13', width=1.1, top='on',
+                    right='on', zorder=10)
+    plt.xlabel("Iteration", fontsize=14)
+    plt.ylabel("Loss", fontsize=14)
+    plt.show()
+    f = open('./result/loss.dat', 'w')
+    np.savetxt(f, torch.tensor(loss_list[1:]))
+    f.close()
 
 
-def test():
-    """Initialize parameters."""
-    params.dftb_params['path_to_skf'] = './slko/skf.hdf.comprwav'
-    size_train, size_test = 600, 1000
-    compr_train = 'data/comprwav_ani1_3dipCha_size600.dat'
-    dataset = './dataset/aims_6000_01.hdf'
-    dataset_dftb = './dataset/scc_6000_01.hdf'
-    properties = ['dipole', 'charge']
-    params.ml_params['ml_method'] = 'forest'  # nn, linear, forest
-    params.ml_params['compression_radii_grid'] = torch.tensor([
-        01.00, 01.50, 02.00, 02.50, 03.00, 03.50, 04.00,
-        04.50, 05.00, 06.00, 08.00, 10.00])
+def test(rank, world_size, sk_grad, sk_origin, test_dataset):
+    """Test the trained model."""
+    test_data = data_split(rank, world_size, test_dataset)
+    dos_pred_tot = []
+    hl_pred_tot = []
+    dos_dftb_tot = []
+    hl_dftb_tot = []
+    for ibatch, data in enumerate(test_data):
+        scc_pred = dftb_result(data['number'], data['position'],
+                               data['latvec'], sk_grad, with_grad=True, pred=True,
+                               dftb=False, idx=data['idx'])
 
-    numbers_train, positions_train, data_train = LoadHdf.load_reference(
-        dataset, size_train, ['charge', 'dipole', 'homo_lumo', 'hirshfeld_volume_ratio'])
-    numbers_test, positions_test, data_test = LoadHdf.load_reference(
-        dataset, size_test, ['charge', 'dipole', 'homo_lumo', 'hirshfeld_volume_ratio'])
-    numbers_dftb_train, positions_dftb_train, data_dftb_train = LoadHdf.load_reference(
-        dataset_dftb, size_train, ['charge', 'dipole', 'homo_lumo'])
-    numbers_dftb, positions_dftb, data_dftb = LoadHdf.load_reference(
-        dataset_dftb, size_test, ['charge', 'dipole', 'homo_lumo'])
-
-    compr_train = torch.from_numpy(np.loadtxt(compr_train))
-    sys_train = System(numbers_train, positions_train)
-    sys_test = System(numbers_test, positions_test)
-
-    sk = IntegralGenerator.from_dir(
-        params.dftb_params['path_to_skf'], sys_test, repulsive=False,
-        sk_type='h5py', homo=False, interpolation='bicubic_interpolation',
-        compression_radii_grid=params.ml_params['compression_radii_grid'])
-
-    skt = SKT(sys_train, sk, compression_radii=compr_train,
-              fix_onsite=True, fix_U=True)
-    scc_opt = Scc(sys_train, skt, params, properties)
-    if 'charge' in properties:
-        print('opt property:', 'charge')
-        print(abs((scc_opt.charge - data_train['charge'])).sum())
-        print(abs((data_dftb_train['charge'] - data_train['charge'])).sum())
-    if 'dipole' in properties:
-        print('opt property:', 'dipole')
-        print(abs((scc_opt.dipole - data_train['dipole'])).sum())
-        print(abs((data_dftb_train['dipole'] - data_train['dipole'])).sum())
-
-    compr = CompressionRadii(sys_test, data_test, params)
-    scc_pred = compr.predict_(params, compr_train, sys_train, sys_test, sk, properties)
-    if 'charge' in properties:
-        print('property:', 'charge')
-        print(abs((scc_pred.charge - data_test['charge'])).sum())
-        print(abs((data_dftb['charge'] - data_test['charge'])).sum())
-        f = open('netChargePred.dat', 'w')
-        np.savetxt(f, scc_pred.charge - scc_pred.qzero)
+        # pred
+        hl_pred = scc_pred.homo_lumo.detach()
+        hl_pred_tot.append(hl_pred)
+        dos_pred = scc_pred.dos.detach()
+        dos_pred_tot.append(dos_pred)
+        dos_energy = scc_pred.dos_energy.detach()
+        eigval_pred = scc_pred.eigenvalue.detach()
+        eigvec_pred = scc_pred.eigenvector.detach()
+        f = open('./result/test/Pred_homo_lumo' + str(ibatch + 1) + '.dat', 'w')
+        np.savetxt(f, hl_pred)
         f.close()
-        f = open('netChargeDftb.dat', 'w')
-        np.savetxt(f, data_dftb['charge'] - scc_pred.qzero)
+        pred_dos = torch.cat((dos_energy.unsqueeze(-1),
+                              dos_pred.unsqueeze(-1).squeeze(0)), -1)
+        f = open('./result/test/Pred_dos' + str(ibatch + 1) + '.dat', 'w')
+        np.savetxt(f, pred_dos)
         f.close()
-        f = open('netChargeRef.dat', 'w')
-        np.savetxt(f, data_test['charge'] - scc_pred.qzero)
+        f = open('./result/test/Pred_eigenvalue' + str(ibatch + 1) + '.dat', 'w')
+        np.savetxt(f, eigval_pred.squeeze(0))
         f.close()
-    if 'dipole' in properties:
-        print('property:', 'dipole')
-        print(abs((scc_pred.dipole - data_test['dipole'])).sum())
-        print(abs((data_dftb['dipole'] - data_test['dipole'])).sum())
-        f = open('dipolePred.dat', 'w')
-        np.savetxt(f, scc_pred.dipole)
-        f.close()
-        f = open('dipoleDftb.dat', 'w')
-        np.savetxt(f, data_dftb['dipole'])
-        f.close()
-        f = open('dipoleRef.dat', 'w')
-        np.savetxt(f, data_test['dipole'])
-
-        f.close()
-    if 'cpa' in properties:
-        sk = IntegralGenerator.from_dir(
-            './slko/skf.hdf.mio', sys_test, repulsive=False, sk_type='h5py')
-        skt = SKT(sys_test, sk)
-        scc_dftb = Scc(sys_test, skt, params, properties)
-        print('property:', 'cpa')
-        print(abs((scc_pred.cpa - data_test['hirshfeld_volume_ratio'])).sum())
-        print(abs((scc_dftb.cpa - data_test['hirshfeld_volume_ratio'])).sum())
-        f = open('cpaPred.dat', 'w')
-        np.savetxt(f, scc_pred.cpa)
-        f.close()
-        f = open('cpaDftb.dat', 'w')
-        np.savetxt(f, scc_dftb.cpa)
-        f.close()
-        f = open('cpaRef.dat', 'w')
-        np.savetxt(f, data_test['hirshfeld_volume_ratio'])
+        f = open('./result/test/Pred_eigenvector' + str(ibatch + 1) + '.dat', 'w')
+        np.savetxt(f, eigvec_pred.squeeze(0))
         f.close()
 
+    for ibatch, data in enumerate(test_data):
+        scc_dftb = dftb_result(data['number'], data['position'],
+                               data['latvec'], sk_origin, with_grad=False,
+                               pred=False, dftb=True, idx=data['idx'])
+        # dftb
+        hl_dftb = scc_dftb.homo_lumo
+        hl_dftb_tot.append(hl_dftb)
+        # charge_dftb = scc_dftb.charge
+        dos_dftb = scc_dftb.dos
+        dos_dftb_tot.append(dos_dftb)
+        dos_energy = scc_dftb.dos_energy
+        eigval_dftb = scc_dftb.eigenvalue
+        eigvec_dftb = scc_dftb.eigenvector
+        f = open('./result/test/dftb_homo_lumo' + str(ibatch + 1) + '.dat', 'w')
+        np.savetxt(f, hl_dftb)
+        f.close()
+        dftb_dos = torch.cat((dos_energy.unsqueeze(-1),
+                              dos_dftb.unsqueeze(-1).squeeze(0)), -1)
+        f = open('./result/test/dftb_dos' + str(ibatch + 1) + '.dat', 'w')
+        np.savetxt(f, dftb_dos)
+        f.close()
+        f = open('./result/test/dftb_eigenvalue' + str(ibatch + 1) + '.dat', 'w')
+        np.savetxt(f, eigval_dftb.squeeze(0))
+        f.close()
+        f = open('./result/test/dftb_eigenvector' + str(ibatch + 1) + '.dat', 'w')
+        np.savetxt(f, eigvec_dftb.squeeze(0))
+        f.close()
 
-train()
+    # pred_mean
+    dos_pred_mean = pack(dos_pred_tot).mean(dim=0)
+    dos_pred_std = pack(dos_pred_tot).std(dim=0)
+    f = open('./result/Pred_dos_mean.dat', 'w')
+    np.savetxt(f, torch.cat((dos_energy.unsqueeze(-1),
+                             dos_pred_mean.unsqueeze(-1).squeeze(0)), -1))
+    f.close()
+    f = open('./result/Pred_dos_std.dat', 'w')
+    np.savetxt(f, dos_pred_std.squeeze(0))
+    f.close()
+    f = open('./result/Pred_homo_lumo_mean.dat', 'w')
+    np.savetxt(f, pack(hl_pred_tot).mean(dim=0).detach())
+    f.close()
+    f = open('./result/Pred_homo_lumo_std.dat', 'w')
+    np.savetxt(f, pack(hl_pred_tot).std(dim=0).detach())
+    f.close()
+
+    # dftb_mean
+    dos_dftb_mean = pack(dos_dftb_tot).mean(dim=0)
+    dos_dftb_std = pack(dos_dftb_tot).std(dim=0)
+    f = open('./result/dftb_dos_mean.dat', 'w')
+    np.savetxt(f, torch.cat((dos_energy.unsqueeze(-1),
+                             dos_dftb_mean.unsqueeze(-1).squeeze(0)), -1))
+    f.close()
+    f = open('./result/dftb_dos_std.dat', 'w')
+    np.savetxt(f, dos_dftb_std.squeeze(0))
+    f.close()
+    f = open('./result/dftb_homo_lumo_mean.dat', 'w')
+    np.savetxt(f, pack(hl_dftb_tot).mean(dim=0))
+    f.close()
+    f = open('./result/dftb_homo_lumo_std.dat', 'w')
+    np.savetxt(f, pack(hl_dftb_tot).std(dim=0))
+    f.close()
+
+    # plot figures
+    plt.plot(dos_energy, dos_dftb_mean.squeeze(0), '-', linewidth=1.0)
+    plt.fill_between(dos_energy, dos_dftb_mean.squeeze(0) + dos_dftb_std.squeeze(0),
+                     dos_dftb_mean.squeeze(0) - dos_dftb_std.squeeze(0),
+                     alpha=0.5, facecolor='darkred')
+    plt.tick_params(direction='in', labelsize='13', width=1.1, top='on',
+                    right='on', zorder=10)
+    plt.xlim((-16, 5.2))
+    plt.ylim((-1, 60))
+    plt.title('before training')
+    plt.xlabel("Energy [eV]", fontsize=14)
+    plt.ylabel("DOS", fontsize=14)
+    plt.savefig('./result/before_dos.png', dpi=500)
+    plt.show()
+
+    plt.plot(dos_energy, dos_pred_mean.squeeze(0), linewidth=1.0)
+    plt.fill_between(dos_energy, dos_pred_mean.squeeze(0) + dos_pred_std.squeeze(0),
+                     dos_pred_mean.squeeze(0) - dos_pred_std.squeeze(0),
+                     alpha=0.5, facecolor='darkred')
+    plt.tick_params(direction='in', labelsize='13', width=1.1, top='on',
+                    right='on', zorder=10)
+    plt.xlim((-16, 5.2))
+    plt.ylim((-1, 60))
+    plt.title('after training')
+    plt.xlabel("Energy [eV]", fontsize=14)
+    plt.ylabel("DOS", fontsize=14)
+    plt.savefig('./result/after_dos.png', dpi=500)
+    plt.show()
+
+
+if __name__ == '__main__':
+    train_dataset, test_dataset, sk_grad, sk_origin, data_train_dos = prepare_data()
+    main(0, 1, train_dataset, sk_grad, data_train_dos)
+    print(sk_grad.sktable_dict['variable'], file=open('./result/abcd/abcd.txt', "w"))
+    if params.ml_params['test']:
+        test(0, 1, sk_grad, sk_origin, test_dataset)

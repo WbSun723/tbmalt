@@ -3,6 +3,7 @@ import torch
 from abc import ABC, abstractmethod
 Tensor = torch.Tensor
 
+
 class _Mixer(ABC):
     """This is the abstract base class up on which all mixers are based.
 

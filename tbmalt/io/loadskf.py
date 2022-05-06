@@ -127,6 +127,7 @@ class IntegralGenerator:
             interpolator = Spline1d
 
         # loop of all global element pairs
+        n_pair = 0
         for ielement, ielement_number in zip(element_pair, element_number_pair):
 
             # read skf files
@@ -134,7 +135,8 @@ class IntegralGenerator:
             sk_cutoff.append(skf.hs_cutoff)
 
             # generate skf files dict
-            sktable_dict = _get_hs_dict(sktable_dict, interpolator, interactions, skf, **kwargs)
+            sktable_dict = _get_hs_dict(sktable_dict, interpolator, interactions,
+                                        skf, n_pair, **kwargs)
             sktable_dict = _get_other_params_dict(sktable_dict, skf)
 
             if skf.homo:
@@ -148,9 +150,9 @@ class IntegralGenerator:
 
             if repulsive:
                 sktable_dict = _get_repulsive_dict(sktable_dict, skf)
+            n_pair = n_pair + 1
 
         sktable_dict['sk_cutoff_element_pair'] = sk_cutoff
-        # sktable_dict['sk_cutoff'] = max(sk_cutoff)  # return the max cutoff
 
         return cls(sktable_dict)
 
@@ -249,7 +251,7 @@ def _get_element_info(elements: list):
 
 
 def _get_hs_dict(sktable_dict: dict, interpolator: object,
-                 interactions: list, skf: object, **kwargs) -> dict:
+                 interactions: list, skf: object, n_pair: int, **kwargs) -> dict:
     """Get sk tables for each orbital interaction.
 
     Arguments:
@@ -261,6 +263,7 @@ def _get_hs_dict(sktable_dict: dict, interpolator: object,
     sk_interp = kwargs.get('interpolation', 'sk_interpolation')
     with_variable = kwargs.get('with_variable', False)
     sk_type = kwargs.get('sk_type', 'normal')
+    pred_abcd = kwargs.get('pred', None)
 
     if sk_interp in ('sk_interpolation', 'numpy_interpolation'):
         _tail = 0 if sk_type == 'h5py' else 1
@@ -294,6 +297,12 @@ def _get_hs_dict(sktable_dict: dict, interpolator: object,
                     sktable_dict[(*skf.elements.tolist(), *name, 'H', 'abcd')].requires_grad_(True))
                 sktable_dict['variable'].append(
                     sktable_dict[(*skf.elements.tolist(), *name, 'S', 'abcd')].requires_grad_(True))
+
+            if pred_abcd:
+                sktable_dict[(*skf.elements.tolist(), *name, 'H', 'abcd')] = pred_abcd[
+                    ii * 2 + n_pair * 20]
+                sktable_dict[(*skf.elements.tolist(), *name, 'S', 'abcd')] = pred_abcd[
+                    ii * 2 + 1 + n_pair * 20]
 
     return sktable_dict
 
