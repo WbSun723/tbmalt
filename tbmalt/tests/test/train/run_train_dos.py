@@ -20,13 +20,29 @@ from tbmalt.common.batch import pack
 import tbmalt.common.maths as tb_math
 import time
 
+# To reproduce the results described in the paper, please use the following
+#    combinations of ml_parameters.
+# 1. General training and testing on Si_V systems:
+#    params.ml_params['target'] = 'Si_V',
+#    params.ml_params['transfer_type'] = 'none'
+# 2. General training and testing on SiC_V systems:
+#    params.ml_params['target'] = 'SiC_V',
+#    params.ml_params['transfer_type'] = 'none'
+# 3. Transferability testing on larger systems:
+#    params.ml_params['target'] = 'Si_V', SiC_V', 'Si_I_100' or 'Si_I_110'
+#    params.ml_params['transfer_type'] = 'large'
+# 4. Transferability testing on predicting other types of defects (training on
+#    vacancy and testing on interstitial):
+#    params.ml_params['target'] = 'Si_V'
+#    params.ml_params['transfer_type'] = 'other defects'
+
 # Set general parameters for training and DFTB calculations
 torch.set_printoptions(6, profile='full')
 torch.set_default_dtype(torch.float64)
 size_train, size_test = 1, 1
 params = Parameter(ml_params=True)
 params.ml_params['task'] = 'mlIntegral'
-params.ml_params['steps'] = 500
+params.ml_params['steps'] = 2000
 params.ml_params['lr'] = 0.000005
 params.ml_params['test'] = True
 # Taget systems include 'Si_V', 'SiC_V', 'Si_I_100', 'Si_I_110'
@@ -80,9 +96,13 @@ def prepare_data():
         pass
 
     # Build a random index to select geometries for training and testing
-    rand_index = torch.randperm(80)
+    if params.ml_params['transfer_type'] == 'none':
+        rand_index = torch.randperm(80)
+        test_index = rand_index[size_train: size_train + size_test].tolist()
+    else:
+        rand_index = torch.arange(80)
+        test_index = rand_index[: size_test].tolist()
     train_index = rand_index[:size_train].tolist()
-    test_index = rand_index[60: 60 + size_test].tolist()
     f = open('./result/rand_index.dat', 'w')
     np.savetxt(f, rand_index.detach())
     f.close()

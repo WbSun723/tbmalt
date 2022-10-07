@@ -111,8 +111,8 @@ def test_polyspline_grad(device):
     # assert grad_is_safe, 'Gradient stability test'
 
 
-def test_sk_interp(device):
-    x = torch.tensor([[1., 2., 3., 4., 5., 6., 7., 8., 9., 10.],
-                      [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]])
-    y = torch.rand(2, 2, 10, 10, device=device)
-    SKInterpolation(x, y)
+# def test_sk_interp(device):
+#     x = torch.tensor([[1., 2., 3., 4., 5., 6., 7., 8., 9., 10.],
+#                       [1., 2., 3., 4., 5., 6., 7., 8., 9., 10.]])
+#     y = torch.rand(2, 2, 10, 10, device=device)
+#     SKInterpolation(x, y)

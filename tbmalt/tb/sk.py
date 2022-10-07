@@ -132,7 +132,7 @@ class SKT:
                 r = r[_mask]
                 # The "r" tensor only takes into account the central image, thus
                 # the other images must now be taken into account.
-                n = int(h_data.nelement() / (r.nelement() * nc))
+                n = int(torch.round(h_data.nelement() / (r.nelement() * nc)))
                 r = (r + (torch.arange(n) * len(r)).view(-1, 1)).flatten()
                 # Perform the reordering
                 h_data, s_data = h_data.view(-1, nc)[r], s_data.view(-1, nc)[r]

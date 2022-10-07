@@ -1,6 +1,4 @@
 """Example to run training by multiprocessing."""
-import sys
-sys.path.append('/home/hbpsun95/work/dos_training/paper/tbmalt')
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -30,11 +28,11 @@ import time
 torch.set_num_threads(6)
 torch.set_printoptions(6, profile='full')
 torch.set_default_dtype(torch.float64)
-size_train, size_test = 10, 5
+size_train, size_test = 10, 20
 params = Parameter(ml_params=True)
 params.ml_params['task'] = 'mlIntegral'
 params.ml_params['optimizer'] = 'Adam'
-params.ml_params['steps'] = 5
+params.ml_params['steps'] = 2000
 params.ml_params['lr'] = 0.000005
 params.ml_params['test'] = True
 # Taget systems include 'Si_V', 'SiC_V'

@@ -3,7 +3,7 @@ import torch
 from ase.build import molecule as molecule_database
 from tbmalt.common.batch import pack
 from tbmalt.common.structures.basis import Basis
-from tbmalt.common.structures.geometry import Geometry
+from tbmalt.common.structures.system import System
 torch.set_default_dtype(torch.float64)
 torch.set_printoptions(15)
 
@@ -11,7 +11,7 @@ torch.set_printoptions(15)
 def test_basis_blocks_single(device):
     """Test single basis blocks and sub_blocks."""
     numbers = [torch.tensor([6, 1, 1, 1, 1])]
-    sys = Geometry(numbers, positions_ch4)
+    sys = System(numbers, positions_ch4)
     basis = Basis(sys)
     blocks = basis._blocks()
     sub_blocks = basis._sub_blocks()
@@ -26,7 +26,7 @@ def test_basis_blocks_single(device):
 def test_basis_blocks_batch(device):
     """Test batch basis blocks and sub_blocks."""
     numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([7, 1, 1, 1])]
-    sys = Geometry(numbers, pack([positions_ch4, positions_nh3]))
+    sys = System(numbers, pack([positions_ch4, positions_nh3]))
     basis = Basis(sys)
     blocks = basis._blocks()
     sub_blocks = basis._sub_blocks()
@@ -43,18 +43,18 @@ def test_basis_blocks_batch(device):
 
 
 def test_basis_sub_shells_single(device):
-    """Test single geometry total sub shell number."""
+    """Test single System total sub shell number."""
     numbers = [torch.tensor([6, 1, 1, 1, 1])]
-    sys = Geometry(numbers, positions_ch4)
+    sys = System(numbers, positions_ch4)
     basis = Basis(sys)
     sub_shells = basis._sub_shells()
     assert sub_shells[0] == 2 + 1 + 1 + 1 + 1
 
 
 def test_basis_sub_shells_batch(device):
-    """Test batch geometry total sub shell numbers."""
+    """Test batch System total sub shell numbers."""
     numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([7, 1, 1, 1])]
-    sys = Geometry(numbers, pack([positions_ch4, positions_nh3]))
+    sys = System(numbers, pack([positions_ch4, positions_nh3]))
     basis = Basis(sys)
     sub_shells = basis._sub_shells()
     assert sub_shells[0] == 2 + 1 + 1 + 1 + 1, sub_shells[1] == 2 + 1 + 1 + 1
@@ -63,7 +63,7 @@ def test_basis_sub_shells_batch(device):
 def test_basis_sub_basis_list_single(device):
     """Test single sub_basis_list."""
     numbers = torch.tensor([6, 1, 1, 1, 1])
-    sys = Geometry(numbers, positions_ch4)
+    sys = System(numbers, positions_ch4)
     basis = Basis(sys)
     sub_shells = basis._sub_basis_list
 
@@ -75,7 +75,7 @@ def test_basis_sub_basis_list_single(device):
 def test_basis_sub_basis_list_batch(device):
     """Test batch sub_basis_list."""
     numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([7, 1, 1, 1])]
-    sys = Geometry(numbers, pack([positions_ch4, positions_nh3]))
+    sys = System(numbers, pack([positions_ch4, positions_nh3]))
     basis = Basis(sys)
     sub_shells = basis._sub_basis_list
 
@@ -89,7 +89,7 @@ def test_basis_sub_basis_list_batch(device):
 def test_basis_azimuthal_matrix_single(device):
     """Test single azimuthal_matrix."""
     numbers = torch.tensor([6, 1, 1, 1, 1])
-    sys = Geometry(numbers, positions_ch4)
+    sys = System(numbers, positions_ch4)
     basis = Basis(sys)
     mt_bt = basis.azimuthal_matrix(mask=True, block=True)
     mt_bf = basis.azimuthal_matrix(mask=True, block=False)
@@ -103,7 +103,7 @@ def test_basis_azimuthal_matrix_batch(device):
     """Test batch azimuthal_matrix."""
     numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([7, 1, 1, 1])]
     positions = pack([positions_ch4, positions_nh3])
-    sys = Geometry(numbers, positions)
+    sys = System(numbers, positions)
     basis = Basis(sys)
     mt_bt = basis.azimuthal_matrix(mask=True, block=True)
     mt_bf = basis.azimuthal_matrix(mask=True, block=False)
@@ -120,7 +120,7 @@ def test_basis_azimuthal_matrix_batch(device):
 def test_basis_atomic_number_single(device):
     """Test single atomic number."""
     numbers = torch.tensor([6, 1, 1, 1, 1])
-    sys = Geometry(numbers, positions_ch4)
+    sys = System(numbers, positions_ch4)
     basis = Basis(sys)
     atom_num_atom = basis.atomic_number_matrix('atom')
     atom_num_block = basis.atomic_number_matrix('block')
@@ -137,7 +137,7 @@ def test_basis_atomic_number_batch(device):
     """Test batch atomic number."""
     numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([7, 1, 1, 1])]
     positions = pack([positions_ch4, positions_nh3])
-    sys = Geometry(numbers, positions)
+    sys = System(numbers, positions)
     basis = Basis(sys)
     atom_num_atom = basis.atomic_number_matrix('atom')
     atom_num_block = basis.atomic_number_matrix('block')
@@ -159,7 +159,7 @@ def test_basis_atomic_number_batch(device):
 def test_basis_index_matrix_single(device):
     """Test single index of atoms."""
     numbers = torch.tensor([6, 1, 1, 1, 1])
-    sys = Geometry(numbers, positions_ch4)
+    sys = System(numbers, positions_ch4)
     basis = Basis(sys)
     index_atom = basis.index_matrix('atom')
     index_block = basis.index_matrix('block')
@@ -176,7 +176,7 @@ def test_basis_index_matrix_batch(device):
     """Test batch index of atoms."""
     numbers = [torch.tensor([6, 1, 1, 1, 1]), torch.tensor([7, 1, 1, 1])]
     positions = pack([positions_ch4, positions_nh3])
-    sys = Geometry(numbers, positions)
+    sys = System(numbers, positions)
     basis = Basis(sys)
     index_atom = basis.index_matrix('atom')
     index_block = basis.index_matrix('block')
@@ -197,7 +197,7 @@ def test_basis_index_matrix_batch(device):
 
 def test_basis_blocks_single_ase(device):
     """Test single basis blocks and sub_blocks."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4')])
+    sys = System.from_ase_atoms([molecule_database('CH4')])
     basis = Basis(sys)
     blocks = basis._blocks()
     sub_blocks = basis._sub_blocks()
@@ -211,7 +211,7 @@ def test_basis_blocks_single_ase(device):
 
 def test_basis_blocks_batch_ase(device):
     """Test batch basis blocks and sub_blocks."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4'),
+    sys = System.from_ase_atoms([molecule_database('CH4'),
                                    molecule_database('NH3')])
     basis = Basis(sys)
     blocks = basis._blocks()
@@ -229,16 +229,16 @@ def test_basis_blocks_batch_ase(device):
 
 
 def test_basis_sub_shells_single_ase(device):
-    """Test single Geometry total sub shell numbers."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4')])
+    """Test single System total sub shell numbers."""
+    sys = System.from_ase_atoms([molecule_database('CH4')])
     basis = Basis(sys)
     sub_shells = basis._sub_shells()
     assert sub_shells[0] == 2 + 1 + 1 + 1 + 1
 
 
 def test_basis_sub_shells_batch_ase(device):
-    """Test batch geometry total sub shell numbers."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4'),
+    """Test batch System total sub shell numbers."""
+    sys = System.from_ase_atoms([molecule_database('CH4'),
                                    molecule_database('NH3')])
     basis = Basis(sys)
     sub_shells = basis._sub_shells()
@@ -247,7 +247,7 @@ def test_basis_sub_shells_batch_ase(device):
 
 def test_basis_sub_basis_list_single_ase(device):
     """Test single sub_basis_list."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4')])
+    sys = System.from_ase_atoms([molecule_database('CH4')])
     basis = Basis(sys)
     sub_shells = basis._sub_basis_list
 
@@ -258,7 +258,7 @@ def test_basis_sub_basis_list_single_ase(device):
 
 def test_basis_sub_basis_list_batch_ase(device):
     """Test batch sub_basis_list."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4'),
+    sys = System.from_ase_atoms([molecule_database('CH4'),
                                    molecule_database('NH3')])
     basis = Basis(sys)
     sub_shells = basis._sub_basis_list
@@ -272,7 +272,7 @@ def test_basis_sub_basis_list_batch_ase(device):
 
 def test_basis_azimuthal_matrix_single_ase(device):
     """Test single azimuthal_matrix."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4')])
+    sys = System.from_ase_atoms([molecule_database('CH4')])
     basis = Basis(sys)
     mt_bt = basis.azimuthal_matrix(mask=True, block=True)
     mt_bf = basis.azimuthal_matrix(mask=True, block=False)
@@ -284,7 +284,7 @@ def test_basis_azimuthal_matrix_single_ase(device):
 
 def test_basis_azimuthal_matrix_batch_ase(device):
     """Test batch azimuthal_matrix."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4'),
+    sys = System.from_ase_atoms([molecule_database('CH4'),
                                    molecule_database('NH3')])
     basis = Basis(sys)
     mt_bt = basis.azimuthal_matrix(mask=True, block=True)
@@ -301,7 +301,7 @@ def test_basis_azimuthal_matrix_batch_ase(device):
 
 def test_basis_atomic_number_single_ase(device):
     """Test single atomic number."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4')])
+    sys = System.from_ase_atoms([molecule_database('CH4')])
     basis = Basis(sys)
     atom_num_atom = basis.atomic_number_matrix('atom')
     atom_num_block = basis.atomic_number_matrix('block')
@@ -316,7 +316,7 @@ def test_basis_atomic_number_single_ase(device):
 
 def test_basis_atomic_number_batch_ase(device):
     """Test batch atomic number."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4'),
+    sys = System.from_ase_atoms([molecule_database('CH4'),
                                    molecule_database('NH3')])
     basis = Basis(sys)
     atom_num_atom = basis.atomic_number_matrix('atom')
@@ -338,7 +338,7 @@ def test_basis_atomic_number_batch_ase(device):
 
 def test_basis_index_matrix_single_ase(device):
     """Test single index of atoms."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4')])
+    sys = System.from_ase_atoms([molecule_database('CH4')])
     basis = Basis(sys)
     index_atom = basis.index_matrix('atom')
     index_block = basis.index_matrix('block')
@@ -353,7 +353,7 @@ def test_basis_index_matrix_single_ase(device):
 
 def test_basis_index_matrix_batch_ase(device):
     """Test batch index of atoms."""
-    sys = Geometry.from_ase_atoms([molecule_database('CH4'),
+    sys = System.from_ase_atoms([molecule_database('CH4'),
                                  molecule_database('NH3')])
     basis = Basis(sys)
     index_atom = basis.index_matrix('atom')

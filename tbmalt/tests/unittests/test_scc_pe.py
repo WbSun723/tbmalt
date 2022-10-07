@@ -13,9 +13,6 @@ torch.set_printoptions(15)
 torch.set_default_dtype(torch.float64)
 
 
-os.system('cp -r /home/gz_fan/Public/tbmalt/slko .')
-
-
 def test_scc_ch4_npe():
     """Test SCC DFTB for ch4 without periodic boundary condition."""
     positions = torch.tensor([
@@ -160,7 +157,7 @@ def test_scc_si_3d_pbc():
         [0.0, 2.9, 2.9]])
     numbers = torch.tensor([14, 14, 14, 14, 14, 14, 14, 14])
     molecule = System(numbers, positions, latvec)
-    sktable = IntegralGenerator.from_dir('./slko/pbc/pbc-0-3', molecule)
+    sktable = IntegralGenerator.from_dir('./slko/pbc-0-3', molecule)
     periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
     skt = SKT(molecule, sktable, periodic)
     coulomb = Coulomb(molecule, periodic)
@@ -185,7 +182,7 @@ def test_scc_si_3d_siband():
         [0.0, 2.9, 2.9]])
     numbers = torch.tensor([14, 14, 14, 14, 14, 14, 14, 14])
     molecule = System(numbers, positions, latvec, siband=True)
-    sktable = IntegralGenerator.from_dir('./slko/siband/siband-1-1', molecule, siband=True)
+    sktable = IntegralGenerator.from_dir('./slko/siband-1-1', molecule, siband=True)
     periodic = Periodic(molecule, molecule.cell, cutoff=cutoff)
     skt = SKT(molecule, sktable, periodic)
     coulomb = Coulomb(molecule, periodic)

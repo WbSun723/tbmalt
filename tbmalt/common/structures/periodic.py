@@ -46,6 +46,9 @@ class Periodic:
         dist_ext = kwargs.get('distance_extention', 1.0)
         return_distance = kwargs.get('return_distance', True)
 
+        # Number of batches if in batch mode (for internal use only)
+        self._n_batch = len(self.geometry.size_system)
+
         # Global cutoff for the diatomic interactions
         self.cutoff = self.cutoff + dist_ext
 
@@ -190,9 +193,10 @@ class Periodic:
         mask_zero = self.latvec.eq(0).all(-1)
         _latvec = self.latvec + torch.diag_embed(mask_zero.type(self.latvec.dtype))
 
+        eye = torch.eye(_latvec.shape[-1]).repeat(self._n_batch, 1, 1)
+
         # inverse lattice vectors
-        _invlat = torch.transpose(torch.linalg.solve(_latvec, torch.eye(
-            _latvec.shape[-1])), -1, -2)
+        _invlat = torch.linalg.solve(_latvec, eye).transpose(-1, -2)
         _invlat[mask_zero] = 0
         return _invlat, mask_zero
 
