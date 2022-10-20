@@ -257,7 +257,7 @@ class Scc:
         return self.homo_lumo.sum(-1) / 2.0
 
     @property
-    def dos_energy(self, unit='eV', ext=1, grid=1000):
+    def dos_energy(self, unit='eV', ext=1, grid=500):
         """Energy distribution of (P)DOS.
 
         Arguments:
@@ -265,8 +265,8 @@ class Scc:
 
         """
         self.unit = unit
-        e_min = torch.min(self.eigenvalue.detach()) - ext
-        e_max = torch.max(self.eigenvalue.detach()) + ext
+        e_min = torch.tensor(-18.0)
+        e_max = torch.tensor(5.0)
 
         if unit in ('eV', 'EV', 'ev'):
             return torch.linspace(e_min, e_max, grid)
