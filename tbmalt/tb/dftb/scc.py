@@ -2,9 +2,13 @@
 
 implement pytorch to DFTB
 """
+from typing import Optional
 import torch
+from tbmalt.common.structures.basis import Basis
 import tbmalt.common.maths as maths
 from tbmalt.tb.electrons import fermi
+from tbmalt.tb.filling import (
+    fermi_search, fermi_smearing, gaussian_smearing)
 from tbmalt.tb.properties import mulliken
 from tbmalt.common.maths.mixer import Simple, Anderson
 # from tbmalt.tb.properties import Properties
@@ -42,7 +46,9 @@ class Scc:
     """
 
     def __init__(self, system: object, skt: object, parameter: object,
-                 coulomb=None, periodic=None, properties=[], **kwargs):
+                 coulomb=None, periodic=None, properties=[],
+                 filling_temp: Optional[float] = None,
+                 filling_scheme: Optional[float] = None, **kwargs):
         self.system = system
         self.skt = skt
         self.params = parameter
@@ -50,6 +56,13 @@ class Scc:
         self.periodic = periodic
         if self.periodic:
             self.mask_pe = periodic.mask_pe
+
+        # Filling setting
+        self.filling_temp = filling_temp
+        self.filling_scheme = {
+            'fermi': fermi_smearing, 'gaussian': gaussian_smearing,
+            None: None
+        }[filling_scheme]
 
         self.ham, self.over = skt.H, skt.S
         self._init_scc(**kwargs)
@@ -134,7 +147,14 @@ class Scc:
             epsilon, eigvec = maths.eighb(fock, self.over[self.mask, :this_size, :this_size])
 
             # calculate the occupation of electrons via the fermi method
-            occ, nocc = fermi(epsilon, self.nelectron[self.mask])
+            if self.filling_temp is None:
+                occ, nocc = fermi(epsilon, self.nelectron[self.mask])
+            else:
+                scale_factor = 2.0
+                occ = self.filling_scheme(
+                    epsilon, self.fermi_energy(epsilon, self.nelectron[self.mask]
+                                               ), self.filling_temp) * scale_factor
+                nocc = (occ >= 1E-10).double().sum(-1)
 
             # eigenvector with Fermi-Dirac distribution
             c_scaled = torch.sqrt(occ).unsqueeze(1).expand_as(eigvec) * eigvec
@@ -241,6 +261,17 @@ class Scc:
         shape_cell = self.distances.shape[1]
         return u.repeat(shape_cell, 1, 1).transpose(0, 1)
 
+    def fermi_energy(self, epsilon, nelectron):
+        """Fermi energy."""
+        if self.filling_temp is None:
+            return self.homo_lumo.sum(-1) / 2.0
+        else:
+            return fermi_search(
+                epsilon, nelectron, self.filling_temp,
+                self.filling_scheme,
+                # Pass the e_mask argument, but only if required.
+                e_mask=epsilon != 0 if epsilon.size(0) != 1 else None)
+
     @property
     def ini_charge(self):
         """Return initial charge."""
@@ -254,10 +285,17 @@ class Scc:
     @property
     def fermi(self):
         """Fermi energy."""
-        return self.homo_lumo.sum(-1) / 2.0
+        if self.filling_temp is None:
+            return self.homo_lumo.sum(-1) / 2.0
+        else:
+            return fermi_search(
+                self.eigenvalue, self.nelectron, self.filling_temp,
+                self.filling_scheme,
+                # Pass the e_mask argument, but only if required.
+                e_mask=self.eigenvalue != 0 if self.eigenvalue.size(0) != 1 else None)
 
     @property
-    def dos_energy(self, unit='eV', ext=1, grid=500):
+    def dos_energy(self, unit='eV', ext=1, grid=1000):
         """Energy distribution of (P)DOS.
 
         Arguments:
@@ -265,8 +303,8 @@ class Scc:
 
         """
         self.unit = unit
-        e_min = torch.tensor(-18.0)
-        e_max = torch.tensor(5.0)
+        e_min = torch.min(self.eigenvalue.detach()) - ext
+        e_max = torch.max(self.eigenvalue.detach()) + ext
 
         if unit in ('eV', 'EV', 'ev'):
             return torch.linspace(e_min, e_max, grid)
