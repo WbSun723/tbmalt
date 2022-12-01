@@ -56,8 +56,8 @@ params.dftb_params['sigma'] = 0.09
 params.dftb_params['with_periodic'] = True
 params.dftb_params['siband'] = _para[3]
 params.dftb_params['path_to_skf'] = _para[2]
-if params.ml_params['transfer_type'] == 'large':
-    params.dftb_params['maxiter'] = 1
+params.dftb_params['filling_temp'] = None
+params.dftb_params['filling_scheme'] = None
 dataset_train = _para[0]
 dataset_test = _para[1]
 points = _para[4]
@@ -214,7 +214,9 @@ def dftb_result(number, position, latvec, sk, **kwargs):
     else:
         skt = SKT(sys, sk, periodic)
 
-    scc = Scc(sys, skt, params, coulomb, periodic)
+    scc = Scc(sys, skt, params, coulomb, periodic,
+              filling_temp=params.dftb_params['filling_temp'],
+              filling_scheme=params.dftb_params['filling_scheme'])
 
     if pred:
         f = open('./result/test/Pred_overlap' + str(int(idx) + 1) + '.dat', 'w')
@@ -453,4 +455,7 @@ if __name__ == '__main__':
     main(0, 1, train_dataset, sk_grad, data_train_dos)
     print(sk_grad.sktable_dict['variable'], file=open('./result/abcd/abcd.txt', "w"))
     if params.ml_params['test']:
+        if params.ml_params['transfer_type'] == 'large':
+            params.dftb_params['filling_temp'] = 0.0005
+            params.dftb_params['filling_scheme'] = 'fermi'
         test(0, 1, sk_grad, sk_origin, test_dataset)
