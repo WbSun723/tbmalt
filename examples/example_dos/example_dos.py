@@ -8,6 +8,7 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.distributed import DistributedSampler
 import numpy as np
 import h5py
+import matplotlib.pyplot as plt
 
 from tbmalt import Geometry, OrbitalInfo
 from tbmalt.ml.module import Calculator
@@ -20,7 +21,6 @@ import tbmalt.common.maths as tb_math
 from tbmalt.common.batch import pack
 from tbmalt.data.units import energy_units
 
-from ase.build import molecule
 
 Tensor = torch.Tensor
 
@@ -61,7 +61,7 @@ fit_model = True
 test = True
 
 # Number of fitting cycles, number of batch size each cycle
-number_of_epochs = 1800
+number_of_epochs = 500
 n_batch = 1
 
 # learning rate
@@ -207,6 +207,29 @@ def prepare_data(run):
     data_train_dos = torch.cat((energies_train.unsqueeze(-1),
                                 dos_ref.unsqueeze(-1)), -1)
 
+    # Plot training range of training data
+    energies_plot = torch.linspace(-18, 5, 500).repeat(training_size, 1)
+    dos_plot = dos((ref_ev), energies_plot, 0.09)
+    dos_plot_mean = dos_plot.mean(dim=0)
+    dos_plot_std = dos_plot.std(dim=0)
+    plt.plot(energies_plot[0] - fermi_train.mean(dim=0), dos_plot_mean,
+             linewidth=1.5, color='tab:blue')
+    plt.fill_between(energies_plot[0] - fermi_train.mean(dim=0),
+                     dos_plot_mean + dos_plot_std, dos_plot_mean - dos_plot_std,
+                     alpha=0.4, facecolor='tab:blue')
+    plt.fill_between(energies_train.mean(dim=0) - fermi_train.mean(dim=0),
+                     -3, 60, alpha=0.2, facecolor='darkred')
+    plt.xlim(-6, 4)
+    plt.ylim(-2, 40)
+    plt.tick_params(direction='in', labelsize='13', width=1.1, top='on',
+                    right='on')
+    plt.rcParams["font.family"] = "arial"
+    plt.xlabel('E - $\mathregular{E_f}$ [eV]', fontsize=15)
+    plt.ylabel('DOS [states / eV]', fontsize=15)
+    plt.title("Training range of DFT reference", fontsize=13)
+    plt.savefig('training_range.pdf', dpi=500, bbox_inches='tight')
+    plt.show()
+
     return dataset_train, dataset_test, data_train_dos
 
 
@@ -336,11 +359,15 @@ def test(rank, world_size, test_dataset):
     hl_pred_tot = []
     dos_dftb_tot = []
     hl_dftb_tot = []
+    ref_hl = []
+    ref_ev = []
 
     # Pred
     for ibatch, data in enumerate(test_data):
         scc_pred = dftb_results(data['number'], data['position'],
                                 data['latvec'])
+        ref_hl.append(data['homo_lumo'])
+        ref_ev.append(data['eigenvalue'])
         fermi_pred = getattr(scc_pred, 'fermi_energy').detach() / energy_units['ev']
         hl_pred = getattr(scc_pred, 'homo_lumo').detach() / energy_units['ev']
         hl_pred_tot.append(hl_pred)
@@ -421,6 +448,63 @@ def test(rank, world_size, test_dataset):
     f = open('./result/dftb_homo_lumo_std.dat', 'w')
     np.savetxt(f, pack(hl_dftb_tot).std(dim=0).detach())
     f.close()
+
+    # Plot results
+    ref_hl_plot = pack(ref_hl)
+    ref_ev_plot = pack(ref_ev)
+    ref_dos_plot = dos((ref_ev_plot), energies_test, 0.09)
+    ref_dos_mean = ref_dos_plot.mean(dim=0).squeeze(0)
+    ref_dos_std = ref_dos_plot.std(dim=0).squeeze(0)
+    ref_hl_mean = ref_hl_plot.mean(dim=0)
+    ref_fermi_mean = ref_hl_mean.mean(dim=-1)
+
+    # Original DFTB calculations
+    dftb_fermi_mean = pack(hl_dftb_tot).mean(dim=0).detach().mean(dim=-1)
+    dftb_dos_mean_plot = dos_dftb_mean.squeeze(0)
+    dftb_dos_std_plot = dos_dftb_std.squeeze(0)
+    plt.plot(energies_test - ref_fermi_mean, ref_dos_mean, label='DFT')
+    plt.fill_between(energies_test - ref_fermi_mean, ref_dos_mean + ref_dos_std,
+                     ref_dos_mean - ref_dos_std, alpha=0.5)
+    plt.plot(energies_test - dftb_fermi_mean, dftb_dos_mean_plot,
+             label='siband-1-1')
+    plt.fill_between(energies_test - dftb_fermi_mean,
+                     dftb_dos_mean_plot + dftb_dos_std_plot,
+                     dftb_dos_mean_plot - dftb_dos_std_plot, alpha=0.5)
+    plt.xlim(-6, 4)
+    plt.ylim(-2, 40)
+    plt.tick_params(direction='in', labelsize='13', width=1.1, top='on',
+                    right='on')
+    plt.rcParams["font.family"] = "arial"
+    plt.xlabel('E - $\mathregular{E_f}$ [eV]', fontsize=15)
+    plt.ylabel('DOS [states / eV]', fontsize=15)
+    plt.title("Before training", fontsize=13)
+    plt.legend(fontsize=13)
+    plt.savefig('before_training.pdf', dpi=500, bbox_inches='tight')
+    plt.show()
+
+    # Prediction after training
+    pred_fermi_mean = pack(hl_pred_tot).mean(dim=0).detach().mean(dim=-1)
+    pred_dos_mean_plot = dos_pred_mean.squeeze(0)
+    pred_dos_std_plot = dos_pred_std.squeeze(0)
+    plt.plot(energies_test - ref_fermi_mean, ref_dos_mean, label='DFT')
+    plt.fill_between(energies_test - ref_fermi_mean, ref_dos_mean + ref_dos_std,
+                     ref_dos_mean - ref_dos_std, alpha=0.5)
+    plt.plot(energies_test - pred_fermi_mean, pred_dos_mean_plot,
+             label='spline')
+    plt.fill_between(energies_test - pred_fermi_mean,
+                     pred_dos_mean_plot + pred_dos_std_plot,
+                     pred_dos_mean_plot - pred_dos_std_plot, alpha=0.5)
+    plt.xlim(-6, 4)
+    plt.ylim(-2, 40)
+    plt.tick_params(direction='in', labelsize='13', width=1.1, top='on',
+                    right='on')
+    plt.rcParams["font.family"] = "arial"
+    plt.xlabel('E - $\mathregular{E_f}$ [eV]', fontsize=15)
+    plt.ylabel('DOS [states / eV]', fontsize=15)
+    plt.title("After training", fontsize=13)
+    plt.legend(fontsize=13)
+    plt.savefig('after_training.pdf', dpi=500, bbox_inches='tight')
+    plt.show()
 
 
 if __name__ == '__main__':
