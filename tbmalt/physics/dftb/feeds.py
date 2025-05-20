@@ -1294,9 +1294,11 @@ class VcrSkFeed(IntegralFeed):
         u_vec = (dist_vec.T / dist).T
 
         # Compression radii for the associated atoms
+        print(self.compression_radii.requires_grad)
         compression_radii = torch.stack([
             self.compression_radii[*bT2(atomic_idx_1)],
             self.compression_radii[*bT2(atomic_idx_2)]]).T
+        print(compression_radii.requires_grad)
 
         # Work out the width of each sub-block then use it to get the row and
         # column index slicers for placing sub-blocks into their atom-blocks.
@@ -1929,9 +1931,9 @@ class RepulsiveSplineFeed(Feed):
             Erep: The repulsive energy of the Geometry object(s).
         """
         batch_size, indxs, indx_pairs, normed_distance_vectors = self._calculation_prep(geo)
-        
+
         Erep = torch.zeros((batch_size), device=self.device, dtype=self.dtype)
-        
+
         for indx_pair in indx_pairs:
             atomnum1 = geo.atomic_numbers[..., indx_pair[0]].reshape((batch_size, ))
             atomnum2 = geo.atomic_numbers[..., indx_pair[1]].reshape((batch_size, ))
@@ -1958,9 +1960,9 @@ class RepulsiveSplineFeed(Feed):
             dErep: The gradient of the repulsive energy.
         """
         batch_size, indxs, indx_pairs, normed_distance_vectors = self._calculation_prep(geo)
-        
+
         dErep = torch.zeros((batch_size, geo.atomic_numbers.size(dim=-1), 3), device=self.device, dtype=self.dtype)
-        
+
         for indx_pair in indx_pairs:
             atomnum1 = geo.atomic_numbers[..., indx_pair[0]].reshape((batch_size, ))
             atomnum2 = geo.atomic_numbers[..., indx_pair[1]].reshape((batch_size, ))
@@ -2038,10 +2040,10 @@ class RepulsiveSplineFeed(Feed):
             else:
                 return self._exponential_head(distance, spline.exp_coef, grad=grad)
         return torch.tensor(0.0, dtype=self.dtype, device=self.device)
-   
+
     @classmethod
     def _exponential_head(cls, distance: Tensor, coeffs: Tensor, grad: bool = False) -> Tensor:
-        r"""Exponential head calculation of the repulsive spline. 
+        r"""Exponential head calculation of the repulsive spline.
 
         Arguments:
             distance: The distance between the two atoms.
@@ -2059,7 +2061,7 @@ class RepulsiveSplineFeed(Feed):
         else:
             return -a1*torch.exp(-a1*distance + a2)
 
-    @classmethod 
+    @classmethod
     def _spline(cls, distance: Tensor, start: Tensor, coeffs: Tensor, grad: bool = False) -> Tensor:
         r"""3rd order polynomial Spline calculation of the repulsive spline.
 
@@ -2080,7 +2082,7 @@ class RepulsiveSplineFeed(Feed):
             denergy = coeffs[1] + 2*coeffs[2]*rDiff + 3*coeffs[3]*rDiff**2
             return denergy
 
-    @classmethod 
+    @classmethod
     def _tail(cls, distance: Tensor, start: Tensor, coeffs: Tensor, grad: bool = False) -> Tensor:
         r"""5th order polynomial trailing tail calculation of the repulsive spline.
 
@@ -2088,7 +2090,7 @@ class RepulsiveSplineFeed(Feed):
             distance: The distance between the two atoms.
             start: The start of the trailing tail segment.
             coeffs: The coefficients of the polynomial.
-        
+
         Returns:
             energy: The energy value of the tail.
                 The energy is calculated as :math:`coeffs[0] + coeffs[1]*(distance - start) + coeffs[2]*(distance - start)^2 + coeffs[3]*(distance - start)^3 + coeffs[4]*(distance - start)^4 + coeffs[5]*(distance - start)^5`.
@@ -2586,4 +2588,3 @@ class PairwiseRepulsiveEnergyFeed(Feed):
                 f"like '(1, 6)'.")
 
             raise ValueError('\n'.join(errors))
-
