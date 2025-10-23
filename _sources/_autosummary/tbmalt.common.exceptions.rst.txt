@@ -1,0 +1,32 @@
+exceptions
+==========
+
+.. automodule:: tbmalt.common.exceptions
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Exceptions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      ConvergenceError
+      TbmaltError
+   
+   
+
+
+

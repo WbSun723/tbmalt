@@ -1,0 +1,996 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.physics.dftb.coulomb &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../dftb.html">tbmalt.physics.dftb</a></li>
+      <li class="breadcrumb-item active">tbmalt.physics.dftb.coulomb</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.physics.dftb.coulomb</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Code associated with coulombic interactions.</span>
+
+<span class="sd">This module calculate the Ewald summation for periodic</span>
+<span class="sd">boundary conditions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">special</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt</span><span class="w"> </span><span class="kn">import</span> <span class="n">Geometry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.structures.periodicity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Triclinic</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.data.constant</span><span class="w"> </span><span class="kn">import</span> <span class="n">euler</span>
+
+<span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+<span class="c1"># Todo:</span>
+<span class="c1">#   - Currently, the `Ewald._update_latvec` and `Ewald._update_neighbour`</span>
+<span class="c1">#     methods are very wasteful. This is because they do not take advantage of</span>
+<span class="c1">#     any caching. They instead recompute everything from scratch each time</span>
+<span class="c1">#     they are called. They should be rewritten to take advantage of caching.</span>
+
+<div class="viewcode-block" id="build_coulomb_matrix">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.physics.dftb.coulomb.build_coulomb_matrix.html#tbmalt.physics.dftb.coulomb.build_coulomb_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_coulomb_matrix</span><span class="p">(</span><span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Construct the 1/R matrix for the periodic geometry.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: Object for calculation, storing the data of input geometry.</span>
+
+<span class="sd">    Keyword Arguments:</span>
+<span class="sd">        tol_ewald: Ewald tolerance.</span>
+<span class="sd">        method: Method to obtain parameters of alpha and cutoff.</span>
+<span class="sd">        nsearchiter: Maximum of iteration for searching alpha, maxg and maxr.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt import Geometry</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.physics.dftb.coulomb import build_coulomb_matrix</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; cell = torch.tensor([[2., 0., 0.], [0., 4., 0.], [0., 0., 2.]])</span>
+<span class="sd">        &gt;&gt;&gt; pos = torch.tensor([[0., 0., 0.], [0., 2., 0.]])</span>
+<span class="sd">        &gt;&gt;&gt; num = torch.tensor([1, 1])</span>
+<span class="sd">        &gt;&gt;&gt; cutoff = torch.tensor([9.98])</span>
+<span class="sd">        &gt;&gt;&gt; system = Geometry(num, pos, cell, units=&#39;a&#39;, cutoff=cutoff)</span>
+<span class="sd">        &gt;&gt;&gt; invrmat = build_coulomb_matrix(system, method=&#39;search&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; print(invrmat)</span>
+<span class="sd">        tensor([[-0.4778, -0.2729],</span>
+<span class="sd">                [-0.2729, -0.4778]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Check the type of pbc and choose corresponding subclass</span>
+    <span class="k">if</span> <span class="n">geometry</span><span class="o">.</span><span class="n">pbc</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># -&gt; Single</span>
+        <span class="n">_sum_dim</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">pbc</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; Batch</span>
+        <span class="n">_sum_dim</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">pbc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">_sum_dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># -&gt; 1D pbc</span>
+        <span class="n">coulomb</span> <span class="o">=</span> <span class="n">Ewald1d</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">_sum_dim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># -&gt; 2D pbc</span>
+        <span class="n">coulomb</span> <span class="o">=</span> <span class="n">Ewald2d</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">_sum_dim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>  <span class="c1"># -&gt; 3D pbc</span>
+        <span class="n">coulomb</span> <span class="o">=</span> <span class="n">Ewald3d</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of dimensions should not exceed 3.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">coulomb</span><span class="o">.</span><span class="n">invrmat</span></div>
+
+
+
+<div class="viewcode-block" id="Ewald">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.physics.dftb.coulomb.Ewald.html#tbmalt.physics.dftb.coulomb.Ewald">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Ewald</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;ABC for calculating the coulombic interaction in periodic geometry.</span>
+
+<span class="sd">    `Ewald` class calculates the long range coulombic interaction using Ewald</span>
+<span class="sd">    summation, which consists of three different parts, i.e. two rapidly</span>
+<span class="sd">    converging terms (real space sum, reciprocal space sum) and a</span>
+<span class="sd">    self-correction term. Formulas for different periodic boundary conditions</span>
+<span class="sd">    are given in the corresponding references.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: Object for calculation, storing the data of input geometry.</span>
+<span class="sd">        periodic: Object for calculation, storing the data of translation</span>
+<span class="sd">            vectors and neighbour list for periodic boundary condition.</span>
+<span class="sd">        param: Parameter used for calculation. Cell volume for 3D pbc,</span>
+<span class="sd">            cell length for 1D &amp; 2D pbc.</span>
+
+<span class="sd">    Keyword Arguments:</span>
+<span class="sd">        tol_ewald: Tolerance of Ewald summation.</span>
+<span class="sd">        method: Method to obtain parameters of alpha, maxr and maxg.</span>
+<span class="sd">        nsearchiter: Maximum of iteration for searching alpha, maxg and maxr.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        geometry: Object for calculation, storing the data of input geometry.</span>
+<span class="sd">        periodic: Object for calculation, storing the data of translation</span>
+<span class="sd">            vectors and neighbour list for periodic boundary condition.</span>
+<span class="sd">        latvec: Lattice vectors of the periodic systems.</span>
+<span class="sd">        n_atoms: Number of atoms in the system.</span>
+<span class="sd">        coord : Coordinates of the atoms.</span>
+<span class="sd">        recvec: Reciprocal lattice vectors.</span>
+<span class="sd">        param: Parameter used for calculation. Cell volume for 3D pbc,</span>
+<span class="sd">            cell length for 1D &amp; 2D pbc.</span>
+<span class="sd">        tol_ewald: Tolerance of Ewald summation.</span>
+<span class="sd">        method: Method to obtain parameters of alpha, maxr and maxg.</span>
+<span class="sd">        nsearchiter: Maximum of iteration for searching alpha, maxg and maxr.</span>
+<span class="sd">        alpha: Splitting parameter for the Ewald summation</span>
+<span class="sd">        maxr: The longest real space vector that gives a bigger</span>
+<span class="sd">            contribution to the EWald sum than tolerance.</span>
+<span class="sd">        maxg: The longest reciprocal vector that gives a bigger</span>
+<span class="sd">            contribution to the EWald sum than tolerance.</span>
+<span class="sd">        rcellvec_ud: Cell translation vectors in absolute units.</span>
+<span class="sd">        ncell_ud: Number of lattice cells.</span>
+<span class="sd">        distmat: Periodic distances.</span>
+<span class="sd">        neighbour: A mask to choose atoms of images inside the cutoff.</span>
+<span class="sd">        ewald_r: Real part of the Ewald summation.</span>
+<span class="sd">        mask_g: Mask used for calculation of reciprocal part.</span>
+<span class="sd">        ewald_g: Reciprocal part of the Ewald summation</span>
+<span class="sd">        invrmat: 1/R matrix for the periodic geometry.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        There are two available methods to generate adjustable parameters for</span>
+<span class="sd">        Ewald summation. The default method uses empirical formulas from</span>
+<span class="sd">        experience to obtain alpha, maxr and maxg. While these parameters can</span>
+<span class="sd">        also be obtained by searching, which give exactly the same results in</span>
+<span class="sd">        DFTB+ for 3D pbc.</span>
+
+<span class="sd">    Warning:</span>
+<span class="sd">        The result of 1D ewald summation is sensitive to the selection of</span>
+<span class="sd">        splitting parameter alpha. Using the default method rather than</span>
+<span class="sd">        searching can achieve the convergence. Besides, mixing of different pbc</span>
+<span class="sd">        is not supported.</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        [1]: Journal of Computational Physics 285 (2015): 280-315.</span>
+<span class="sd">        [2]: The Journal of chemical physics 136.16 (2012): 164111.</span>
+<span class="sd">        [3]: Advances in Computational Mathematics 42.1 (2016): 227-248.</span>
+<span class="sd">        [4]: Chemical physics letters 340.1-2 (2001): 157-164.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">periodic</span><span class="p">:</span> <span class="n">Triclinic</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="c1"># Read input geometry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span> <span class="o">=</span> <span class="n">geometry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">periodic</span><span class="p">:</span> <span class="n">Triclinic</span> <span class="o">=</span> <span class="n">periodic</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">lattice</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">n_atoms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">positions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recvec</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodic</span><span class="o">.</span><span class="n">reciprocal_lattice</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="o">.</span><span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="c1"># Number of batches if in batch mode (for internal use only)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+                                        <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="p">))</span>
+
+        <span class="c1"># Parameter used for calculation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="n">param</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span> <span class="k">else</span> <span class="n">param</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Tolerance of ewald summation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;tol_ewald&#39;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1e-9</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
+                                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">))</span>
+
+        <span class="c1"># Method to obtain parameters for calculation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="s1">&#39;experience&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Maximun number of iteration when searching alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsearchiter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;nsearchiter&#39;</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+
+        <span class="c1"># Maximum number of atoms in geometry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span>
+
+        <span class="c1"># Default method to obtain parameters by empirical formulas</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;experience&#39;</span><span class="p">:</span>
+
+            <span class="c1"># Splitting parameter</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_alpha</span><span class="p">()</span>
+
+            <span class="n">ff</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span><span class="p">))</span>
+
+            <span class="c1"># The longest real space vector</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maxr</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="n">ff</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span>
+
+            <span class="c1"># The longest reciprocal vector</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maxg</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">ff</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; Obtain parameters by searching</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_alpha</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maxr</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_maxr</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">maxg</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_maxg</span><span class="p">()</span>
+
+        <span class="c1"># The updated lattice points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rcellvec_ud</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ncell_ud</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_latvec</span><span class="p">()</span>
+
+        <span class="c1"># The updated neighbour lists</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">distmat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbour</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_neighbour</span><span class="p">()</span>
+
+        <span class="c1"># Real part of the Ewald summation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ewald_r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invr_periodic_real</span><span class="p">()</span>
+
+        <span class="c1"># Reciprocal part of the Ewald summation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ewald_g</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invr_periodic_reciprocal</span><span class="p">()</span>
+
+        <span class="c1"># 1/R matrix for the periodic geometry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">invrmat</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invr_periodic</span><span class="p">()</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the default value of alpha.&quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update_latvec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the lattice points for reciprocal Ewald summation.&quot;&quot;&quot;</span>
+        <span class="c1"># TODO: might be best to rename this as it is not really updating the</span>
+        <span class="c1">#   lattice vectors, but rather the cell translation vectors.</span>
+
+        <span class="n">reciprocal_lattice_vector_inverse</span> <span class="o">=</span> <span class="n">Triclinic</span><span class="o">.</span><span class="n">inverse_lattice_vector</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recvec</span><span class="p">)</span>
+
+        <span class="n">cell_translation_vector_indices</span><span class="p">,</span> <span class="n">n_cells</span> <span class="o">=</span> \
+            <span class="n">Triclinic</span><span class="o">.</span><span class="n">get_cell_translation_vector_indices</span><span class="p">(</span>
+                <span class="n">reciprocal_lattice_vector_inverse</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxg</span><span class="p">)</span>
+
+        <span class="n">cell_translation_vectors</span> <span class="o">=</span> <span class="n">Triclinic</span><span class="o">.</span><span class="n">get_cell_translation_vectors</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">recvec</span><span class="p">,</span> <span class="n">cell_translation_vector_indices</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cell_translation_vectors</span><span class="p">,</span> <span class="n">n_cells</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update_neighbour</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the neighbour lists for real Ewald summation.&quot;&quot;&quot;</span>
+
+        <span class="n">lattice_vector_inverse</span> <span class="o">=</span> <span class="n">Triclinic</span><span class="o">.</span><span class="n">inverse_lattice_vector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="p">)</span>
+
+        <span class="n">cell_translation_vector_indices</span><span class="p">,</span> <span class="n">n_cells</span> <span class="o">=</span> \
+            <span class="n">Triclinic</span><span class="o">.</span><span class="n">get_cell_translation_vector_indices</span><span class="p">(</span>
+                <span class="n">lattice_vector_inverse</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxr</span><span class="p">)</span>
+
+        <span class="n">cell_translation_vectors</span> <span class="o">=</span> <span class="n">Triclinic</span><span class="o">.</span><span class="n">get_cell_translation_vectors</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="p">,</span> <span class="n">cell_translation_vector_indices</span><span class="p">)</span>
+
+        <span class="n">periodic_distances</span> <span class="o">=</span> <span class="n">Triclinic</span><span class="o">.</span><span class="n">get_periodic_distances</span><span class="p">(</span>
+            <span class="n">cell_translation_vectors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">positions</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span>
+
+        <span class="n">neighbours</span> <span class="o">=</span> <span class="n">Triclinic</span><span class="o">.</span><span class="n">get_neighbours</span><span class="p">(</span><span class="n">periodic_distances</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxr</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">periodic_distances</span><span class="p">,</span> <span class="n">neighbours</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_invr_periodic</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the 1/R matrix for the periodic geometry.&quot;&quot;&quot;</span>
+        <span class="c1"># Extra contribution for self interaction</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">:</span>  <span class="c1"># -&gt; Single</span>
+            <span class="n">extra</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
+                              <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; Batch</span>
+            <span class="n">extra</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">,</span>
+                              <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span>
+                              <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+                                         <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># TODO: only eqald_r is an issue here</span>
+        <span class="n">invr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ewald_r</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ewald_g</span> <span class="o">-</span> <span class="n">extra</span>
+        <span class="n">invr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_g</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">invr</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_invr_periodic_reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the reciprocal part of 1/R matrix.&quot;&quot;&quot;</span>
+        <span class="c1"># Lattice points for the reciprocal sum</span>
+        <span class="n">n_low</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ncell_ud</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">))</span>
+
+        <span class="c1"># Single</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">:</span>
+            <span class="n">gvec_tem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rcellvec_ud</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">n_low</span><span class="p">):]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">gvec_tem</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxg</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="n">gvec</span> <span class="o">=</span> <span class="n">gvec_tem</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+            <span class="c1"># Vectors for calculating the reciprocal Ewald sum</span>
+            <span class="n">rr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span>\
+                <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+            <span class="c1"># The reciprocal Ewald sum</span>
+            <span class="n">recsum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ewald_reciprocal_single</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">gvec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
+            <span class="n">ewald_g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                <span class="n">recsum</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">))</span>
+            <span class="n">ewald_g</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_g</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Batch</span>
+        <span class="c1"># Large values are padded in the end of short vectors</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gvec_tem</span> <span class="o">=</span> <span class="n">pack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rcellvec_ud</span><span class="p">[</span>
+                <span class="n">ibatch</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_low</span><span class="p">[</span><span class="n">ibatch</span><span class="p">]):</span> <span class="nb">int</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">n_low</span><span class="p">[</span><span class="n">ibatch</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)],</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">ibatch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">)],</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span>
+            <span class="n">dd2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">gvec_tem</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">dd2</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxg</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+            <span class="n">gvec</span> <span class="o">=</span> <span class="n">pack</span><span class="p">([</span><span class="n">gvec_tem</span><span class="p">[</span><span class="n">ibatch</span><span class="p">,</span> <span class="n">mask</span><span class="p">[</span><span class="n">ibatch</span><span class="p">]]</span>
+                         <span class="k">for</span> <span class="n">ibatch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">)],</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span>
+
+            <span class="c1"># Vectors for calculating the reciprocal Ewald sum</span>
+            <span class="n">rr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">coord</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+                <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+            <span class="c1"># The reciprocal Ewald sum</span>
+            <span class="n">recsum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ewald_reciprocal</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">gvec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
+            <span class="n">ewald_g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">recsum</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">,</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">_max_natoms</span><span class="p">))</span>
+            <span class="n">ewald_g</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_g</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">ewald_g</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_invr_periodic_real</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the real part of 1/R matrix.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">:</span>  <span class="c1"># -&gt; Single</span>
+            <span class="n">ewaldr_tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ewald_real_single</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; Batch</span>
+            <span class="n">ewaldr_tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ewald_real</span><span class="p">()</span>
+
+        <span class="c1"># Mask for summation</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">ewaldr_tmp</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)</span>
+        <span class="n">mask_real</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbour</span> <span class="o">&amp;</span> <span class="n">mask</span>
+        <span class="n">ewaldr_tmp</span><span class="p">[</span><span class="o">~</span><span class="n">mask_real</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">ewald_r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ewaldr_tmp</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">3</span><span class="p">)</span>
+
+        <span class="c1"># Mask used for calculation of reciprocal part</span>
+        <span class="n">mask_g</span> <span class="o">=</span> <span class="n">ewald_r</span> <span class="o">==</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">ewald_r</span><span class="p">,</span> <span class="n">mask_g</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get optimal alpha for the Ewald sum from searching.&quot;&quot;&quot;</span>
+        <span class="c1"># Mask for zero vector</span>
+        <span class="n">maskg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recvec</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">maskr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Ewald parameter</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">:</span>  <span class="c1"># -&gt; Single</span>
+            <span class="n">alphainit</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0e-8</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
+                                     <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
+            <span class="c1"># Length of the shortest vector in reciprocal space</span>
+            <span class="n">min_g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">recvec</span><span class="p">[</span><span class="n">maskg</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="c1"># Length of the shortest vector in real space</span>
+            <span class="n">min_r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="p">[</span><span class="n">maskr</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; Batch</span>
+            <span class="n">alphainit</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0e-8</span><span class="p">],</span>  <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
+                                     <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">)</span>
+            <span class="c1"># Length of the shortest vector in reciprocal space</span>
+            <span class="n">min_g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">recvec</span><span class="p">[</span><span class="n">maskg</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                    <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="c1"># Length of the shortest vector in real space</span>
+            <span class="n">min_r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">latvec</span><span class="p">[</span><span class="n">maskr</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                    <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">alphainit</span><span class="p">)</span>
+
+        <span class="c1"># Difference between reciprocal and real parts of the decrease</span>
+        <span class="c1"># of Ewald sum.</span>
+        <span class="n">diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_rec_real</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">min_g</span><span class="p">,</span> <span class="n">min_r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
+        <span class="n">ierror</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Mask for batch calculation</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">&lt;</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+
+        <span class="c1"># Loop to find the alpha</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+            <span class="n">diff</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_rec_real</span><span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">min_g</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span>
+                                             <span class="n">min_r</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">&lt;</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">alpha</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)):</span>
+            <span class="n">ierror</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">alpha</span> <span class="o">==</span> <span class="n">alphainit</span><span class="p">):</span>
+            <span class="n">ierror</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">ierror</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">alphaleft</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">alpha</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+            <span class="k">while</span> <span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+                <span class="n">diff</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_rec_real</span><span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">min_g</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span>
+                                                 <span class="n">min_r</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+                <span class="k">if</span> <span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">break</span>
+
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">alpha</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)):</span>
+            <span class="n">ierror</span> <span class="o">=</span> <span class="mi">3</span>
+
+        <span class="k">if</span> <span class="n">ierror</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">alpharight</span> <span class="o">=</span> <span class="n">alpha</span>
+            <span class="n">alpha</span> <span class="o">=</span> <span class="p">(</span><span class="n">alphaleft</span> <span class="o">+</span> <span class="n">alpharight</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+            <span class="n">iiter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_rec_real</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">min_g</span><span class="p">,</span> <span class="n">min_r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+            <span class="k">while</span> <span class="n">iiter</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsearchiter</span><span class="p">:</span>
+                <span class="n">mask_neg</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">&lt;</span> <span class="mi">0</span>
+                <span class="n">alphaleft</span><span class="p">[</span><span class="n">mask_neg</span><span class="p">]</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">[</span><span class="n">mask_neg</span><span class="p">]</span>
+                <span class="n">alpharight</span><span class="p">[</span><span class="o">~</span><span class="n">mask_neg</span><span class="p">]</span> <span class="o">=</span> <span class="n">alpha</span><span class="p">[</span><span class="o">~</span><span class="n">mask_neg</span><span class="p">]</span>
+                <span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">alphaleft</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">+</span> <span class="n">alpharight</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+                <span class="n">diff</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_diff_rec_real</span><span class="p">(</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">min_g</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span>
+                                                 <span class="n">min_r</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+                <span class="n">iiter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">iiter</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsearchiter</span><span class="p">:</span>
+                <span class="n">ierror</span> <span class="o">=</span> <span class="mi">4</span>
+
+        <span class="k">if</span> <span class="n">ierror</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Fail to get optimal alpha for Ewald sum.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">alpha</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_maxg</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the longest reciprocal vector that gives a bigger</span>
+<span class="sd">        contribution to the Ewald sum than tolerance.&quot;&quot;&quot;</span>
+        <span class="n">ginit</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0e-8</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
+                             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">ierror</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">ginit</span><span class="p">)</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gterm</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
+
+        <span class="c1"># Mask for batch</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">yy</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+
+        <span class="c1"># Loop</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">*</span> <span class="mf">2.0</span>
+            <span class="n">yy</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gterm</span><span class="p">(</span>
+                <span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">yy</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xx</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)):</span>
+            <span class="n">ierror</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xx</span> <span class="o">==</span> <span class="n">ginit</span><span class="p">):</span>
+            <span class="n">ierror</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">ierror</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">xleft</span> <span class="o">=</span> <span class="n">xx</span> <span class="o">*</span> <span class="mf">0.5</span>
+            <span class="n">xright</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span>
+            <span class="n">yleft</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gterm</span><span class="p">(</span><span class="n">xleft</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">)</span>
+            <span class="n">yright</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">yy</span><span class="p">)</span>
+            <span class="n">iiter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">yleft</span> <span class="o">-</span> <span class="n">yright</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+
+            <span class="k">while</span> <span class="n">iiter</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsearchiter</span><span class="p">:</span>
+                <span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">xleft</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">+</span> <span class="n">xright</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+                <span class="n">yy</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gterm</span><span class="p">(</span>
+                    <span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+                <span class="n">mask_yy</span> <span class="o">=</span> <span class="n">yy</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+                <span class="n">xleft</span><span class="p">[</span><span class="n">mask_yy</span><span class="p">]</span> <span class="o">=</span> <span class="n">xx</span><span class="p">[</span><span class="n">mask_yy</span><span class="p">]</span>
+                <span class="n">yleft</span><span class="p">[</span><span class="n">mask_yy</span><span class="p">]</span> <span class="o">=</span> <span class="n">yy</span><span class="p">[</span><span class="n">mask_yy</span><span class="p">]</span>
+                <span class="n">xright</span><span class="p">[</span><span class="o">~</span><span class="n">mask_yy</span><span class="p">]</span> <span class="o">=</span> <span class="n">xx</span><span class="p">[</span><span class="o">~</span><span class="n">mask_yy</span><span class="p">]</span>
+                <span class="n">yright</span><span class="p">[</span><span class="o">~</span><span class="n">mask_yy</span><span class="p">]</span> <span class="o">=</span> <span class="n">yy</span><span class="p">[</span><span class="o">~</span><span class="n">mask_yy</span><span class="p">]</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">yleft</span> <span class="o">-</span> <span class="n">yright</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+                <span class="n">iiter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">iiter</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsearchiter</span><span class="p">:</span>
+                <span class="n">ierror</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">ierror</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Fail to get maxg for Ewald sum.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">xx</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_maxr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the longest real space vector that gives a bigger</span>
+<span class="sd">           contribution to the Ewald sum than tolerance.&quot;&quot;&quot;</span>
+        <span class="n">rinit</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0e-8</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span>
+                             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">ierror</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">rinit</span><span class="p">)</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rterm</span><span class="p">(</span><span class="n">xx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+
+        <span class="c1"># Mask for batch</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">yy</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+
+        <span class="c1"># Loop</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">*</span> <span class="mf">2.0</span>
+            <span class="n">yy</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rterm</span><span class="p">(</span><span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">yy</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+            <span class="k">if</span> <span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xx</span> <span class="o">&gt;=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;inf&#39;</span><span class="p">)):</span>
+            <span class="n">ierror</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">xx</span> <span class="o">==</span> <span class="n">rinit</span><span class="p">):</span>
+            <span class="n">ierror</span> <span class="o">=</span> <span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">ierror</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">xleft</span> <span class="o">=</span> <span class="n">xx</span> <span class="o">*</span> <span class="mf">0.5</span>
+            <span class="n">xright</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span>
+            <span class="n">yleft</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rterm</span><span class="p">(</span><span class="n">xleft</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">)</span>
+            <span class="n">yright</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">yy</span><span class="p">)</span>
+            <span class="n">iiter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">yleft</span> <span class="o">-</span> <span class="n">yright</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+
+            <span class="k">while</span> <span class="n">iiter</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsearchiter</span><span class="p">:</span>
+                <span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">xleft</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">+</span> <span class="n">xright</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+                <span class="n">yy</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rterm</span><span class="p">(</span><span class="n">xx</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+                <span class="n">mask_yy</span> <span class="o">=</span> <span class="n">yy</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+                <span class="n">xleft</span><span class="p">[</span><span class="n">mask_yy</span><span class="p">]</span> <span class="o">=</span> <span class="n">xx</span><span class="p">[</span><span class="n">mask_yy</span><span class="p">]</span>
+                <span class="n">yleft</span><span class="p">[</span><span class="n">mask_yy</span><span class="p">]</span> <span class="o">=</span> <span class="n">yy</span><span class="p">[</span><span class="n">mask_yy</span><span class="p">]</span>
+                <span class="n">xright</span><span class="p">[</span><span class="o">~</span><span class="n">mask_yy</span><span class="p">]</span> <span class="o">=</span> <span class="n">xx</span><span class="p">[</span><span class="o">~</span><span class="n">mask_yy</span><span class="p">]</span>
+                <span class="n">yright</span><span class="p">[</span><span class="o">~</span><span class="n">mask_yy</span><span class="p">]</span> <span class="o">=</span> <span class="n">yy</span><span class="p">[</span><span class="o">~</span><span class="n">mask_yy</span><span class="p">]</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">yleft</span> <span class="o">-</span> <span class="n">yright</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tol_ewald</span>
+                <span class="n">iiter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">iiter</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsearchiter</span><span class="p">:</span>
+                <span class="n">ierror</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">if</span> <span class="n">ierror</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Fail to get maxg for Ewald sum.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">xx</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_real</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Batch calculation of the Ewald sum in the real part for a certain</span>
+<span class="sd">        vector length.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">distmat</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">distmat</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_real_single</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculation of the Ewald sum in the real part for a certain</span>
+<span class="sd">        vector length.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">distmat</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">distmat</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_diff_rec_real</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">min_g</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                       <span class="n">min_r</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the difference between reciprocal and real parts of the</span>
+<span class="sd">        decrease of Ewald sum.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_gterm</span><span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">min_g</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gterm</span><span class="p">(</span>
+            <span class="mf">5.0</span> <span class="o">*</span> <span class="n">min_g</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">param</span><span class="p">))</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rterm</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">min_r</span><span class="p">,</span> <span class="n">alpha</span><span class="p">)</span> <span class="o">-</span>
+                                           <span class="bp">self</span><span class="o">.</span><span class="n">_rterm</span><span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">min_r</span><span class="p">,</span> <span class="n">alpha</span><span class="p">))</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">len_r</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">len_g</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_reciprocal_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">gvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                                 <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">vol</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">pass</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">gvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                          <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">vol</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="Ewald3d">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.physics.dftb.coulomb.Ewald3d.html#tbmalt.physics.dftb.coulomb.Ewald3d">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Ewald3d</span><span class="p">(</span><span class="n">Ewald</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Implement of Ewald summation for 3D periodic boundary condition.</span>
+
+<span class="sd">    Subclass of the `Ewald` class, containing formulas for 3D pbc.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: Object for calculation, storing the data of input geometry.</span>
+<span class="sd">        periodic: Object for calculation, storing the data of translation</span>
+<span class="sd">            vectors and neighbour list for periodic boundary condition.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        invrmat: 1/R matrix for the periodic geometry.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">periodic</span><span class="p">:</span> <span class="n">Triclinic</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="n">periodic</span><span class="o">.</span><span class="n">cellvol</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">periodic</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the default value of alpha.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">6</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mf">0.5</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">gvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                          <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">vol</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the reciprocal part of the Ewald sum.&quot;&quot;&quot;</span>
+        <span class="n">g2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gvec</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">gvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">recsum</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="n">g2</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+                            <span class="o">/</span> <span class="n">g2</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dot</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">tem</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">recsum</span> <span class="o">*</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">vol</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">tem</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">param</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+                       <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_reciprocal_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">gvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                                 <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">vol</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the reciprocal part of the Ewald sum.&quot;&quot;&quot;</span>
+        <span class="n">g2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gvec</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">gvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+        <span class="n">recsum</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span> <span class="n">g2</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="n">g2</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dot</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">recsum</span> <span class="o">*</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">vol</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">param</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">len_g</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">cellvol</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the maximum value of the Ewald sum in the</span>
+<span class="sd">           reciprocal part for a certain vector length.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">len_g</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+                              <span class="o">/</span> <span class="p">(</span><span class="n">cellvol</span> <span class="o">*</span> <span class="n">len_g</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">len_r</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the maximum value of the Ewald sum in the</span>
+<span class="sd">           real part for a certain vector length.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">len_r</span><span class="p">)</span> <span class="o">/</span> <span class="n">len_r</span></div>
+
+
+
+<div class="viewcode-block" id="Ewald2d">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.physics.dftb.coulomb.Ewald2d.html#tbmalt.physics.dftb.coulomb.Ewald2d">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Ewald2d</span><span class="p">(</span><span class="n">Ewald</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Implement of Ewald summation for 2D boundary condition.</span>
+
+<span class="sd">    Subclass of the `Ewald` class, containing formulas for 2D pbc.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: Object for calculation, storing the data of input geometry.</span>
+<span class="sd">        periodic: Object for calculation, storing the data of translation</span>
+<span class="sd">            vectors and neighbour list for periodic boundary condition.</span>
+<span class="sd">        length: The length of each lattice vector.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        invrmat: 1/R matrix for the periodic geometry.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">periodic</span><span class="p">:</span> <span class="n">Triclinic</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="o">.</span><span class="n">get_cell_lengths</span><span class="p">()</span>
+
+        <span class="c1"># Get the minimal length of non-zero terms</span>
+        <span class="n">tem</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">)</span>
+        <span class="n">tem</span><span class="p">[</span><span class="n">tem</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1e5</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">tem</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">periodic</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the default value of alpha.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">6</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mf">0.5</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">gvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                          <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the reciprocal part of the Ewald sum.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Mask of periodic directions</span>
+        <span class="n">mask_pd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodic</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Index to describe non-periodic direction</span>
+        <span class="n">index_npd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span>
+                                 <span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="o">~</span><span class="n">mask_pd</span><span class="p">]</span>
+
+        <span class="c1"># Lengths of lattice vectors of periodic directions</span>
+        <span class="n">length_pd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">[</span><span class="n">mask_pd</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">g2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gvec</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">gg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">g2</span><span class="p">)</span>
+        <span class="n">dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">gvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># Vectors of the non-periodic direction for reciprocal sum. Different</span>
+        <span class="c1"># directions can be specified in the batch.</span>
+        <span class="n">rr_npe</span> <span class="o">=</span> <span class="n">rr</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">),</span> <span class="p">:,</span> <span class="n">index_npd</span><span class="p">]</span>
+
+        <span class="c1"># Reciprocal, L</span>
+        <span class="n">tem</span> <span class="o">=</span> <span class="n">gg</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">rr_npe</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">aa</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">tem</span><span class="p">)</span>
+        <span class="n">tem2</span> <span class="o">=</span> <span class="n">gg</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span><span class="p">)</span>
+
+        <span class="n">bb</span> <span class="o">=</span> <span class="n">tem2</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">rr_npe</span>
+                                   <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+                                       <span class="n">tem2</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">cc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="n">tem</span><span class="p">)</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="n">tem2</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">rr_npe</span>
+                                   <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+                                       <span class="n">tem2</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">yyt</span> <span class="o">=</span> <span class="n">aa</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span> <span class="o">+</span> <span class="n">cc</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">dd</span><span class="p">)</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="n">yyt</span> <span class="o">/</span> <span class="n">gg</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Replace nan values</span>
+        <span class="n">yy</span><span class="p">[</span><span class="n">yy</span> <span class="o">!=</span> <span class="n">yy</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">recl</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dot</span><span class="p">)</span> <span class="o">*</span> <span class="n">yy</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="n">length_pd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">length_pd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Reciprocal, 0</span>
+        <span class="n">tem3</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">rr_npe</span> <span class="o">**</span> <span class="mi">2</span>
+                         <span class="p">)</span> <span class="o">/</span> <span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span>\
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rr_npe</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">erf</span><span class="p">(</span><span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">rr_npe</span><span class="p">)</span>
+        <span class="n">rec0</span> <span class="o">=</span> <span class="n">tem3</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="p">((</span>
+            <span class="n">length_pd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">length_pd</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">recl</span> <span class="o">+</span> <span class="n">rec0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_reciprocal_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">gvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span>
+                                 <span class="n">Tensor</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the reciprocal part of the Ewald sum.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Mask of periodic directions</span>
+        <span class="n">mask_pd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodic</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Index to describe non-periodic direction</span>
+        <span class="n">index_npd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)[</span><span class="o">~</span><span class="n">mask_pd</span><span class="p">]</span>
+
+        <span class="c1"># Lengths of lattice vectors of periodic directions</span>
+        <span class="n">length_pd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">[</span><span class="n">mask_pd</span><span class="p">]</span>
+
+        <span class="n">g2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gvec</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">gg</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">g2</span><span class="p">)</span>
+        <span class="n">dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">gvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># Reciprocal, L</span>
+        <span class="n">tem</span> <span class="o">=</span> <span class="n">gg</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">rr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">index_npd</span><span class="p">]</span>
+        <span class="n">aa</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">tem</span><span class="p">)</span>
+        <span class="n">tem2</span> <span class="o">=</span> <span class="n">gg</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">bb</span> <span class="o">=</span> <span class="n">tem2</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">rr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">index_npd</span><span class="p">]</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+            <span class="n">tem2</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="n">tem</span><span class="p">)</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="n">tem2</span> <span class="o">-</span> <span class="n">alpha</span> <span class="o">*</span> <span class="n">rr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">index_npd</span><span class="p">]</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+            <span class="n">tem2</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">yy</span> <span class="o">=</span> <span class="p">(</span><span class="n">aa</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span> <span class="o">+</span> <span class="n">cc</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">dd</span><span class="p">))</span> <span class="o">/</span> <span class="n">gg</span>
+        <span class="n">recl</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dot</span><span class="p">)</span> <span class="o">*</span> <span class="n">yy</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="p">(</span>
+            <span class="n">length_pd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">length_pd</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Reciprocal, 0</span>
+        <span class="n">tem3</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">rr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">index_npd</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="n">alpha</span> <span class="o">+</span> \
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">index_npd</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">erf</span><span class="p">(</span>
+                <span class="n">alpha</span> <span class="o">*</span> <span class="n">rr</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">index_npd</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="n">rec0</span> <span class="o">=</span> <span class="n">tem3</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="p">(</span><span class="n">length_pd</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">length_pd</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+        <span class="k">return</span> <span class="n">recl</span> <span class="o">+</span> <span class="n">rec0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">len_g</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the maximum value of the Ewald sum in the</span>
+<span class="sd">           reciprocal part for a certain vector length.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">len_g</span> <span class="o">/</span> <span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="mi">2</span>
+                <span class="p">)</span> <span class="o">/</span> <span class="n">len_g</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">length</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">len_r</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the maximum value of the Ewald sum in the</span>
+<span class="sd">           real part for a certain vector length.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">len_r</span><span class="p">)</span> <span class="o">/</span> <span class="n">len_r</span></div>
+
+
+
+<div class="viewcode-block" id="Ewald1d">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.physics.dftb.coulomb.Ewald1d.html#tbmalt.physics.dftb.coulomb.Ewald1d">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Ewald1d</span><span class="p">(</span><span class="n">Ewald</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Implement of Ewald summation for 1D boundary condition.</span>
+
+<span class="sd">    Subclass of the `Ewald` class, containing formulas for 1D pbc.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: Object for calculation, storing the data of input geometry.</span>
+<span class="sd">        periodic: Object for calculation, storing the data of translation</span>
+<span class="sd">            vectors and neighbour list for periodic boundary condition.</span>
+<span class="sd">        length: The length of each lattice vector.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        invrmat: 1/R matrix for the periodic geometry.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">periodic</span><span class="p">:</span> <span class="n">Triclinic</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="o">.</span><span class="n">get_cell_lengths</span><span class="p">()</span>
+
+        <span class="c1"># Get the minimal length of non-zero terms</span>
+        <span class="n">tem</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">)</span>
+        <span class="n">tem</span><span class="p">[</span><span class="n">tem</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1e5</span>
+        <span class="n">param</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">tem</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">periodic</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_default_alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the default value of alpha.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">6</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">param</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mf">0.5</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_reciprocal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">gvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                          <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the reciprocal part of the Ewald sum.&quot;&quot;&quot;</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">,</span> <span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">}</span>
+
+        <span class="c1"># Mask of periodic direction</span>
+        <span class="n">mask_pd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodic</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Index of non-periodic directions</span>
+        <span class="n">index_npd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="o">~</span><span class="n">mask_pd</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">g2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gvec</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">gvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># Reciprocal, L</span>
+        <span class="n">aa</span> <span class="o">=</span> <span class="n">g2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">bb</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">),</span> <span class="p">:,</span> <span class="n">index_npd</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">rr</span><span class="p">[</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">),</span> <span class="p">:,</span> <span class="n">index_npd</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]]</span>
+            <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">alpha</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="c1"># Numerical method to calculate integral value</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">10.0</span> <span class="o">**</span> <span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span>  <span class="o">**</span><span class="n">dd</span><span class="p">)</span>
+        <span class="n">kk0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[[</span><span class="n">torch</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">xx</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span><span class="n">iaa</span> <span class="o">/</span> <span class="n">xx</span> <span class="o">-</span> <span class="n">ibb</span> <span class="o">*</span> <span class="n">xx</span><span class="p">),</span> <span class="n">xx</span><span class="p">)</span>
+                              <span class="k">for</span> <span class="n">iaa</span> <span class="ow">in</span> <span class="n">aa</span><span class="p">[</span><span class="n">ibatch</span><span class="p">]]</span>
+                             <span class="k">for</span> <span class="n">ibb</span> <span class="ow">in</span> <span class="n">bb</span><span class="p">[</span><span class="n">ibatch</span><span class="p">]]</span>
+                            <span class="k">for</span> <span class="n">ibatch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">)],</span>
+                            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
+
+        <span class="n">recl</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dot</span><span class="p">)</span> <span class="o">*</span> <span class="n">kk0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="n">length</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Reciprocal, 0</span>
+        <span class="n">rec0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">bb</span> <span class="o">!=</span> <span class="mi">0</span>
+
+        <span class="n">rec0</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span> <span class="n">euler</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">bb</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+                      <span class="o">-</span> <span class="n">special</span><span class="o">.</span><span class="n">exp1</span><span class="p">(</span><span class="n">bb</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+                      <span class="p">)</span> <span class="o">/</span> <span class="n">length</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                          <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">bb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">recl</span> <span class="o">+</span> <span class="n">rec0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ewald_reciprocal_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">gvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                                 <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the reciprocal part of the Ewald sum.&quot;&quot;&quot;</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">,</span> <span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">}</span>
+
+        <span class="c1"># Mask of the periodic direction</span>
+        <span class="n">mask_pd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodic</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Index of non-periodic directions</span>
+        <span class="n">index_npd</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)[</span><span class="o">~</span><span class="n">mask_pd</span><span class="p">]</span>
+
+        <span class="n">g2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">gvec</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dot</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">rr</span><span class="p">,</span> <span class="n">gvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="c1"># Reciprocal, L</span>
+        <span class="n">aa</span> <span class="o">=</span> <span class="n">g2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">bb</span> <span class="o">=</span> <span class="p">(</span><span class="n">rr</span><span class="p">[:,</span> <span class="n">index_npd</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">rr</span><span class="p">[:,</span> <span class="n">index_npd</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">10.0</span> <span class="o">**</span> <span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">5000</span><span class="p">,</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span>  <span class="c1"># Numerical method</span>
+        <span class="n">kk0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">torch</span><span class="o">.</span><span class="n">trapz</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">xx</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+            <span class="o">-</span> <span class="n">iaa</span> <span class="o">/</span> <span class="n">xx</span> <span class="o">-</span> <span class="n">ibb</span> <span class="o">*</span> <span class="n">xx</span><span class="p">),</span> <span class="n">xx</span><span class="p">)</span> <span class="k">for</span> <span class="n">iaa</span> <span class="ow">in</span> <span class="n">aa</span><span class="p">]</span> <span class="k">for</span> <span class="n">ibb</span> <span class="ow">in</span> <span class="n">bb</span><span class="p">],</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">)</span>
+        <span class="n">recl</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">dot</span><span class="p">)</span> <span class="o">*</span> <span class="n">kk0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="n">length</span>
+
+        <span class="c1"># Reciprocal, 0</span>
+        <span class="n">rec0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">bb</span><span class="p">)</span>
+        <span class="n">mask_bb</span> <span class="o">=</span> <span class="n">bb</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="n">rec0</span><span class="p">[</span><span class="n">mask_bb</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span> <span class="n">euler</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">bb</span><span class="p">[</span><span class="n">mask_bb</span><span class="p">])</span>
+                         <span class="o">-</span> <span class="n">special</span><span class="o">.</span><span class="n">exp1</span><span class="p">(</span><span class="n">bb</span><span class="p">[</span><span class="n">mask_bb</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span>
+                                                              <span class="p">))</span> <span class="o">/</span> <span class="n">length</span>
+
+        <span class="k">return</span> <span class="n">recl</span> <span class="o">+</span> <span class="n">rec0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_gterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">len_g</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the maximum value of the Ewald sum in the</span>
+<span class="sd">           reciprocal part for a certain vector length.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">special</span><span class="o">.</span><span class="n">exp1</span><span class="p">((</span><span class="n">len_g</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">alpha</span> <span class="o">**</span> <span class="mi">2</span><span class="p">))</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span> <span class="o">/</span> <span class="n">length</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rterm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">len_r</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the maximum value of the Ewald sum in the</span>
+<span class="sd">           real part for a certain vector length.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">len_r</span><span class="p">)</span> <span class="o">/</span> <span class="n">len_r</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

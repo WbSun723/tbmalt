@@ -1,0 +1,38 @@
+﻿tbmalt
+======
+
+.. automodule:: tbmalt
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: module.rst
+   :recursive:
+
+   common
+   data
+   io
+   ml
+   physics
+   structures
+   tools
+

@@ -1,0 +1,30 @@
+Mixer
+=====
+
+.. currentmodule:: tbmalt.common.maths.mixers
+
+.. autoclass:: Mixer
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: converged, delta, step_number
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~Mixer.converged
+   
+      ~Mixer.delta
+   
+      ~Mixer.step_number
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

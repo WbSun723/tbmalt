@@ -1,0 +1,1302 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.physics.filling &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">tbmalt.physics.filling</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.physics.filling</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Code associated with electronic/finite temperature.&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Protocol</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numbers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Real</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">pi</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.autograd</span><span class="w"> </span><span class="kn">import</span> <span class="n">Function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConvergenceError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrbitalInfo</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">float_like</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">psort</span><span class="p">,</span> <span class="n">bT</span>
+
+
+<div class="viewcode-block" id="Scheme">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.physics.filling.Scheme.html#tbmalt.physics.filling.Scheme">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Scheme</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">kT</span><span class="p">:</span> <span class="n">float_like</span><span class="p">,</span>
+            <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+        <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="entropy_term">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.physics.filling.entropy_term.html#tbmalt.physics.filling.entropy_term">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">entropy_term</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                 <span class="n">kT</span><span class="p">:</span> <span class="n">float_like</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">func</span> <span class="o">==</span> <span class="n">fermi_smearing</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fermi_entropy</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">func</span> <span class="o">==</span> <span class="n">gaussian_smearing</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gaussian_entropy</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s1">&#39;Can</span><span class="se">\&#39;</span><span class="s1">t identify associate entropy function for the broadening &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;method </span><span class="si">{</span><span class="n">func</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="fermi_entropy">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.physics.filling.fermi_entropy.html#tbmalt.physics.filling.fermi_entropy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fermi_entropy</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">kT</span><span class="p">:</span> <span class="n">float_like</span><span class="p">,</span>
+                  <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+                  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates the electronic entropy term for Fermi-Dirac smearing.</span>
+
+<span class="sd">        Calculate a system&#39;s electronic entropy term. The entropy term is</span>
+<span class="sd">        required when calculating various properties, most notably the Mermin</span>
+<span class="sd">        free energy; which is used in place of the total system energy when</span>
+<span class="sd">        finite temperature (electronic broadening) is active.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            eigenvalues: Eigen-energies, i.e. orbital-energies.</span>
+<span class="sd">            fermi_energy: The Fermi energy.</span>
+<span class="sd">            kT: Electronic temperature.</span>
+<span class="sd">            e_mask: Padding mask see :func:`fermi_search` for more information.</span>
+<span class="sd">                [DEFAULT=None]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ts: The entropy term(s).</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            The entropy term is computed as:</span>
+
+<span class="sd">            .. math::</span>
+
+<span class="sd">                TS = -k_B\sum_{i}[f_i \; ln(f_i) + (1 - f_i)\; ln(1 - f_i)]</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; from tbmalt.physics.filling import fermi_entropy</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # An example H2 system</span>
+<span class="sd">            &gt;&gt;&gt; e_vals = torch.tensor([-0.3405911944959140,</span>
+<span class="sd">            ...                        0.2311892808528265])</span>
+<span class="sd">            &gt;&gt;&gt; kt = torch.tensor(0.0036749324000000)</span>
+<span class="sd">            &gt;&gt;&gt; e_fermi = torch.tensor(-0.0547009568215437)</span>
+<span class="sd">            &gt;&gt;&gt; # Calculate the entropy term</span>
+<span class="sd">            &gt;&gt;&gt; ts = fermi_entropy(e_vals, e_fermi, kt)</span>
+<span class="sd">            &gt;&gt;&gt; print(ts)</span>
+<span class="sd">            tensor(0.)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="c1"># If a OrbitalInfo instance was given as a mask then convert it to a tensor</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e_mask</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">):</span>
+        <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">on_atoms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># Shape of eigenvalue tensor in which k-points &amp; spin-channels (with</span>
+    <span class="c1"># common fermi-energies) are flattened out.</span>
+    <span class="n">shp</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">fermi_energy</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">eigenvalues</span> <span class="o">=</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span>
+
+    <span class="c1"># Get fractional orbital occupancies</span>
+    <span class="n">fo</span> <span class="o">=</span> <span class="n">fermi_smearing</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span><span class="p">)</span>
+    <span class="c1"># Log form is used as it avoids having to cull error inducing 1&#39;s/0&#39;s</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">fo</span> <span class="o">**</span> <span class="n">fo</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">fo</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">fo</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Mask out *fake* padding states as appropriate</span>
+        <span class="c1"># pylint: disable=E1130</span>
+        <span class="n">s</span><span class="p">[</span><span class="o">~</span><span class="n">e_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">kT</span></div>
+
+
+
+<div class="viewcode-block" id="gaussian_entropy">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.physics.filling.gaussian_entropy.html#tbmalt.physics.filling.gaussian_entropy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gaussian_entropy</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">kT</span><span class="p">:</span> <span class="n">float_like</span><span class="p">,</span>
+                     <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+                     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculates the electronic entropy term for Gaussian bases smearing.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            eigenvalues: Eigen-energies, i.e. orbital-energies.</span>
+<span class="sd">            fermi_energy: The Fermi energy.</span>
+<span class="sd">            kT: Electronic temperature.</span>
+<span class="sd">            e_mask: Padding mask see :func:`fermi_search` for more information.</span>
+<span class="sd">                [DEFAULT=None]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ts: The entropy term(s).</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            The entropy term is computed as:</span>
+
+<span class="sd">            .. math::</span>
+
+<span class="sd">                TS = \frac{k_B}{2 \sqrt{\pi}} \sum_{i} exp \left(- \left(</span>
+<span class="sd">                        \frac{\epsilon_i E_f}{kT} \right)^2 \right)</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; from tbmalt.physics.filling import gaussian_entropy</span>
+<span class="sd">            &gt;&gt;&gt;</span>
+<span class="sd">            &gt;&gt;&gt; # An example H2 system</span>
+<span class="sd">            &gt;&gt;&gt; e_vals = torch.tensor([-0.3405911944959140,</span>
+<span class="sd">            ...                        0.2311892808528265])</span>
+<span class="sd">            &gt;&gt;&gt; kt = torch.tensor(0.0036749324000000)</span>
+<span class="sd">            &gt;&gt;&gt; e_fermi = torch.tensor(-0.0547009568215437)</span>
+<span class="sd">            &gt;&gt;&gt; # Calculate the entropy term</span>
+<span class="sd">            &gt;&gt;&gt; ts = gaussian_entropy(e_vals, e_fermi, kt)</span>
+<span class="sd">            &gt;&gt;&gt; print(ts)</span>
+<span class="sd">            tensor(0.)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="c1"># If a OrbitalInfo instance was given as a mask then convert it to a tensor</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e_mask</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">):</span>
+        <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">on_atoms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># Shape of eigenvalue tensor in which k-points &amp; spin-channels (with</span>
+    <span class="c1"># common fermi-energies) are flattened out.</span>
+    <span class="n">shp</span> <span class="o">=</span> <span class="p">(</span><span class="o">*</span><span class="n">fermi_energy</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">eigenvalues</span> <span class="o">=</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span>
+
+    <span class="c1"># kT/fermi_energy must be correctly shaped for division to work</span>
+    <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span> <span class="o">=</span> <span class="n">_smearing_preprocessing</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span><span class="p">)</span>
+
+    <span class="c1"># Calculate xi values then return the entropy</span>
+    <span class="n">xi</span> <span class="o">=</span> <span class="p">(</span><span class="n">eigenvalues</span> <span class="o">-</span> <span class="n">fermi_energy</span><span class="p">)</span> <span class="o">/</span> <span class="n">kT</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">xi</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">pi</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Mask out *fake* padding states as appropriate</span>
+        <span class="c1"># pylint: disable=E1130</span>
+        <span class="n">s</span><span class="p">[</span><span class="o">~</span><span class="n">e_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">kT</span><span class="o">.</span><span class="n">nelement</span><span class="p">()</span> <span class="o">==</span> <span class="n">s</span><span class="o">.</span><span class="n">nelement</span><span class="p">():</span>
+        <span class="n">kT</span> <span class="o">=</span> <span class="n">kT</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">s</span> <span class="o">*</span> <span class="n">kT</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_smearing_preprocessing</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">kT</span><span class="p">:</span> <span class="n">float_like</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstracts repetitive code from the smearing functions.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        eigenvalues: Eigen-energies, i.e. orbital-energies.</span>
+<span class="sd">        fermi_energy: The Fermi energy.</span>
+<span class="sd">        kT: Electronic temperature.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        fermi_energy: Processed fermi energy tensor.</span>
+<span class="sd">        kT: Processed kT tensor.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># These must be tensors for code to be batch agnostic &amp; device safe</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">),</span> <span class="s1">&#39;eigenvalues must be a tensor&#39;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fermi_energy</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">),</span> <span class="s1">&#39;fermi_energy must be a tensor&#39;</span>
+
+    <span class="c1"># Shape fermi_energy so that there is one entry per row (repeat for kT).</span>
+    <span class="k">if</span> <span class="n">fermi_energy</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">fermi_energy</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># fermi_energy = fermi_energy.view(-1, 1)</span>
+        <span class="n">fermi_energy</span> <span class="o">=</span> <span class="n">fermi_energy</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># Ensure kT is a tensor &amp; is shaped correctly if multiple values passed</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kT</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">kT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">kT</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                          <span class="n">device</span><span class="o">=</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">kT</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kT</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">kT</span> <span class="o">=</span> <span class="n">kT</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># kT cannot be allowed to be true zero, otherwise nan&#39;s will occur.</span>
+    <span class="n">kT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">tiny</span><span class="p">),</span> <span class="n">kT</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_smearing_postprocessing</span><span class="p">(</span>
+        <span class="n">occupancy</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Zero out ghost states due to padding</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        occupancy: Occupancies of the orbitals</span>
+<span class="sd">        e_mask: Provides info required to distinguish &quot;real&quot; ``eigenvalues``</span>
+<span class="sd">            from &quot;fake&quot; ones. This is Mandatory when using smearing on batched</span>
+<span class="sd">            systems. This may be a `Tensor` that is `True` for real states or</span>
+<span class="sd">            a `OrbitalInfo` object. [DEFAULT=None]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        occupancies: Occupancies with any ghost states zeroed out.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If a mask is provided</span>
+    <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="c1"># If a OrbitalInfo instance was given as a mask then convert it to a tensor</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e_mask</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">):</span>
+            <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">on_atoms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e_mask</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># Zero out the occupant of all &quot;ghost&quot; states</span>
+        <span class="n">occupancy</span><span class="p">[</span><span class="o">~</span><span class="n">e_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Return the now possibly masked occupancy tensor</span>
+    <span class="k">return</span> <span class="n">occupancy</span>
+
+
+<div class="viewcode-block" id="fermi_smearing">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.physics.filling.fermi_smearing.html#tbmalt.physics.filling.fermi_smearing">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fermi_smearing</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">kT</span><span class="p">:</span> <span class="n">float_like</span><span class="p">,</span>
+        <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Fractional orbital occupancies due to Fermi-Dirac smearing.</span>
+
+<span class="sd">    Using Fermi-Dirac smearing, orbital occupancies are calculated via:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        f_i = \frac{1}{1 + exp\left ( \frac{\epsilon_i - E_f}{kT}\right )}</span>
+
+<span class="sd">    where ε, :math:`E_f` &amp; :math:`kT` are the eigenvalues, fermi-energies and</span>
+<span class="sd">    electronic temperatures respectively.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        eigenvalues: Eigen-energies, i.e. orbital-energies.</span>
+<span class="sd">        fermi_energy: The Fermi energy.</span>
+<span class="sd">        kT: Electronic temperature.</span>
+<span class="sd">        e_mask: Provides info required to distinguish &quot;real&quot; ``eigenvalues``</span>
+<span class="sd">            from &quot;fake&quot; ones. This is Mandatory when using smearing on batched</span>
+<span class="sd">            systems. This may be a `Tensor` that is `True` for real states or</span>
+<span class="sd">            a `OrbitalInfo` object. [DEFAULT=None]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        occupancies: Occupancies of the orbitals.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        ``eigenvalues`` may be a single value, an array of values or a tensor.</span>
+<span class="sd">        If a tensor is passed then multiple ``fermi_energy`` and ``kT`` values</span>
+<span class="sd">        may be passed if desired.</span>
+
+<span class="sd">        If multiple systems are passed, smearing will be applied to all eigen</span>
+<span class="sd">        values present, irrespective of whether they are real or fake (caused</span>
+<span class="sd">        by packing).</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.physics.filling import fermi_smearing</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # An example H2 system</span>
+<span class="sd">        &gt;&gt;&gt; e_vals = torch.tensor([-0.3405911944959140,</span>
+<span class="sd">        ...                        0.2311892808528265])</span>
+<span class="sd">        &gt;&gt;&gt; kt = torch.tensor(0.0036749324000000)</span>
+<span class="sd">        &gt;&gt;&gt; e_fermi = torch.tensor(-0.0547009568215437)</span>
+<span class="sd">        &gt;&gt;&gt; # Fermi smearing</span>
+<span class="sd">        &gt;&gt;&gt; occ = fermi_smearing(e_vals, e_fermi, kt)</span>
+<span class="sd">        &gt;&gt;&gt; print(occ)</span>
+<span class="sd">        tensor([1.0000e+00, 1.6375e-34])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Developers Notes: it might be worth trying to resolve the gradient</span>
+    <span class="c1"># stability issue associated with this function.</span>
+    <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span> <span class="o">=</span> <span class="n">_smearing_preprocessing</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span><span class="p">)</span>
+
+    <span class="c1"># Calculate the occupancies values via the Fermi-Dirac method. Note that</span>
+    <span class="c1"># the occupancy calculation is segmented so that the exponential is not</span>
+    <span class="c1"># applied to values greater than 40, thereby preventing the production of</span>
+    <span class="c1"># infinities &amp; ill-defined gradients. For values below this threshold, the</span>
+    <span class="c1"># standard Fermi–Dirac expression is applied, otherwise the occupancy is</span>
+    <span class="c1"># set to zero.</span>
+    <span class="n">occupancies</span> <span class="o">=</span> <span class="p">(</span><span class="n">eigenvalues</span> <span class="o">-</span> <span class="n">fermi_energy</span><span class="p">)</span> <span class="o">/</span> <span class="n">kT</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">occupancies</span> <span class="o">&lt;</span> <span class="mi">40</span>
+    <span class="n">occupancies</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">occupancies</span><span class="p">[</span><span class="n">mask</span><span class="p">]))</span>
+    <span class="n">occupancies</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Mask out ghost states as and when required</span>
+    <span class="n">occupancies</span> <span class="o">=</span> <span class="n">_smearing_postprocessing</span><span class="p">(</span><span class="n">occupancies</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">occupancies</span></div>
+
+
+
+<div class="viewcode-block" id="gaussian_smearing">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.physics.filling.gaussian_smearing.html#tbmalt.physics.filling.gaussian_smearing">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gaussian_smearing</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">kT</span><span class="p">:</span> <span class="n">float_like</span><span class="p">,</span>
+        <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Fractional orbital occupancies due to Gaussian smearing.</span>
+
+<span class="sd">    Using Gaussian smearing, orbital occupancies are calculated via:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        f_i = frac{\textit{erfc}\left( \frac{\epsilon_i - E_f}{kT} \right)}{2}</span>
+
+<span class="sd">    where ε, :math:`E_f` &amp; :math:`kT` are the eigenvalues, fermi-energies and</span>
+<span class="sd">    electronic temperatures respectively.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        eigenvalues: Eigen-energies, i.e. orbital-energies.</span>
+<span class="sd">        fermi_energy: The Fermi energy.</span>
+<span class="sd">        kT: Electronic temperature.</span>
+<span class="sd">        e_mask: Provides info required to distinguish &quot;real&quot; ``eigenvalues``</span>
+<span class="sd">            from &quot;fake&quot; ones. This is Mandatory when using smearing on batched</span>
+<span class="sd">            systems. This may be a `Tensor` that is `True` for real states or</span>
+<span class="sd">            a `OrbitalInfo` object. [DEFAULT=None]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        occupancies: Occupancies of the orbitals.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        ``eigenvalues`` may be a single value, an array of values or a tensor.</span>
+<span class="sd">        If a tensor is passed then multiple ``fermi_energy`` and ``kT`` values</span>
+<span class="sd">        may be passed if desired.</span>
+
+<span class="sd">        If multiple systems are passed, smearing will be applied to all eigen</span>
+<span class="sd">        values present, irrespective of whether they are real or fake (caused</span>
+<span class="sd">        by packing).</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        Gradients will become unstable if a `kT` value of zero is used.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.physics.filling import gaussian_smearing</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # An example H2 system</span>
+<span class="sd">        &gt;&gt;&gt; e_vals = torch.tensor([-0.3405911944959140,</span>
+<span class="sd">        ...                        0.2311892808528265])</span>
+<span class="sd">        &gt;&gt;&gt; kt = torch.tensor(0.0036749324000000)</span>
+<span class="sd">        &gt;&gt;&gt; e_fermi = torch.tensor(-0.0547009568215437)</span>
+<span class="sd">        &gt;&gt;&gt; # Gaussian smearing</span>
+<span class="sd">        &gt;&gt;&gt; occ = gaussian_smearing(e_vals, e_fermi, kt)</span>
+<span class="sd">        &gt;&gt;&gt; print(occ)</span>
+<span class="sd">        tensor([1., 0.])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span> <span class="o">=</span> <span class="n">_smearing_preprocessing</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span><span class="p">)</span>
+
+    <span class="c1"># Calculate and return the occupancies values via the Gaussian method</span>
+    <span class="n">occupancies</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">erfc</span><span class="p">((</span><span class="n">eigenvalues</span> <span class="o">-</span> <span class="n">fermi_energy</span><span class="p">)</span> <span class="o">/</span> <span class="n">kT</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="c1"># Mask out ghost states as and when required</span>
+    <span class="n">occupancies</span> <span class="o">=</span> <span class="n">_smearing_postprocessing</span><span class="p">(</span><span class="n">occupancies</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">occupancies</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_middle_gap_approximation</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">return_occupations</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns the midpoint between the HOMO and LUMO.</span>
+
+<span class="sd">    Determines the middle of the fundamental gap for each system/batch by</span>
+<span class="sd">    locating the highest occupied molecular orbital (HOMO) and the lowest</span>
+<span class="sd">    unoccupied molecular orbital (LUMO) in the sorted eigen‑energy spectrum.</span>
+<span class="sd">    The procedure is agnostic to padding states, honours per‑state occupation</span>
+<span class="sd">    scaling (e.g. spin multiplicity and k‑point weights) and can optionally</span>
+<span class="sd">    supply the Aufbau‑filled occupation tensor required by other routines.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        eigenvalues: Eigen‑energies, i.e. orbital‑energies. May have up to</span>
+<span class="sd">            four dimensions in the order</span>
+<span class="sd">            ``[batch, spin, k‑points, eigenvalues]``.</span>
+<span class="sd">        n_electrons: Total number of (valence) electrons per system.</span>
+<span class="sd">        scale_factor: Maximum occupancy of each eigenstate; equals 2 or 1 for</span>
+<span class="sd">            restricted and unrestricted molecular systems respectively and is</span>
+<span class="sd">            additionally scaled by any k‑point weights for periodic systems.</span>
+<span class="sd">        e_mask: Boolean mask that distinguishes *real* eigenstates from</span>
+<span class="sd">            *ghost* padding states. **Must** be supplied when, and only when,</span>
+<span class="sd">            batched systems are processed. [DEFAULT=None]</span>
+<span class="sd">        return_occupations: If `True` the fractional orbital occupations</span>
+<span class="sd">            (following the Aufbau principle and scaled by *scale_factor*)</span>
+<span class="sd">            are also returned. [DEFAULT=False]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        mid_point: Mid‑gap energy (HOMO/LUMO average) for each system.</span>
+<span class="sd">        occupations: Fractional occupations with the same shape as</span>
+<span class="sd">            ``eigenvalues``.  Only returned when ``return_occupations`` is</span>
+<span class="sd">            `True`.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The HOMO index is found where the cumulative sum of the maximum state</span>
+<span class="sd">        occupancies first meets or exceeds ``n_electrons``.  The LUMO is taken</span>
+<span class="sd">        as the succeeding state; if the system is fully occupied the index is</span>
+<span class="sd">        clamped to the final *real* state, causing the gap to collapse to zero.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Shape of Ɛ tensor where k-points &amp; spin-channels have been flattened out.</span>
+    <span class="c1"># Note that only spin-channels with common fermi energies get flattened.</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="o">*</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># Flatten &amp; sort the eigenvalues so there&#39;s 1 row per-system; the</span>
+    <span class="c1"># spin dimension is only flattened when the spin channels share a</span>
+    <span class="c1"># common fermi-energy.</span>
+    <span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="n">srt</span> <span class="o">=</span> <span class="n">psort</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="kc">None</span> <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+    <span class="c1"># Maximum occupation of each eigenstate, sorted and flattened.</span>
+    <span class="n">occupations</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">eigenvalues_flat</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale_factor</span>
+                   <span class="p">)</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">srt</span><span class="p">)</span>
+
+    <span class="c1"># Locate HOMO index, via the transition between under/over filled.</span>
+    <span class="c1"># An indirect method is used here as direct calls to &quot;&gt;&quot; &amp; &quot;&lt;&quot; result in</span>
+    <span class="c1"># spurious behaviour when any noise is present in `n_electrons`.</span>
+    <span class="n">occupations_cs</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">occupations</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="n">n_electrons</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">resolution</span> <span class="o">*</span> <span class="mi">5</span>
+    <span class="n">i_homo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">bT</span><span class="p">(</span><span class="n">occupations_cs</span><span class="o">.</span><span class="n">ge</span><span class="p">(</span><span class="o">-</span><span class="n">r</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">),</span>
+        <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="c1"># Identify the index of the LUMO. Care must be taken to catch the case</span>
+    <span class="c1"># where i_lumo is out of bounds due to the LUMO state not being present in</span>
+    <span class="c1"># the eigenvalues. This is encountered when all states are fully occupied.</span>
+    <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">n_states</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">i_homo</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_states</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">eigenvalues_flat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">i_lumo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">i_homo</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_states</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">mid_point</span> <span class="o">=</span> <span class="n">eigenvalues_flat</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+        <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">i_homo</span><span class="p">,</span> <span class="n">i_lumo</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Return the mid-point</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">return_occupations</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">mid_point</span>
+    <span class="c1"># Unless also instructed to also return the occupations</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Set the occupancies of all states above the HOMO equal to zero</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">i_homo</span><span class="o">.</span><span class="n">flatten</span><span class="p">()):</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">occupations</span><span class="p">)[</span><span class="n">n</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="c1"># Re-order and un-flatten the occupancy array to match its original form</span>
+        <span class="n">occupations</span> <span class="o">=</span> <span class="n">occupations</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">srt</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mid_point</span><span class="p">,</span> <span class="n">occupations</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_FermiSearch</span><span class="p">(</span><span class="n">Function</span><span class="p">):</span>
+
+    <span class="c1"># noinspection PyMethodOverriding</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span>
+            <span class="n">ctx</span><span class="p">,</span> <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">kT</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+            <span class="n">scale_factor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">scheme</span><span class="p">:</span> <span class="n">Scheme</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+            <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">],</span>
+            <span class="n">degeneracy_tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Determines the Fermi-energy of a system or batch thereof.</span>
+
+<span class="sd">        Calculates the Fermi-energy with finite temperature.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            eigenvalues: Eigen-energies, i.e. orbital-energies. This may have up to</span>
+<span class="sd">                4 dimensions, 3 of which are optional, so long as the following</span>
+<span class="sd">                order is satisfied [batch, spin, k-points, eigenvalues].</span>
+<span class="sd">            n_electrons: Total number of (valence) electrons.</span>
+<span class="sd">            kT: Electronic temperature.</span>
+<span class="sd">            scheme: Finite temperature broadening function to be used, TBMaLT</span>
+<span class="sd">                natively supports two broadening methods:</span>
+
+<span class="sd">                    - Fermi-Dirac broadening :func:`fermi_smearing`</span>
+<span class="sd">                    - Gaussian broadening :func:`gaussian_smearing`</span>
+
+<span class="sd">            tolerance: Tolerance to which e⁻ count is converged during the</span>
+<span class="sd">                search.</span>
+<span class="sd">            max_iter: Maximum permitted number of fermi search cycles.</span>
+<span class="sd">            e_mask: Provides info required to distinguish &quot;real&quot; ``eigenvalues``</span>
+<span class="sd">                from &quot;fake&quot; ones. This is required when operating on batched</span>
+<span class="sd">                systems. In other cases, `None` should be provided.</span>
+<span class="sd">            degeneracy_tolerance: Specifies an absolute energy tolerance used</span>
+<span class="sd">                to identify degenerate frontier states when the Fermi level is</span>
+<span class="sd">                determined via the middle-gap approximation. Degeneracies at</span>
+<span class="sd">                the HOMO or LUMO may lead to numerical inconsistencies in the</span>
+<span class="sd">                computed gradients, as the exact selection of a single state is</span>
+<span class="sd">                not well-defined. When a non-zero tolerance is given, all</span>
+<span class="sd">                occupied states within this energy window of the HOMO or LUMO</span>
+<span class="sd">                edge are treated as degenerate and contribute equally (or in</span>
+<span class="sd">                proportion to their weights) to the derivative of the Fermi</span>
+<span class="sd">                level. This option may be employed when systems containing</span>
+<span class="sd">                near-degenerate frontier states are studied, in order to ensure</span>
+<span class="sd">                stable and physically meaningful gradients. [DEFAULT=0.0]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            fermi_energy: Fermi energy value(s).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">ctx</span><span class="o">.</span><span class="n">scale_factor</span> <span class="o">=</span> <span class="n">scale_factor</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">scheme</span> <span class="o">=</span> <span class="n">scheme</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">n_electrons</span> <span class="o">=</span> <span class="n">n_electrons</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">degeneracy_tolerance</span> <span class="o">=</span> <span class="n">degeneracy_tolerance</span>
+
+        <span class="n">shp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="o">*</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># e_fermi holds results &amp; c_mask tracks which systems have converged.</span>
+        <span class="n">e_fermi</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">)</span>
+        <span class="n">c_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+
+        <span class="c1"># __Finite Temperature Disabled__</span>
+        <span class="c1"># Set the fermi energy to the mid-point between the HOMO and LUMO.</span>
+        <span class="k">if</span> <span class="n">kT</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">c_mask</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">e_fermi</span><span class="p">[</span><span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">_middle_gap_approximation</span><span class="p">(</span>
+                <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">,</span>
+                <span class="n">degeneracy_tolerance</span><span class="p">)</span>
+
+            <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">e_fermi</span><span class="p">,</span> <span class="n">kT</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">e_fermi</span>
+
+        <span class="c1"># __Finite Temperature Enabled__</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">elec_count</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">m</span><span class="o">=...</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Makes a call to the smearing function &amp; returns the sum.</span>
+
+<span class="sd">            This limits the messy masking operations needed by the smearing</span>
+<span class="sd">            function to one place. kT&#39;s mask are treated differently as 0d &amp;</span>
+<span class="sd">            1d are both valid shapes of kT in both batch &amp; single system mode.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">scheme</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">[</span><span class="n">m</span><span class="p">],</span> <span class="n">f</span><span class="p">[</span><span class="n">m</span><span class="p">],</span> <span class="n">kT</span><span class="p">[</span><span class="n">m</span> <span class="k">if</span> <span class="n">kT</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">...</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Cull &quot;fake&quot; states caused by padding</span>
+                <span class="n">res</span><span class="p">[</span><span class="o">~</span><span class="n">e_mask</span><span class="p">[</span><span class="n">m</span><span class="p">]]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="c1"># Sum up over all axes apart from the batch dimension</span>
+            <span class="k">return</span> <span class="n">bT</span><span class="p">(</span><span class="n">res</span> <span class="o">*</span> <span class="n">scale_factor</span><span class="p">)</span><span class="o">.</span><span class="n">sum_to_size</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">[</span><span class="n">m</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="c1"># If there&#39;s an even, integer number of e⁻; try setting e_fermi to the</span>
+        <span class="c1"># middle gap, i.e. fill according to the Aufbau principle. The modulus</span>
+        <span class="c1"># can&#39;t be used here as any noise in `n_electrons` will cause an error.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">mask</span> <span class="o">:=</span> <span class="p">(</span><span class="n">n_electrons</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">n_electrons</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">tolerance</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="c1"># Store fermi value, recalculate № of e⁻ &amp; identity of convergence</span>
+            <span class="n">e_fermi</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">_middle_gap_approximation</span><span class="p">(</span>
+                <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">,</span>
+                <span class="n">degeneracy_tolerance</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span>
+
+            <span class="n">c_mask</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span>
+                <span class="n">elec_count</span><span class="p">(</span><span class="n">e_fermi</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">n_electrons</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">tolerance</span>
+
+        <span class="c1"># Mask indicating which systems will undergo a bisection search</span>
+        <span class="n">b_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">c_mask</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">b_mask</span> <span class="o">=</span> <span class="n">b_mask</span>
+
+        <span class="c1"># If all systems converged then just return the results now</span>
+        <span class="k">if</span> <span class="n">c_mask</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">e_fermi</span> <span class="o">=</span> <span class="n">e_fermi</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">)</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">e_fermi</span><span class="p">,</span> <span class="n">kT</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">e_fermi</span>
+
+        <span class="c1"># __Setup Bounds for Bisection Search__</span>
+        <span class="c1"># Identify upper (e_up) &amp; lower (e_lo) search bounds; fermi level should</span>
+        <span class="c1"># be between the highest &amp; lowest eigenvalues, so start there.</span>
+        <span class="n">e_lo</span> <span class="o">=</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">e_up</span> <span class="o">=</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="n">ne_lo</span><span class="p">,</span> <span class="n">ne_up</span> <span class="o">=</span> <span class="n">elec_count</span><span class="p">(</span><span class="n">e_lo</span><span class="p">),</span> <span class="n">elec_count</span><span class="p">(</span><span class="n">e_up</span><span class="p">)</span>
+
+        <span class="c1"># Bounds may fail on large kT or full band structures; if too many e⁻</span>
+        <span class="c1"># are present at the e_lo then decrease it &amp; recalculate. If too few e⁻</span>
+        <span class="c1"># present at the e_up, then it&#39;s too low so increase it &amp; recalculate</span>
+        <span class="c1"># the number of elections there.</span>
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">mask</span> <span class="o">:=</span> <span class="n">ne_lo</span> <span class="o">&gt;</span> <span class="n">n_electrons</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">counter</span> <span class="o">&gt;</span> <span class="n">max_iter</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Failed to locate an initial lower bound for fermi-search &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;bisection after </span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2"> iterations.&quot;</span><span class="p">)</span>
+            <span class="n">e_lo</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">e_lo</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">e_up</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+            <span class="n">ne_lo</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">elec_count</span><span class="p">(</span><span class="n">e_lo</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">mask</span> <span class="o">:=</span> <span class="n">ne_up</span> <span class="o">&lt;</span> <span class="n">n_electrons</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">counter</span> <span class="o">&gt;</span> <span class="n">max_iter</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Failed to locate an initial upper bound for fermi-search &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;bisection after </span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2"> iterations.&quot;</span><span class="p">)</span>
+            <span class="n">e_up</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">e_up</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">-</span> <span class="n">e_lo</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+            <span class="n">ne_up</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">elec_count</span><span class="p">(</span><span class="n">e_up</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+        <span class="c1"># Set the fermi energy to the mid-point between the two bounds.</span>
+        <span class="n">e_fermi</span><span class="p">[</span><span class="o">~</span><span class="n">c_mask</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">e_up</span> <span class="o">+</span> <span class="n">e_lo</span><span class="p">))[</span><span class="o">~</span><span class="n">c_mask</span><span class="p">]</span>
+        <span class="n">ne_fermi</span> <span class="o">=</span> <span class="n">elec_count</span><span class="p">(</span><span class="n">e_fermi</span><span class="p">)</span>
+
+        <span class="c1"># __Perform the Bisection Search__</span>
+        <span class="n">n_steps</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># Continue squeezing e_up &amp; e_lo together until the delta between the</span>
+        <span class="c1"># actual &amp; predicted number of e⁻ is less than &quot;tolerance&quot;.</span>
+        <span class="k">while</span> <span class="p">(</span><span class="n">mask</span> <span class="o">:=</span> <span class="o">~</span><span class="n">c_mask</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">n_steps</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># Move e_lo to mid-point if `e_lo &amp; e_up haven&#39;t crossed` ≡ `mid-point</span>
+            <span class="c1"># is below the fermi level`; otherwise move e_up up to the mid-point.</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">m_up</span> <span class="o">:=</span> <span class="p">((</span><span class="n">ne_up</span> <span class="o">&gt;</span> <span class="n">ne_lo</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">n_electrons</span> <span class="o">&gt;</span> <span class="n">ne_fermi</span><span class="p">))</span> <span class="o">&amp;</span> <span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="n">e_lo</span><span class="p">[</span><span class="n">m_up</span><span class="p">],</span> <span class="n">ne_lo</span><span class="p">[</span><span class="n">m_up</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_fermi</span><span class="p">[</span><span class="n">m_up</span><span class="p">],</span> <span class="n">ne_fermi</span><span class="p">[</span><span class="n">m_up</span><span class="p">]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">m_down</span> <span class="o">:=</span> <span class="n">mask</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">m_up</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                <span class="n">e_up</span><span class="p">[</span><span class="n">m_down</span><span class="p">],</span> <span class="n">ne_up</span><span class="p">[</span><span class="n">m_down</span><span class="p">]</span> <span class="o">=</span> <span class="n">e_fermi</span><span class="p">[</span><span class="n">m_down</span><span class="p">],</span> <span class="n">ne_fermi</span><span class="p">[</span><span class="n">m_down</span><span class="p">]</span>
+
+            <span class="c1"># Recompute mid-point &amp; its electron count then update the c_mask</span>
+            <span class="n">e_fermi</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">e_up</span> <span class="o">+</span> <span class="n">e_lo</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span>
+            <span class="n">ne_fermi</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">elec_count</span><span class="p">(</span><span class="n">e_fermi</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+            <span class="n">c_mask</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">ne_fermi</span> <span class="o">-</span> <span class="n">n_electrons</span><span class="p">)[</span><span class="n">mask</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">tolerance</span>
+
+            <span class="c1"># If maximum allowed number of iterations reached: raise and error.</span>
+            <span class="k">if</span> <span class="n">n_steps</span> <span class="o">&gt;</span> <span class="n">max_iter</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ConvergenceError</span><span class="p">(</span><span class="s1">&#39;Fermi search failed to converge&#39;</span><span class="p">,</span>
+                                       <span class="o">~</span><span class="n">c_mask</span><span class="p">)</span>
+
+        <span class="c1"># Perform a single Newton step on the systems that underwent a</span>
+        <span class="c1"># bisection search. The implicit function method used to compute</span>
+        <span class="c1"># the gradients for systems that have undergone a bisection search</span>
+        <span class="c1"># is **highly** sensitive to convergence. This is most pronounced</span>
+        <span class="c1"># at high filling temperatures where not even a tolerance of 1E-10</span>
+        <span class="c1"># is not necessarily sufficent.</span>
+        <span class="c1">#</span>
+        <span class="c1"># It is critical that neither this newton step, nor any of the</span>
+        <span class="c1"># bisection steps, are performed on systems that have converged</span>
+        <span class="c1"># peacefully via the middle gap approximation. Doing so will likely</span>
+        <span class="c1"># cause instabilities. Note that auto-grad is being used to compute</span>
+        <span class="c1"># the gradients here. While this is more complex and expensive than</span>
+        <span class="c1"># a manual implementation, it is compatible with any smearing function.</span>
+        <span class="n">e_fermi</span><span class="p">[</span><span class="n">b_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">_newton</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="p">[</span><span class="n">b_mask</span><span class="p">],</span> <span class="n">n_electrons</span><span class="p">[</span><span class="n">b_mask</span><span class="p">],</span> <span class="n">e_fermi</span><span class="p">[</span><span class="n">b_mask</span><span class="p">],</span>
+            <span class="n">scale_factor</span><span class="p">,</span> <span class="n">kT</span><span class="p">[</span><span class="n">b_mask</span> <span class="k">if</span> <span class="n">kT</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="o">...</span><span class="p">],</span> <span class="n">scheme</span><span class="p">,</span>
+            <span class="n">e_mask</span><span class="o">=</span><span class="n">e_mask</span> <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">e_mask</span><span class="p">[</span><span class="n">b_mask</span><span class="p">])</span>
+
+        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">e_fermi</span><span class="p">,</span> <span class="n">kT</span><span class="p">)</span>
+
+        <span class="c1"># Return the fermi energy</span>
+        <span class="k">return</span> <span class="n">e_fermi</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_newton</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">e_fermi</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+            <span class="n">scale_factor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">kT</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">scheme</span><span class="p">:</span> <span class="n">Scheme</span><span class="p">,</span> <span class="n">e_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform a single Newton-Raphson optimisation step.&quot;&quot;&quot;</span>
+
+        <span class="n">finfo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+            <span class="n">df_dmu</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">_smearing_gradients</span><span class="p">(</span>
+                <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">e_fermi</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">kT</span><span class="p">,</span> <span class="n">scheme</span><span class="p">,</span>
+                <span class="n">e_mask</span><span class="o">=</span><span class="n">e_mask</span><span class="p">)</span>
+
+            <span class="c1"># occupations and slope wrt mu (same scheme as backward)</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">scheme</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">e_fermi</span><span class="p">,</span> <span class="n">kT</span> <span class="k">if</span> <span class="n">kT</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">kT</span><span class="p">)</span>
+            <span class="n">n_residual</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">scale_factor</span><span class="p">)</span><span class="o">.</span><span class="n">sum_to_size</span><span class="p">(</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">-</span> <span class="n">n_electrons</span>
+            <span class="n">e_fermi</span> <span class="o">=</span> <span class="n">e_fermi</span> <span class="o">-</span> <span class="n">n_residual</span> <span class="o">/</span> <span class="n">df_dmu</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="n">finfo</span><span class="o">.</span><span class="n">tiny</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">e_fermi</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_aufbau_filling</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+            <span class="n">scale_factor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fractional orbital occupancies due to the Aufbau principle.</span>
+
+<span class="sd">        Returns the fractional occupancy of each orbital according the Aufbau</span>
+<span class="sd">        principle in which states are filled from lowest to highest energy until</span>
+<span class="sd">        the specified electron count is reached. Any given state will only be</span>
+<span class="sd">        occupied if all states of lower energy are also occupied.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            eigenvalues: Eigen-energies, i.e. orbital-energies. This may have</span>
+<span class="sd">                up to 4 dimensions, 3 of which are optional, so long as the</span>
+<span class="sd">                following order is satisfied [batch, spin, k-points,</span>
+<span class="sd">                eigenvalues].</span>
+<span class="sd">            n_electrons: Total number of (valence) electrons.</span>
+<span class="sd">            e_mask: Provides info required to distinguish &quot;real&quot; ``eigenvalues``</span>
+<span class="sd">                from &quot;fake&quot; ones. This is Mandatory when using smearing on</span>
+<span class="sd">                batched systems and must be a `Tensor` that is `True` for real</span>
+<span class="sd">                states. [DEFAULT=False]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            occupancies: Fractional occupancies of the orbitals according to</span>
+<span class="sd">                Aufbau filling.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">scale_factor</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Autograd support has not yet been added to the `fermi_search` &quot;</span>
+                <span class="s2">&quot;function for systems with multiple spin-channels or k-points &quot;</span>
+                <span class="s2">&quot;that pass through the midpoint approximation.&quot;</span><span class="p">)</span>
+
+        <span class="n">finfo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="o">*</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="n">srt</span> <span class="o">=</span> <span class="n">psort</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+            <span class="kc">None</span> <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">is_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">is_real</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">srt</span><span class="p">)</span>
+
+        <span class="n">occupancy_cap</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_real</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">filled</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">bT</span><span class="p">(</span><span class="n">occupancy_cap</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="o">&lt;=</span> <span class="p">(</span><span class="n">n_electrons</span> <span class="o">+</span> <span class="n">finfo</span><span class="o">.</span><span class="n">resolution</span> <span class="o">*</span> <span class="mi">5</span><span class="p">))</span>
+
+        <span class="n">occupancy_cap</span><span class="p">[</span><span class="o">~</span><span class="n">is_real</span> <span class="o">|</span> <span class="o">~</span><span class="n">filled</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">occupations</span> <span class="o">=</span> <span class="n">occupancy_cap</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">srt</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">occupations</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_middle_gap_approximation_precompute</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+            <span class="n">scale_factor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">degeneracy_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">):</span>
+
+        <span class="n">finfo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">scale_factor</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                <span class="s2">&quot;Autograd support has not yet been added to the `fermi_search` &quot;</span>
+                <span class="s2">&quot;function for systems with multiple spin-channels or k-points &quot;</span>
+                <span class="s2">&quot;that pass through the midpoint approximation.&quot;</span><span class="p">)</span>
+
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="o">*</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="n">srt</span> <span class="o">=</span> <span class="n">psort</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+            <span class="kc">None</span> <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+
+        <span class="c1"># Build per-state weights in sorted order. When support for multiple</span>
+        <span class="c1"># spin-channels or k-point heights is required, the following block can</span>
+        <span class="c1"># be enabled and `scale_factor_flat` used in place of `scale_factor`.</span>
+        <span class="c1"># if scale_factor.numel() == 1:</span>
+        <span class="c1">#     scale_factor_flat = scale_factor</span>
+        <span class="c1"># else:</span>
+        <span class="c1">#     scale_factor_flat = torch.full_like(eigenvalues_flat, scale_factor)</span>
+
+        <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">is_real</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">is_real</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">srt</span><span class="p">)</span>
+
+        <span class="n">occupancy_cap</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_real</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">cumulative_occupancy_cap</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">occupancy_cap</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">finfo</span><span class="o">.</span><span class="n">resolution</span> <span class="o">*</span> <span class="mi">5</span>
+        <span class="n">filled</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">cumulative_occupancy_cap</span> <span class="o">&lt;=</span> <span class="p">(</span><span class="n">n_electrons</span> <span class="o">+</span> <span class="n">r</span><span class="p">))</span>
+
+        <span class="c1"># Get the eigenvalues of the highest occupied and lowest unoccupied</span>
+        <span class="c1"># states. The `torch.where` function is used rather than standard</span>
+        <span class="c1"># masking to guard against situations where there are not occupied</span>
+        <span class="c1"># or unoccupied states.</span>
+        <span class="n">e_homo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_real</span> <span class="o">&amp;</span> <span class="n">filled</span><span class="p">,</span> <span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="o">-</span><span class="mf">1e30</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">e_lumo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">is_real</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">filled</span><span class="p">,</span> <span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="mf">1e30</span><span class="p">)</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="c1"># Identify which states have energies matching the first identified</span>
+        <span class="c1"># homo/lumo.</span>
+        <span class="n">dr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="n">degeneracy_tolerance</span>
+        <span class="n">mask_homo</span> <span class="o">=</span> <span class="n">is_real</span> <span class="o">&amp;</span> <span class="n">filled</span> <span class="o">&amp;</span> <span class="p">((</span><span class="n">eigenvalues_flat</span> <span class="o">-</span> <span class="n">e_homo</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">dr</span><span class="p">)</span>
+        <span class="n">mask_lumo</span> <span class="o">=</span> <span class="n">is_real</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">filled</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">((</span><span class="n">eigenvalues_flat</span> <span class="o">-</span> <span class="n">e_lumo</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">dr</span><span class="p">)</span>
+
+        <span class="c1"># Get the weight specifying the amount to which each state contributes.</span>
+        <span class="c1"># Realistically this could be hardcoded to `scale_factor` as this</span>
+        <span class="c1"># version does not support multiple spin-channels or k-points. However,</span>
+        <span class="c1"># in the future this can be used to add such support, along with an</span>
+        <span class="c1"># array storing the scale factor for each state sorted to match the</span>
+        <span class="c1"># `eigenvalues_flat` tensor.</span>
+        <span class="n">weights_homo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_homo</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">weights_lumo</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_lumo</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="n">tiny</span> <span class="o">=</span> <span class="n">finfo</span><span class="o">.</span><span class="n">tiny</span>
+        <span class="n">normed_weights_homo</span> <span class="o">=</span> <span class="n">weights_homo</span> <span class="o">/</span> <span class="n">weights_homo</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="n">tiny</span><span class="p">)</span>
+        <span class="n">normed_weights_lumo</span> <span class="o">=</span> <span class="n">weights_lumo</span> <span class="o">/</span> <span class="n">weights_lumo</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="n">tiny</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="n">normed_weights_homo</span><span class="p">,</span> <span class="n">normed_weights_lumo</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_middle_gap_approximation</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+            <span class="n">scale_factor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">degeneracy_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the midpoint between the HOMO and LUMO.</span>
+
+<span class="sd">        Determines the middle of the fundamental gap for each system/batch by</span>
+<span class="sd">        locating the highest occupied molecular orbital (HOMO) and the lowest</span>
+<span class="sd">        unoccupied molecular orbital (LUMO) in the sorted eigen‑energy spectrum.</span>
+<span class="sd">        The procedure is agnostic to padding states and honours per‑state</span>
+<span class="sd">        occupation scaling (e.g. spin multiplicity and k‑point weights).</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            eigenvalues: Eigen‑energies, i.e. orbital‑energies. May have up to</span>
+<span class="sd">                four dimensions in the order</span>
+<span class="sd">                ``[batch, spin, k‑points, eigenvalues]``.</span>
+<span class="sd">            n_electrons: Total number of (valence) electrons per system.</span>
+<span class="sd">            scale_factor: Maximum occupancy of each eigenstate; equals 2 or 1 for</span>
+<span class="sd">                restricted and unrestricted molecular systems respectively and is</span>
+<span class="sd">                additionally scaled by any k‑point weights for periodic systems.</span>
+<span class="sd">            e_mask: Boolean mask that distinguishes *real* eigenstates from</span>
+<span class="sd">                *ghost* padding states. **Must** be supplied when, and only when,</span>
+<span class="sd">                batched systems are processed. [DEFAULT=None]</span>
+<span class="sd">            degeneracy_tolerance: Specifies an absolute energy tolerance used</span>
+<span class="sd">                to identify degenerate frontier states when the Fermi level is</span>
+<span class="sd">                determined via the middle-gap approximation. Degeneracies at</span>
+<span class="sd">                the HOMO or LUMO may lead to numerical inconsistencies in the</span>
+<span class="sd">                computed gradients, as the exact selection of a single state is</span>
+<span class="sd">                not well-defined. When a non-zero tolerance is given, all</span>
+<span class="sd">                occupied states within this energy window of the HOMO or LUMO</span>
+<span class="sd">                edge are treated as degenerate and contribute equally (or in</span>
+<span class="sd">                proportion to their weights) to the derivative of the Fermi</span>
+<span class="sd">                level. This option may be employed when systems containing</span>
+<span class="sd">                near-degenerate frontier states are studied, in order to ensure</span>
+<span class="sd">                stable and physically meaningful gradients. [DEFAULT=0.0]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            mid_point: Mid‑gap energy (HOMO/LUMO average) for each system.</span>
+
+
+<span class="sd">        Notes:</span>
+<span class="sd">            The HOMO index is found where the cumulative sum of the maximum state</span>
+<span class="sd">            occupancies first meets or exceeds ``n_electrons``.  The LUMO is taken</span>
+<span class="sd">            as the succeeding state; if the system is fully occupied the index is</span>
+<span class="sd">            clamped to the final *real* state, causing the gap to collapse to zero.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="n">normed_weights_homo</span><span class="p">,</span> <span class="n">normed_weights_lumo</span><span class="p">,</span>
+         <span class="p">)</span> <span class="o">=</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">_middle_gap_approximation_precompute</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">,</span> <span class="n">degeneracy_tolerance</span><span class="p">)</span>
+
+        <span class="n">weighted_homo</span> <span class="o">=</span> <span class="p">(</span><span class="n">normed_weights_homo</span> <span class="o">*</span> <span class="n">eigenvalues_flat</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">weighted_lumo</span> <span class="o">=</span> <span class="p">(</span><span class="n">normed_weights_lumo</span> <span class="o">*</span> <span class="n">eigenvalues_flat</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">weighted_homo</span> <span class="o">+</span> <span class="n">weighted_lumo</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_smearing_gradients</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+            <span class="n">kT</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">scheme</span><span class="p">:</span> <span class="n">Scheme</span><span class="p">,</span> <span class="n">e_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+
+        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">enable_grad</span><span class="p">():</span>
+            <span class="n">eigenvalues</span> <span class="o">=</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">fermi_energy</span> <span class="o">=</span> <span class="n">fermi_energy</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">df_dmu</span><span class="p">,</span> <span class="n">df_de</span><span class="p">,</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+                <span class="n">scheme</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">,</span> <span class="n">fermi_energy</span><span class="p">,</span> <span class="n">kT</span><span class="p">,</span> <span class="n">e_mask</span><span class="o">=</span><span class="n">e_mask</span><span class="p">),</span>
+                <span class="p">(</span><span class="n">fermi_energy</span><span class="p">,</span> <span class="n">eigenvalues</span><span class="p">),</span>
+                <span class="n">grad_outputs</span><span class="o">=</span><span class="n">scale_factor</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">eigenvalues</span><span class="p">),</span>
+                <span class="n">retain_graph</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">df_dmu</span><span class="p">,</span> <span class="n">df_de</span>
+
+    <span class="c1"># noinspection PyMethodOverriding</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">mu_grad</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate gradients of the fermi-energy search operation.</span>
+
+<span class="sd">        The backwards pass computes the gradients of the fermi-energy with</span>
+<span class="sd">        respect to the eigenvalues. Without such manual intervention, the</span>
+<span class="sd">        autograd engine would not be able to pass through the fermi search</span>
+<span class="sd">        function.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mu_grad: Gradients associated with the fermi-energy.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            eigenvalues_grad: Gradients associated with the `eigenvalues`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># The approach that should be used to compute the gradients depends on</span>
+        <span class="c1"># the method by which the fermi-energy was calculated. Cases involving</span>
+        <span class="c1"># partial occupancy would have undergone a bisection search to find the</span>
+        <span class="c1"># fermi-energy. In such instances the gradients must be computed via</span>
+        <span class="c1"># the implicit function theorem method. In the remaining cases, where</span>
+        <span class="c1"># fermi-energy will have been determined via the middle-gap</span>
+        <span class="c1"># approximation, the eigenvalue gradients are 0.5 for the HOMO &amp; LUMO.</span>
+
+        <span class="n">shp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="o">*</span><span class="n">ctx</span><span class="o">.</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">kT</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+
+        <span class="c1"># Compute gradients via the middle gap approximation approach</span>
+        <span class="p">(</span><span class="n">eigenvalues_flat</span><span class="p">,</span> <span class="n">normed_weights_homo</span><span class="p">,</span> <span class="n">normed_weights_lumo</span>
+         <span class="p">)</span> <span class="o">=</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">_middle_gap_approximation_precompute</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">n_electrons</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">e_mask</span><span class="p">,</span>
+            <span class="n">ctx</span><span class="o">.</span><span class="n">degeneracy_tolerance</span><span class="p">)</span>
+
+        <span class="n">dfermi_de_midpoint</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">normed_weights_homo</span> <span class="o">+</span> <span class="n">normed_weights_lumo</span><span class="p">)</span>
+
+        <span class="c1"># If a kT value was specified then some systems may have undergone a</span>
+        <span class="c1"># bisection search. Thus, the gradients must also be computed via the</span>
+        <span class="c1"># implicit function theorem method as well.</span>
+        <span class="k">if</span> <span class="n">kT</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># `smearing_gradients` uses the PyTorch autograd engine with an</span>
+            <span class="c1"># independent graph to compute the partial derivatives of the implicit</span>
+            <span class="c1"># function &quot;f&quot; with respect to the fermi-energy and the eigenvalues.</span>
+            <span class="c1"># This approach is more complex, verbose, and likely more costly, than</span>
+            <span class="c1"># manually implementing the derivatives. However, the advantages is</span>
+            <span class="c1"># that no explicit smearing scheme dependent handling is required.</span>
+            <span class="n">df_dmu</span><span class="p">,</span> <span class="n">df_de</span> <span class="o">=</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">_smearing_gradients</span><span class="p">(</span>
+                <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">scale_factor</span><span class="p">,</span> <span class="n">kT</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span>
+                <span class="n">e_mask</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">e_mask</span><span class="p">)</span>
+
+            <span class="c1"># Clap the denominator to prevent decision by zeros</span>
+            <span class="n">dfermi_de_implicit</span> <span class="o">=</span> <span class="o">-</span> <span class="n">df_de</span> <span class="o">/</span> <span class="n">df_dmu</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+                <span class="n">shp</span><span class="p">)</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">tiny</span><span class="p">)</span>
+
+            <span class="c1"># Select which gradient should be used for which system. The boolean</span>
+            <span class="c1"># mask `b_mask` is true for systems that underwent a bisection search</span>
+            <span class="c1"># and false for those that were computed via the middle-gap</span>
+            <span class="c1"># approximation.</span>
+            <span class="n">dfermi_de</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">ctx</span><span class="o">.</span><span class="n">b_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">),</span> <span class="n">dfermi_de_implicit</span><span class="p">,</span> <span class="n">dfermi_de_midpoint</span><span class="p">)</span>
+
+        <span class="c1"># If no kT value was specified then the midpoint method is the only</span>
+        <span class="c1"># possible gradient source.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dfermi_de</span> <span class="o">=</span> <span class="n">dfermi_de_midpoint</span>
+
+        <span class="c1"># Chain to the loss value</span>
+        <span class="n">eigenvalues_grad</span> <span class="o">=</span> <span class="n">mu_grad</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span> <span class="o">*</span> <span class="n">dfermi_de</span>
+
+        <span class="c1"># PyTorch expects the `backward` method to return as many results as</span>
+        <span class="c1"># there were inputs to the `forward` method. However, a dummy `None`</span>
+        <span class="c1"># value can be returned for everything but the eigenvalues, as they are</span>
+        <span class="c1"># the only value TBMaLT currently requires.</span>
+        <span class="k">return</span> <span class="n">eigenvalues_grad</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="fermi_search">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.physics.filling.fermi_search.html#tbmalt.physics.filling.fermi_search">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fermi_search</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">:</span> <span class="n">float_like</span><span class="p">,</span>
+        <span class="n">kT</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">float_like</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">scheme</span><span class="p">:</span> <span class="n">Scheme</span> <span class="o">=</span> <span class="n">fermi_smearing</span><span class="p">,</span>
+        <span class="n">tolerance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Real</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+        <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">k_weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">degeneracy_tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Determines the Fermi-energy of a system or batch thereof.</span>
+
+<span class="sd">    Calculates the Fermi-energy with or without finite temperature. Finite</span>
+<span class="sd">    temperature can be enabled by specifying a ``kT`` value.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        eigenvalues: Eigen-energies, i.e. orbital-energies. This may have up to</span>
+<span class="sd">            4 dimensions, 3 of which are optional, so long as the following</span>
+<span class="sd">            order is satisfied [batch, spin, k-points, eigenvalues].</span>
+<span class="sd">        n_electrons: Total number of (valence) electrons.</span>
+<span class="sd">        kT: Electronic temperature. By default, finite temperature is not</span>
+<span class="sd">            active, i.e. ``kT`` = None. [DEFAULT=None]</span>
+<span class="sd">        scheme: Finite temperature broadening function to be used, TBMaLT</span>
+<span class="sd">            natively supports two broadening methods:</span>
+
+<span class="sd">                - Fermi-Dirac broadening :func:`fermi_smearing`</span>
+<span class="sd">                - Gaussian broadening :func:`gaussian_smearing`</span>
+
+<span class="sd">            Only used when ``kT`` is not None. [DEFAULT=`fermi_smearing`]</span>
+
+<span class="sd">        tolerance: Tolerance to which e⁻ count is converged during the search;</span>
+<span class="sd">            defaults to 1E-10/5/2 for 64/32/16 bit floats respectively. Not</span>
+<span class="sd">            used when finite temperature is disabled. [DEFAULT=None]</span>
+<span class="sd">        max_iter: Maximum permitted number of fermi search cycles; ignored</span>
+<span class="sd">            when finite temperature is disabled. [DEFAULT=200]</span>
+<span class="sd">        e_mask: Provides info required to distinguish &quot;real&quot; ``eigenvalues``</span>
+<span class="sd">            from &quot;fake&quot; ones. This is Mandatory when using smearing on batched</span>
+<span class="sd">            systems. This may be a `Tensor` that is `True` for real states or</span>
+<span class="sd">            a `OrbitalInfo` object. [DEFAULT=None]</span>
+<span class="sd">        k_weights: If periodic systems are supplied then k-point wights can be</span>
+<span class="sd">            given via this argument.</span>
+<span class="sd">        degeneracy_tolerance: Specifies an absolute energy tolerance used to</span>
+<span class="sd">            identify degenerate frontier states when the Fermi level is</span>
+<span class="sd">            determined via the middle-gap approximation. Degeneracies at the</span>
+<span class="sd">            HOMO or LUMO may lead to numerical inconsistencies in the computed</span>
+<span class="sd">            gradients, as the exact selection of a single state is not well</span>
+<span class="sd">            defined. When a non-zero tolerance is given, all occupied states</span>
+<span class="sd">            within this energy window of the HOMO or LUMO edge are treated as</span>
+<span class="sd">            degenerate and contribute equally (or in proportion to their</span>
+<span class="sd">            weights) to the derivative of the Fermi level. This option may be</span>
+<span class="sd">            employed when systems containing near-degenerate frontier states</span>
+<span class="sd">            are studied, in order to ensure stable and physically meaningful</span>
+<span class="sd">            gradients. [DEFAULT=0.0]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        fermi_energy: Fermi energy value(s).</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        It is imperative to ensure that ``e_mask`` is specified when, and only</span>
+<span class="sd">        when, a batch of systems is provided. Failing to satisfy this condition</span>
+<span class="sd">        will cause **spurious and hard to diagnose errors**.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The eigenvalues should be ordered from lowest to highest, with padding</span>
+<span class="sd">        values located at the end.</span>
+
+<span class="sd">        Smearing is disabled if ``kT`` = `None`, causing Fermi energy to resolve</span>
+<span class="sd">        to the HOMO &amp; LUMO midpoint. Whereas a value of 0 carries out smearing</span>
+<span class="sd">        with a temperature of 0. Values can be specified on a system by system</span>
+<span class="sd">        basis or a single value can be provided which is used by all. However,</span>
+<span class="sd">        smearing cannot be applied selectively; i.e. finite temperature can be</span>
+<span class="sd">        enabled for some systems but not others during a single call.</span>
+
+<span class="sd">        This code is based on the DFTB+ etemp module. [1]_ However, unlike the</span>
+<span class="sd">        DFTB+ implementation, no final Newton-Raphson step is performed.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ConvergenceFailure: If the fermi level search fails to converge</span>
+<span class="sd">            within the permitted number of iterations.</span>
+<span class="sd">        ValueError: If the tolerance value is too tight for the specified</span>
+<span class="sd">            dtype, a negative ``kT`` value is encountered, the number of</span>
+<span class="sd">            electrons is to zero or exceeds the number of available states.</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        .. [1] Hourahine, B., Aradi, B., Blum, V., Frauenheim, T. et al.,</span>
+<span class="sd">               (2020). DFTB+, a software package for efficient approximate</span>
+<span class="sd">               density functional theory based atomistic simulations. The</span>
+<span class="sd">               Journal of Chemical Physics, 152(12), 124101.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.physics.filling import fermi_search</span>
+<span class="sd">        &gt;&gt;&gt; # An example H2 system</span>
+<span class="sd">        &gt;&gt;&gt; e_vals = torch.tensor([-0.3405911944959140,</span>
+<span class="sd">        ...                        0.2311892808528265])</span>
+<span class="sd">        &gt;&gt;&gt; kt = torch.tensor(0.0036749324000000)</span>
+<span class="sd">        &gt;&gt;&gt; n_elec = 2.0</span>
+<span class="sd">        &gt;&gt;&gt; # Fermi search</span>
+<span class="sd">        &gt;&gt;&gt; e_fermi = fermi_search(e_vals, n_elec, kt, scheme=fermi_smearing)</span>
+<span class="sd">        &gt;&gt;&gt; print(e_fermi)</span>
+<span class="sd">        tensor(-0.0547)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># __Setup__</span>
+    <span class="n">dtype</span><span class="p">,</span> <span class="n">dev</span> <span class="o">=</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">device</span>
+
+    <span class="c1"># Convert n_electrons &amp; kT into tensors to make them easier to work with.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span> \
+            <span class="ow">or</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">):</span>
+        <span class="n">n_electrons</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">kT</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kT</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">kT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">kT</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+
+    <span class="c1"># If a OrbitalInfo instance was given as a mask then convert it to a tensor</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e_mask</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">):</span>
+        <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">on_atoms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e_mask</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">:</span>
+            <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># Scaling factor is the max № of electrons that can occupancy each state;</span>
+    <span class="c1"># 2/1 for restricted/unrestricted molecular systems. For periodic systems</span>
+    <span class="c1"># this is then multiplied by the k-point weights.</span>
+    <span class="n">pf</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">-</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="p">[</span><span class="n">k_weights</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">scale_factor</span> <span class="o">=</span> <span class="n">pf</span> <span class="k">if</span> <span class="n">k_weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pf</span> <span class="o">*</span> <span class="n">k_weights</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale_factor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">scale_factor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">scale_factor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">dev</span><span class="p">)</span>
+
+    <span class="c1"># Shape of Ɛ tensor where k-points &amp; spin-channels have been flattened out.</span>
+    <span class="c1"># Note that only spin-channels with common fermi energies get flattened.</span>
+    <span class="n">shp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="o">*</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># __Error Checking__</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span>
+    <span class="k">if</span> <span class="n">tolerance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># auto-assign if no tolerance was given</span>
+        <span class="n">tolerance</span> <span class="o">=</span> <span class="p">{</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">:</span> <span class="mf">1E-10</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span> <span class="mf">1E-5</span><span class="p">,</span>
+               <span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">:</span> <span class="mf">1E-2</span><span class="p">}[</span><span class="n">dtype</span><span class="p">]</span>
+
+    <span class="k">elif</span> <span class="n">tolerance</span> <span class="o">&lt;</span> <span class="n">eps</span><span class="p">:</span>  <span class="c1"># Ensure tolerance value is viable</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Tolerance </span><span class="si">{</span><span class="n">tolerance</span><span class="si">:</span><span class="s1">7.1E</span><span class="si">}</span><span class="s1"> too tight for &quot;</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s1">&quot;, &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;the minimum permitted value is: </span><span class="si">{</span><span class="n">eps</span><span class="si">:</span><span class="s1">7.1E</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">kT</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span><span class="n">kT</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>  <span class="c1"># Negative kT catch</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;kT must be positive or None (</span><span class="si">{</span><span class="n">kT</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">lt</span><span class="p">(</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">abs</span><span class="p">(),</span> <span class="n">eps</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>  <span class="c1"># A system has no electrons</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of elections cannot be zero.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># A system has too many electrons</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="n">n_electrons</span> <span class="o">/</span> <span class="n">pf</span><span class="p">)</span><span class="o">.</span><span class="n">gt</span><span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="kc">None</span>
+                               <span class="k">else</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of electrons cannot exceed 2 * n states&#39;</span><span class="p">)</span>
+
+    <span class="n">e_fermi</span> <span class="o">=</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">,</span> <span class="n">kT</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">scheme</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span>
+        <span class="n">max_iter</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">,</span> <span class="n">degeneracy_tolerance</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">e_fermi</span></div>
+
+
+
+<div class="viewcode-block" id="aufbau_filling">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.physics.filling.aufbau_filling.html#tbmalt.physics.filling.aufbau_filling">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">aufbau_filling</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">:</span> <span class="n">float_like</span><span class="p">,</span>
+        <span class="n">e_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">k_weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Fractional orbital occupancies due to the Aufbau principle.</span>
+
+<span class="sd">    Returns the fractional occupancy of each orbital according the Aufbau</span>
+<span class="sd">    principle in which states are filled from lowest to highest energy until</span>
+<span class="sd">    the specified electron count is reached. Any given state will only be</span>
+<span class="sd">    occupied if all states of lower energy are also occupied.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        eigenvalues: Eigen-energies, i.e. orbital-energies. This may have up to</span>
+<span class="sd">            4 dimensions, 3 of which are optional, so long as the following</span>
+<span class="sd">            order is satisfied [batch, spin, k-points, eigenvalues].</span>
+<span class="sd">        n_electrons: Total number of (valence) electrons.</span>
+<span class="sd">        e_mask: Provides info required to distinguish &quot;real&quot; ``eigenvalues``</span>
+<span class="sd">            from &quot;fake&quot; ones. This is Mandatory when using smearing on batched</span>
+<span class="sd">            systems. This may be a `Tensor` that is `True` for real states or</span>
+<span class="sd">            a `OrbitalInfo` object. [DEFAULT=None]</span>
+<span class="sd">        k_weights: If periodic systems are supplied then k-point wights can be</span>
+<span class="sd">            given via this argument.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        occupancies: Fractional occupancies of the orbitals according to Aufbau</span>
+<span class="sd">            filling.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># No comments are provided for the code here as all the code present is</span>
+    <span class="c1"># functionally identical to that in `fermi_search`; albeit a much cut down</span>
+    <span class="c1"># version.</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span> \
+            <span class="ow">or</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">n_electrons</span><span class="p">):</span>
+        <span class="n">n_electrons</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+            <span class="n">n_electrons</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e_mask</span><span class="p">,</span> <span class="n">OrbitalInfo</span><span class="p">):</span>
+        <span class="n">e_mask</span> <span class="o">=</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">on_atoms</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="n">pf</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">-</span> <span class="n">eigenvalues</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="p">[</span><span class="n">k_weights</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">scale_factor</span> <span class="o">=</span> <span class="n">pf</span> <span class="k">if</span> <span class="n">k_weights</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">pf</span> <span class="o">*</span> <span class="n">k_weights</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale_factor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">scale_factor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">scale_factor</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                                       <span class="n">device</span><span class="o">=</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">shp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="o">*</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">lt</span><span class="p">(</span><span class="n">n_electrons</span><span class="o">.</span><span class="n">abs</span><span class="p">(),</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">eigenvalues</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of elections cannot be zero.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">((</span><span class="n">n_electrons</span> <span class="o">/</span> <span class="n">pf</span><span class="p">)</span><span class="o">.</span><span class="n">gt</span><span class="p">(</span>
+            <span class="n">eigenvalues</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">e_mask</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">e_mask</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">shp</span><span class="p">)</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))):</span>
+
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Number of electrons cannot exceed 2 * n states&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Divide by the pre-factor to get back to fractional values. This is a bit</span>
+    <span class="c1"># wasteful and thus the occupancy scaling situation should be refactored</span>
+    <span class="c1"># at some point in the future.</span>
+    <span class="k">return</span> <span class="n">_FermiSearch</span><span class="o">.</span><span class="n">_aufbau_filling</span><span class="p">(</span>
+        <span class="n">eigenvalues</span><span class="p">,</span> <span class="n">n_electrons</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">,</span> <span class="n">e_mask</span><span class="p">)</span> <span class="o">/</span> <span class="n">pf</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

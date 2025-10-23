@@ -1,0 +1,44 @@
+geometry
+========
+
+.. automodule:: tbmalt.structures.geometry
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      atomic_pair_distances
+      atomic_pair_indices
+      batch_chemical_symbols
+      unique_atom_pairs
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      Geometry
+   
+   
+
+   
+   
+   
+
+
+

@@ -1,0 +1,39 @@
+feeds
+=====
+
+.. automodule:: tbmalt.physics.dftb.feeds
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      DftbpRepulsiveSpline
+      HubbardFeed
+      PairwiseRepulsiveEnergyFeed
+      ScipySkFeed
+      SkFeed
+      SkfOccupationFeed
+      SkfOnSiteFeed
+      VcrSkFeed
+   
+   
+
+   
+   
+   
+
+
+

@@ -1,0 +1,1252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.structures.geometry &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">tbmalt.structures.geometry</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.structures.geometry</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;A container to hold data associated with a chemical system&#39;s structure.</span>
+
+<span class="sd">This module provides the `Geometry` data structure class and its associated</span>
+<span class="sd">code. The `Geometry` class is intended to hold any &amp; all data needed to fully</span>
+<span class="sd">describe a chemical system&#39;s structure.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">itemgetter</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">h5py</span><span class="w"> </span><span class="kn">import</span> <span class="n">Group</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase</span><span class="w"> </span><span class="kn">import</span> <span class="n">Atoms</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ase.lattice.bravais</span><span class="w"> </span><span class="kn">import</span> <span class="n">Lattice</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.structures.periodicity</span><span class="w"> </span><span class="kn">import</span> <span class="n">Triclinic</span><span class="p">,</span> <span class="n">Periodicity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack</span><span class="p">,</span> <span class="n">merge</span><span class="p">,</span> <span class="n">deflate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.data.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">length_units</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">chemical_symbols</span>
+
+<span class="c1"># Todo:</span>
+<span class="c1">#   - Currently periodic systems are hard-coded to use the `Triclinic` periodic</span>
+<span class="c1">#     helper class. Note that triclinic is used in reference to the general</span>
+<span class="c1">#     geometric shape and not the specific crystal structure. This is done</span>
+<span class="c1">#     because only one type of periodic boundary condition is supported at this</span>
+<span class="c1">#     time. Later this should be generalised. Hardcoding is present in both the</span>
+<span class="c1">#     `__init__` and `__preprocess` methods.</span>
+<span class="c1">#   - The `distance_vectors` &amp; `distances` properties should be converted into</span>
+<span class="c1">#     cached functions &amp; updated to respect periodic boundary conditions.</span>
+
+
+<div class="viewcode-block" id="Geometry">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Geometry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Data structure for storing geometric information on molecular systems.</span>
+
+<span class="sd">    The `Geometry` class stores any information that is needed to describe a</span>
+<span class="sd">    chemical system; atomic numbers, positions, etc. This class also permits</span>
+<span class="sd">    batch system representation. However, mixing of PBC &amp; non-PBC systems is</span>
+<span class="sd">    strictly forbidden.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        atomic_numbers: Atomic numbers of the atoms.</span>
+<span class="sd">        positions : Atomic coordinates are specified via an &quot;Nx3&quot; tensor for</span>
+<span class="sd">            single system instances, where &quot;N&quot; is the nubmer of atoms. For</span>
+<span class="sd">            batch instanes either i) a single zero-padded &quot;BxMxN&quot; tensor may</span>
+<span class="sd">            be specified, where &quot;B&quot; is the number of batches and &quot;M&quot; is the</span>
+<span class="sd">            number of atoms in the largest system, or ii) a list of &quot;Nx3&quot;</span>
+<span class="sd">            tensors may be provided.</span>
+<span class="sd">        lattice_vector: Lattice vectors of the periodic systems. This is</span>
+<span class="sd">            argument, commonly a 3x3 tensor, is only relevant for periodic</span>
+<span class="sd">            systems. This is used by underlying `Periodicity` instances to</span>
+<span class="sd">            construct periodic dependant properties. [DEFAULT=None]</span>
+<span class="sd">        frac: Whether using fractional coordinates to describe periodic</span>
+<span class="sd">            systems. [DEFAULT=False]</span>
+<span class="sd">        cutoff: Global cutoff for the diatomic interactions in periodic</span>
+<span class="sd">            systems. Currently, this value is only used by periodic systems</span>
+<span class="sd">            when computing the number of cell images that must be considered.</span>
+<span class="sd">            However, this will be used in the future by interaction pair</span>
+<span class="sd">            generator methods to limit the number of evaulations necessary.</span>
+<span class="sd">            A default cutoff distance of 11 Bohr has been chosen for</span>
+<span class="sd">            performance reasons. It is important to note that this falls well</span>
+<span class="sd">            below cutoffs values typically used in operations like constructing</span>
+<span class="sd">            gamma matrices in DFTB. This can have a noticeable impact on</span>
+<span class="sd">            accuracy. For calculations requiring strict convergence, increase</span>
+<span class="sd">            ``cutoff`` to a value exceeding the gamma matrix cut-offs listed</span>
+<span class="sd">            in :mod:`tbmalt.data.elements`. [DEFAULT=11.0]</span>
+<span class="sd">        units: Unit in which ``positions``, ``lattice_vector``, &amp; ``cutoff``</span>
+<span class="sd">            were specified. For a list of available units see :mod:`.units`</span>
+<span class="sd">            [DEFAULT=&#39;bohr&#39;].</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        atomic_numbers: Atomic numbers of the atoms.</span>
+<span class="sd">        positions: Coordinates of the atoms.</span>
+<span class="sd">        n_atoms: Number of atoms in the system.</span>
+<span class="sd">        periodicity: `Periodicity` object that offers helper methods for</span>
+<span class="sd">            periodic systems. Geometric properties like distances should</span>
+<span class="sd">            be accessed via this entity when working with periodic systems.</span>
+<span class="sd">        lattice: the lattice vectors.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        When representing multiple systems, the `atomic_numbers` &amp; `positions`</span>
+<span class="sd">        tensors will be padded with zeros. Tensors generated from ase atoms</span>
+<span class="sd">        objects or HDF5 database entities will not share memory with their</span>
+<span class="sd">        associated numpy arrays, nor will they inherit their dtype.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        At this time, 1D &amp; 2D &amp; 3D periodic boundary conditions are supported,</span>
+<span class="sd">        but mixing of different types of periodic boundary conditions is</span>
+<span class="sd">        forbidden. The mixing of fractional and cartesian coordinates is</span>
+<span class="sd">        also forbidden. While Helical periodic boundary condition is not</span>
+<span class="sd">        supported.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Geometry instances may be created by directly passing in the atomic</span>
+<span class="sd">        numbers &amp; atom positions</span>
+
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt import Geometry</span>
+<span class="sd">        &gt;&gt;&gt; H2 = Geometry(torch.tensor([1, 1]),</span>
+<span class="sd">        &gt;&gt;&gt;               torch.tensor([[0.00, 0.00, 0.00],</span>
+<span class="sd">        &gt;&gt;&gt;                             [0.00, 0.00, 0.79]]))</span>
+<span class="sd">        &gt;&gt;&gt; print(H2)</span>
+<span class="sd">        Geometry(H2)</span>
+
+<span class="sd">        Or from an ase.Atoms object</span>
+
+<span class="sd">        &gt;&gt;&gt; from tbmalt import Geometry</span>
+<span class="sd">        &gt;&gt;&gt; from ase.build import molecule</span>
+<span class="sd">        &gt;&gt;&gt; CH4_atoms = molecule(&#39;CH4&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; print(CH4_atoms)</span>
+<span class="sd">        Atoms(symbols=&#39;CH4&#39;, pbc=False)</span>
+<span class="sd">        &gt;&gt;&gt; CH4 = Geometry.from_ase_atoms(CH4_atoms)</span>
+<span class="sd">        &gt;&gt;&gt; print(CH4)</span>
+<span class="sd">        Geometry(CH4)</span>
+
+<span class="sd">        Multiple systems can be represented by a single ``Geometry`` instance.</span>
+<span class="sd">        To do this, simply pass in lists or packed tensors where appropriate.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;atomic_numbers&#39;</span><span class="p">,</span> <span class="s1">&#39;positions&#39;</span><span class="p">,</span> <span class="s1">&#39;n_atoms&#39;</span><span class="p">,</span> <span class="s1">&#39;periodicity&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s1">&#39;_n_batch&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;__dtype&#39;</span><span class="p">,</span> <span class="s1">&#39;__device&#39;</span><span class="p">]</span>
+
+    <span class="c1"># Developers notes technically the `cutoff` argument has the default value</span>
+    <span class="c1"># of `None`. However, this is assigned to 11.00 bohr internally after the</span>
+    <span class="c1"># fact. This is done to prevent the default value from undergoing a unit</span>
+    <span class="c1"># conversion if the user provides the atomic positions and lattice vectors</span>
+    <span class="c1"># in units other than atomic units.</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">atomic_numbers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]],</span>
+            <span class="n">positions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]],</span>
+            <span class="n">lattice_vector</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
+                <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">Lattice</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">frac</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">cutoff</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;bohr&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="c1"># Perform general preprocessing and sanitisation of the inputs</span>
+        <span class="n">atomic_numbers</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">lattice_vector</span><span class="p">,</span> <span class="n">cutoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">__preprocess</span><span class="p">(</span>
+            <span class="n">atomic_numbers</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">lattice_vector</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">,</span> <span class="n">frac</span><span class="p">,</span> <span class="n">units</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="n">atomic_numbers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span>
+
+        <span class="c1"># These are static, private variables and must NEVER be modified!</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Number of batches if in batch mode (for internal use only)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+                                        <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">lattice_vector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Cutoff distance for the diatomic interactions in periodic systems</span>
+            <span class="n">cutoff</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="p">[</span><span class="mf">11.</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__dtype</span>
+            <span class="p">)</span> <span class="k">if</span> <span class="n">cutoff</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">cutoff</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span> <span class="o">=</span> <span class="n">lattice_vector</span>
+
+            <span class="c1"># Currently periodicity is hardcoded to be triclinic</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span><span class="p">:</span> <span class="n">Periodicity</span> <span class="o">=</span> <span class="n">Triclinic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__preprocess</span><span class="p">(</span>
+            <span class="n">atomic_numbers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]],</span>
+            <span class="n">positions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]],</span>
+            <span class="n">lattice_vector</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="n">Lattice</span><span class="p">]]],</span>
+            <span class="n">cutoff</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
+            <span class="n">frac</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">units</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform general safety checks and conversion operations.</span>
+
+<span class="sd">        This method just abstracts a lot of overly verbose and messy safety</span>
+<span class="sd">        checks and conversions that are performed on the inputs. This is done</span>
+<span class="sd">        to make the `__init__` method a little cleaner.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Preprocessing:</span>
+        <span class="c1"># 1) Ensure that `atomic_numbers` and `positions` are packed as needed,</span>
+        <span class="c1">#    `pack` only effects lists of tensors, and deflate is used to</span>
+        <span class="c1">#    remove any unnecessary padding.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">atomic_numbers</span> <span class="o">=</span> <span class="n">deflate</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="c1"># Warn when batching gradient-tracked leaf-nodes.</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">requires_grad</span> <span class="ow">and</span> <span class="n">i</span><span class="o">.</span><span class="n">is_leaf</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">]):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Care must be taken, gradient-tracked leaf-node detected &quot;</span>
+                    <span class="s2">&quot;in auto-batch request. Atomic positions have been &quot;</span>
+                    <span class="s2">&quot;supplied as a list of tensors that are to be pack &quot;</span>
+                    <span class="s2">&quot;into a single batch tensor. One or more of the supplied &quot;</span>
+                    <span class="s2">&quot;tensors are gradient-tracked leaf-nodes, however these &quot;</span>
+                    <span class="s2">&quot;will not be stored within the `Geometry` class, only the &quot;</span>
+                    <span class="s2">&quot;packed tensor that results from them. As such auto-grad &quot;</span>
+                    <span class="s2">&quot;related operations, such as `Geometry.positions.grad`, may &quot;</span>
+                    <span class="s2">&quot;not behave as expected.&quot;</span><span class="p">)</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="n">positions</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">:]</span>
+
+        <span class="n">device</span> <span class="o">=</span> <span class="n">positions</span><span class="o">.</span><span class="n">device</span>
+
+        <span class="c1"># 2) If the lattice vectors are supplied as ase.lattice.bravais.Lattice</span>
+        <span class="c1">#    instances then the lattice vector arrays must be extracted from</span>
+        <span class="c1">#    them. Then make sure that the lattice vectors are pytorch arrays</span>
+        <span class="c1">#    and are packed if required. Note that care must be taken here not</span>
+        <span class="c1">#    to accidentally cause the lattice vectors to be deflated. A row</span>
+        <span class="c1">#    of all zeros is valid in a lattice vector and thus should not be</span>
+        <span class="c1">#    pruned.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">,</span> <span class="n">Lattice</span><span class="p">):</span>
+            <span class="n">lattice_vector</span> <span class="o">=</span> <span class="n">lattice_vector</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">array</span>
+
+        <span class="c1"># Cast from a list ase `Lattice` instance to list of PyTorch arrays</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+              <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Lattice</span><span class="p">)):</span>
+            <span class="n">lattice_vector</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                <span class="n">i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">positions</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">lattice_vector</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">lattice_vector</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">lattice_vector</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># 3) Ensure tensors are on the same device (only two present currently)</span>
+        <span class="k">if</span> <span class="n">device</span> <span class="o">!=</span> <span class="n">atomic_numbers</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;All tensors must be on the same device!&#39;</span><span class="p">)</span>
+
+        <span class="c1"># 4) Lattice vectors many not be zero dimensional</span>
+        <span class="k">if</span> <span class="n">lattice_vector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="o">~</span><span class="n">lattice_vector</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Lattice vectors may not be zero dimensional!&#39;</span><span class="p">)</span>
+
+        <span class="c1"># 5) Convert fractional positions to their Cartesian values</span>
+        <span class="k">if</span> <span class="n">frac</span> <span class="ow">and</span> <span class="n">lattice_vector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="n">Triclinic</span><span class="o">.</span><span class="n">frac_to_cartesian</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">,</span> <span class="n">positions</span><span class="p">)</span>
+
+        <span class="c1"># 6) a non-periodic system cannot be given in fractional coordinates</span>
+        <span class="k">if</span> <span class="n">frac</span> <span class="ow">and</span> <span class="n">lattice_vector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Fractional coordinates cannot be used for clusters!&#39;</span><span class="p">)</span>
+
+        <span class="c1"># 7) Perform unit conversions as and when required. TBMaLT uses atomic</span>
+        <span class="c1">#    units internally; i.e. Bohr for distance.</span>
+        <span class="k">if</span> <span class="n">units</span> <span class="o">!=</span> <span class="s1">&#39;bohr&#39;</span><span class="p">:</span>
+            <span class="n">conversion_factor</span> <span class="o">=</span> <span class="n">length_units</span><span class="p">[</span><span class="n">units</span><span class="p">]</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="n">positions</span> <span class="o">*</span> <span class="n">conversion_factor</span>
+            <span class="k">if</span> <span class="n">lattice_vector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">lattice_vector</span> <span class="o">=</span> <span class="n">lattice_vector</span> <span class="o">*</span> <span class="n">conversion_factor</span>
+            <span class="k">if</span> <span class="n">cutoff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff</span> <span class="o">*</span> <span class="n">conversion_factor</span>
+
+        <span class="c1"># 8) Check for shape discrepancies in `positions`, `atomic_numbers`, &amp;</span>
+        <span class="c1">#   `cells`. A position/atomic-number mismatch would have caused an</span>
+        <span class="c1">#   error in the first step, so it technically does not need to be</span>
+        <span class="c1">#   explicitly checked for.</span>
+        <span class="n">check_1</span> <span class="o">=</span> <span class="n">positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">atomic_numbers</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">check_1</span><span class="p">,</span> <span class="s1">&#39;`positions` &amp; `atomic_numbers` shape mismatch found&#39;</span>
+        <span class="k">if</span> <span class="n">lattice_vector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">check_2</span> <span class="o">=</span> <span class="n">positions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">lattice_vector</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">check_2</span><span class="p">,</span> <span class="s1">&#39;`positions` &amp; `lattice_vector` shape mismatch found&#39;</span>
+
+        <span class="k">return</span> <span class="n">atomic_numbers</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">lattice_vector</span><span class="p">,</span> <span class="n">cutoff</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">device</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The device on which the `Geometry` object resides.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__device</span>
+
+    <span class="nd">@device</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="c1"># Instruct users to use the &quot;.to&quot; method if wanting to change device.</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Geometry object</span><span class="se">\&#39;</span><span class="s1">s dtype can only be modified &#39;</span>
+                             <span class="s1">&#39;via the &quot;.to&quot; method.&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dtype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Floating point dtype used by geometry object.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__dtype</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_periodic</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;If there is any periodic boundary conditions.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">False</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">True</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">distances</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Distance matrix between atoms in the system.&quot;&quot;&quot;</span>
+        <span class="c1"># Todo: Modify to account for PBC</span>
+        <span class="c1"># This round about method is necessary as the neither the torch</span>
+        <span class="c1"># cdist nor the linalg.norm method are compatible with the autograd</span>
+        <span class="c1"># engine. Also inplace operations must be avoided.</span>
+        <span class="n">dist_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">dist2</span> <span class="o">=</span> <span class="p">(</span><span class="n">dist_vec</span> <span class="o">*</span> <span class="n">dist_vec</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dist2</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">dist2</span><span class="o">.</span><span class="n">gt</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask_dist</span><span class="p">)</span>
+        <span class="n">dist</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dist2</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">dist</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">distance_vectors</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Distance vector matrix between atoms in the system.&quot;&quot;&quot;</span>
+        <span class="n">dist_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">dist_vec</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask_dist</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">dist_vec</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">chemical_symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Chemical symbols of the atoms present.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">batch_chemical_symbols</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pbc</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Directions along which the system is deemed to be periodic.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span><span class="o">.</span><span class="n">pbc</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mask_dist</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Mask for clearing padding values in the distance matrix.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Identify which atoms are not padding atoms. It is assumed that the</span>
+        <span class="c1"># value &quot;0&quot; is used for padding that atomic number tensor.</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># If no padding atoms are present then no masking is needed, thus the</span>
+        <span class="c1"># value `False` is returned; i.e. mask out no parts of a tensor.</span>
+        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="c1"># If padding values are found then expand the mask into a 2D slice for</span>
+        <span class="c1"># each system present in the current `Geometry` instance.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">~</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">mask</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Geometry.unique_atomic_numbers">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry.unique_atomic_numbers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unique_atomic_numbers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Identifies and returns a tensor of unique atomic numbers.</span>
+
+<span class="sd">        This method offers a means to identify the types of elements present</span>
+<span class="sd">        in the system(s) represented by a `Geometry` object.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            unique_atomic_numbers: A tensor specifying the unique atomic</span>
+<span class="sd">                numbers present.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)])</span></div>
+
+
+<div class="viewcode-block" id="Geometry.from_ase_atoms">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry.from_ase_atoms">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_ase_atoms</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">atoms</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Atoms</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Atoms</span><span class="p">]],</span>
+                       <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                       <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                       <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;angstrom&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Instantiates a Geometry instance from an `ase.Atoms` object.</span>
+
+<span class="sd">        Multiple atoms objects can be passed in to generate a batched Geometry</span>
+<span class="sd">        instance which represents multiple systems.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            atoms: Atoms object(s) to instantiate a Geometry instance from.</span>
+<span class="sd">            device: Device on which to create any new tensors. [DEFAULT=None]</span>
+<span class="sd">            dtype: dtype to be used for floating point tensors. [DEFAULT=None]</span>
+<span class="sd">            units: Length unit used by `Atoms` object. [DEFAULT=&#39;angstrom&#39;]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            geometry: The resulting ``Geometry`` object.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            NotImplementedError: If there is a mixing of `ase.Atoms` objects</span>
+<span class="sd">            that have both periodic boundary conditions and non-periodic</span>
+<span class="sd">            boundary conditions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If not specified by the user; ensure that the default dtype is used,</span>
+        <span class="c1"># rather than inheriting from numpy. Failing to do this will case some</span>
+        <span class="c1"># *very* hard to diagnose errors.</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span> <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">dtype</span>
+
+        <span class="c1"># Check periodic systems</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">check_not_periodic</span><span class="p">(</span><span class="n">atom_instance</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Check whether a system is periodic.&quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">atom_instance</span><span class="o">.</span><span class="n">pbc</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># If a single system</span>
+            <span class="c1"># Check PBC systems</span>
+            <span class="n">_pbc</span> <span class="o">=</span> <span class="n">check_not_periodic</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">_pbc</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>  <span class="c1"># Create a Geometry instance and return it</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">get_atomic_numbers</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+                    <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>  <span class="c1"># Create a Geometry instance and return it</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">get_atomic_numbers</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">cell</span><span class="p">[:],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+                    <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># If a batch of systems</span>
+            <span class="c1"># Check PBC systems</span>
+            <span class="n">_pbc</span> <span class="o">=</span> <span class="p">[</span><span class="n">check_not_periodic</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">_pbc</span><span class="p">)):</span>  <span class="c1"># -&gt; A batch of non-PBC</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>  <span class="c1"># Create a batched Geometry instance and return it</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get_atomic_numbers</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">],</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">positions</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">],</span>
+                    <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">_pbc</span><span class="p">)):</span>  <span class="c1"># -&gt; A batch of PBC</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>  <span class="c1"># Create a batched Geometry instance and return it</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get_atomic_numbers</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">],</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">positions</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">],</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">cell</span><span class="p">[:],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">],</span>
+                    <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s1">&#39;Mixing of PBC and non-PBC is not supported.&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Geometry.from_hdf5">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry.from_hdf5">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_hdf5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Group</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Group</span><span class="p">]],</span>
+                  <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="n">units</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;bohr&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Instantiate a `Geometry` instances from an HDF5 group.</span>
+
+<span class="sd">        Construct a `Geometry` entity using data from an HDF5 group. Passing</span>
+<span class="sd">        multiple groups, or a single group representing multiple systems, will</span>
+<span class="sd">        return a batched `Geometry` instance.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            source: An HDF5 group(s) containing geometry data.</span>
+<span class="sd">            device: Device on which to place tensors. [DEFAULT=None]</span>
+<span class="sd">            dtype: dtype to be used for floating point tensors. [DEFAULT=None]</span>
+<span class="sd">            units: Unit of length used by the data. [DEFAULT=&#39;bohr&#39;]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            geometry: The resulting ``Geometry`` object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If not specified by the user; ensure that the default dtype is used,</span>
+        <span class="c1"># rather than inheriting from numpy. Failing to do this will case some</span>
+        <span class="c1"># *very* hard to diagnose errors.</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">get_default_dtype</span><span class="p">()</span> <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">dtype</span>
+
+        <span class="c1"># If a single system or a batch system</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="c1"># Read &amp; parse a datasets from the database into a System instance</span>
+            <span class="c1"># &amp; return the result.</span>
+            <span class="k">if</span> <span class="s1">&#39;lattice_vector&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>  <span class="c1"># Check PBC systems</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;atomic_numbers&#39;</span><span class="p">][()],</span>
+                                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                           <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;positions&#39;</span><span class="p">][()],</span>
+                                        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                           <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;atomic_numbers&#39;</span><span class="p">][()],</span>
+                                        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                           <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;positions&#39;</span><span class="p">][()],</span>
+                                        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                           <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;lattice_vector&#39;</span><span class="p">][()],</span>
+                                        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                           <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Check PBC systems</span>
+            <span class="n">_pbc</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lattice_vector&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">source</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">_pbc</span><span class="p">)):</span>  <span class="c1"># -&gt; A batch of non-PBC</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>  <span class="c1"># Create a batched Geometry instance and return it</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;atomic_numbers&#39;</span><span class="p">][()],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">source</span><span class="p">],</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;positions&#39;</span><span class="p">][()],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">source</span><span class="p">],</span>
+                    <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">_pbc</span><span class="p">)):</span>  <span class="c1"># -&gt; A batch of PBC:</span>
+                <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>  <span class="c1"># Create a batched Geometry instance and return it</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;atomic_numbers&#39;</span><span class="p">][()],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">source</span><span class="p">],</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;positions&#39;</span><span class="p">][()],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">source</span><span class="p">],</span>
+                    <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;lattice_vector&#39;</span><span class="p">][()],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">source</span><span class="p">],</span>
+                    <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s1">&#39;Mixing of PBC and non-PBC is not supported.&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Geometry.to_hdf5">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry.to_hdf5">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Group</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Saves Geometry instance into a target HDF5 Group.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            target: The hdf5 group to which the system&#39;s data should be saved.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            This function does not create its own group as it expects that</span>
+<span class="sd">            ``target`` is the group into which data should be writen.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Short had for dataset creation</span>
+        <span class="n">add_data</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">create_dataset</span>
+
+        <span class="c1"># Add datasets for atomic_numbers, positions, lattice, and pbc</span>
+        <span class="n">add_data</span><span class="p">(</span><span class="s1">&#39;atomic_numbers&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">add_data</span><span class="p">(</span><span class="s1">&#39;positions&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">add_data</span><span class="p">(</span>
+                <span class="s1">&#39;lattice_vector&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+
+        <span class="c1"># Add units meta-data to the atomic positions</span>
+        <span class="n">pos</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;unit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;bohr&#39;</span></div>
+
+
+<div class="viewcode-block" id="Geometry.to">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a copy of the `Geometry` instance on the specified device.</span>
+
+<span class="sd">        This method creates and returns a new copy of the `Geometry` instance</span>
+<span class="sd">        on the specified device &quot;``device``&quot;.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            device: Device to which all associated tensors should be moved.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            geometry: A copy of the `Geometry` instance placed on the</span>
+<span class="sd">                specified device.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            If the `Geometry` instance is already on the desired device then</span>
+<span class="sd">            `self` will be returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Developers Notes: It is imperative that this function gets updated</span>
+        <span class="c1"># whenever new attributes are added to the `Geometry` class. Otherwise</span>
+        <span class="c1"># this will return an incomplete `Geometry` object.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">device</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pbc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">lattice_vector</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">cutoff</span><span class="o">=</span><span class="n">pbc</span><span class="o">.</span><span class="n">cutoff</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">))</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Permits batched Geometry instances to be sliced as needed.&quot;&quot;&quot;</span>
+        <span class="c1"># Block this if the instance has only a single system</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                <span class="s1">&#39;Geometry slicing is only applicable to batches of systems.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Select the desired atomic numbers and positions.</span>
+        <span class="n">new_zs</span> <span class="o">=</span> <span class="n">deflate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">[</span><span class="n">selector</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+        <span class="n">new_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">[</span><span class="n">selector</span><span class="p">,</span> <span class="o">...</span><span class="p">][</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="n">new_zs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">:]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_periodic</span><span class="p">:</span>
+            <span class="n">pbc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                <span class="n">new_zs</span><span class="p">,</span> <span class="n">new_pos</span><span class="p">,</span> <span class="n">lattice_vector</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">[</span><span class="n">selector</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+                <span class="n">cutoff</span><span class="o">=</span><span class="n">pbc</span><span class="o">.</span><span class="n">cutoff</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">new_zs</span><span class="p">,</span> <span class="n">new_pos</span><span class="p">)</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Combine two `Geometry` objects together.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s1">&#39;Addition can only take place between two Geometry objects.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Catch for situations where one or both systems are not batched.</span>
+        <span class="n">s_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="n">o_batch</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="n">an_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)</span>
+        <span class="n">an_2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)</span>
+
+        <span class="n">pos_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span>
+        <span class="n">pos_2</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">positions</span>
+
+        <span class="n">cell_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span>
+        <span class="n">cell_2</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">lattice</span>
+
+        <span class="n">pos_1</span> <span class="o">=</span> <span class="n">pos_1</span> <span class="k">if</span> <span class="n">s_batch</span> <span class="k">else</span> <span class="n">pos_1</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">pos_2</span> <span class="o">=</span> <span class="n">pos_2</span> <span class="k">if</span> <span class="n">o_batch</span> <span class="k">else</span> <span class="n">pos_2</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cell_1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">s_batch</span><span class="p">:</span>
+            <span class="n">cell_1</span> <span class="o">=</span> <span class="n">cell_1</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cell_2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">o_batch</span><span class="p">:</span>
+            <span class="n">cell_2</span> <span class="o">=</span> <span class="n">cell_2</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">cell_1</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cell_2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># -&gt; Two non-PBC objects</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">merge</span><span class="p">([</span><span class="n">an_1</span><span class="p">,</span> <span class="n">an_2</span><span class="p">]),</span> <span class="n">merge</span><span class="p">([</span><span class="n">pos_1</span><span class="p">,</span> <span class="n">pos_2</span><span class="p">]))</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">cell_1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+              <span class="n">cell_2</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>  <span class="c1"># -&gt; Two PBC objects</span>
+
+            <span class="n">pbc_1</span><span class="p">,</span> <span class="n">pbc_2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">periodicity</span>
+
+            <span class="n">cutoff</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span>
+                <span class="n">pbc_1</span><span class="o">.</span><span class="n">cutoff</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">pbc_2</span><span class="o">.</span><span class="n">cutoff</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                <span class="n">merge</span><span class="p">([</span><span class="n">an_1</span><span class="p">,</span> <span class="n">an_2</span><span class="p">]),</span>
+                <span class="n">merge</span><span class="p">([</span><span class="n">pos_1</span><span class="p">,</span> <span class="n">pos_2</span><span class="p">]),</span>
+                <span class="n">merge</span><span class="p">([</span><span class="n">cell_1</span><span class="p">,</span> <span class="n">cell_2</span><span class="p">]),</span>
+                <span class="n">cutoff</span><span class="o">=</span><span class="n">cutoff</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; One PBC object and one non-PBC object</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s1">&#39;Addition can not take place between a PBC object and &#39;</span>
+                <span class="s1">&#39;a non-PBC object.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if two `Geometry` objects are equivalent.&quot;&quot;&quot;</span>
+        <span class="c1"># Note that batches with identical systems but a different order will</span>
+        <span class="c1"># return False, not True.</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s1">&quot; ==  &quot;</span><span class="si">{</span><span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s1">&quot; &#39;</span>
+                            <span class="sa">f</span><span class="s1">&#39;evaluation not implemented.&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">shape_and_value</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="nb">all</span><span class="p">([</span>
+            <span class="n">shape_and_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">),</span>
+            <span class="n">shape_and_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">positions</span><span class="p">),</span>
+            <span class="n">shape_and_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">lattice</span><span class="p">)</span>
+        <span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a string representation of the Geometry object.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Return Geometry(CH4) for a single system &amp; Geometry(CH4, H2O, ...)</span>
+        <span class="c1"># for multiple systems. Only the first &amp; last two systems get shown if</span>
+        <span class="c1"># there are more than four systems (this prevents endless spam).</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_formula</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Helper function to get reduced formula.&quot;&quot;&quot;</span>
+            <span class="c1"># If n atoms &gt; 30; then use the reduced formula</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">30</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="n">z</span><span class="p">]</span><span class="si">}{</span><span class="n">n</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="mi">1</span> <span class="k">else</span>
+                                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="n">z</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">z</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span>
+                                <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+                                <span class="k">if</span> <span class="n">z</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># &lt;- Ignore zeros (padding)</span>
+
+            <span class="c1"># Otherwise list the elements in the order they were specified</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">z</span><span class="p">)]</span><span class="si">}{</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="mi">1</span> <span class="k">else</span>
+                     <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="n">z</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">z</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span>
+                     <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">unique_consecutive</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">,</span>
+                                                   <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+                     <span class="k">if</span> <span class="n">z</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># If a single system</span>
+            <span class="n">formula</span> <span class="o">=</span> <span class="n">get_formula</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># If multiple systems</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>  <span class="c1"># If n&lt;=4 systems; show all</span>
+                <span class="n">formulas</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_formula</span><span class="p">(</span><span class="n">an</span><span class="p">)</span> <span class="k">for</span> <span class="n">an</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">]</span>
+                <span class="n">formula</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">formulas</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># If n&gt;4; show only the first and last two systems</span>
+                <span class="n">formulas</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_formula</span><span class="p">(</span><span class="n">an</span><span class="p">)</span> <span class="k">for</span> <span class="n">an</span> <span class="ow">in</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]]</span>
+                <span class="n">formula</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1">, ..., </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">formulas</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Wrap the formula(s) in the class name and return</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">(</span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s1">)&#39;</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Add PBC information</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbc</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># If same periodic direction</span>
+                <span class="n">formula_pbc</span> <span class="o">=</span> <span class="s1">&#39;pbc=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pbc</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># If multiple directions</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pbc</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">4</span><span class="p">:</span>  <span class="c1"># Show all</span>
+                    <span class="n">formula_pbc</span> <span class="o">=</span> <span class="s1">&#39;pbc=&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pbc</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># Show only the first and last two systems</span>
+                    <span class="n">formulas_pbc</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">pd</span><span class="p">)</span> <span class="k">for</span> <span class="n">pd</span> <span class="ow">in</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">pbc</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span>
+                    <span class="n">formula_pbc</span> <span class="o">=</span> <span class="s1">&#39;pbc=</span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1">, ..., </span><span class="si">{}</span><span class="s1">, </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="o">*</span><span class="n">formulas_pbc</span><span class="p">)</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">(</span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">formula_pbc</span><span class="si">}</span><span class="s1">)&#39;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a printable representation of the System.&quot;&quot;&quot;</span>
+        <span class="c1"># Just redirect to the `__repr__` method</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Geometry.clone">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry.clone">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a copy of the `Geometry` instance.</span>
+<span class="sd">        This method creates and returns a new copy of the `Geometry` instance.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            geometry: A copy of the `Geometry` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pbc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+                <span class="n">lattice_vector</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span>
+                <span class="n">cutoff</span><span class="o">=</span><span class="n">pbc</span><span class="o">.</span><span class="n">cutoff</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="Geometry.detach">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry.detach">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Geometry&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a copy of the `Geometry` instance.</span>
+<span class="sd">        This method creates and returns a new copy of the `Geometry` instance.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            geometry: A copy of the `Geometry` instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pbc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+                <span class="n">lattice_vector</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
+                <span class="n">cutoff</span><span class="o">=</span><span class="n">pbc</span><span class="o">.</span><span class="n">cutoff</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span></div>
+</div>
+
+
+
+<span class="c1">####################</span>
+<span class="c1"># Helper Functions #</span>
+<span class="c1">####################</span>
+<div class="viewcode-block" id="batch_chemical_symbols">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.batch_chemical_symbols.html#tbmalt.structures.geometry.batch_chemical_symbols">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">batch_chemical_symbols</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]</span>
+                           <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts atomic numbers to their chemical symbols.</span>
+
+<span class="sd">    This function allows for en-mass conversion of atomic numbers to chemical</span>
+<span class="sd">    symbols.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        atomic_numbers: Atomic numbers of the elements.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        symbols: The corresponding chemical symbols.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        Padding vales, i.e. zeros, will be ignored.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a_nums</span> <span class="o">=</span> <span class="n">atomic_numbers</span>
+
+    <span class="c1"># Catch for list tensors (still faster doing it this way)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a_nums</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a_nums</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">a_nums</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="n">a_nums</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Convert from atomic numbers to chemical symbols via a itemgetter</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>  <span class="c1"># numpy must be used as torch cant handle strings</span>
+        <span class="n">itemgetter</span><span class="p">(</span><span class="o">*</span><span class="n">a_nums</span><span class="o">.</span><span class="n">flatten</span><span class="p">())(</span><span class="n">chemical_symbols</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">a_nums</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="c1"># Mask out element &quot;X&quot;, aka padding values</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">symbols</span> <span class="o">!=</span> <span class="s1">&#39;X&#39;</span>
+    <span class="k">if</span> <span class="n">symbols</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">symbols</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="n">m</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span> <span class="n">mask</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="unique_atom_pairs">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.unique_atom_pairs.html#tbmalt.structures.geometry.unique_atom_pairs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unique_atom_pairs</span><span class="p">(</span>
+        <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">return_ordered_pairs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns a tensor specifying all unique atom pairs.</span>
+
+<span class="sd">    This takes `Geometry` instance and identifies all atom pairs. This use</span>
+<span class="sd">    useful for identifying all possible two body interactions possible within</span>
+<span class="sd">    a given system.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">         geometry: `Geometry` instance representing the target system.</span>
+<span class="sd">         return_ordered_pairs: `bool` indicating whether to consider pairs as</span>
+<span class="sd">            ordered. If set to `False`, pairs like (1, 2) and (2, 1) are</span>
+<span class="sd">            treated as equivalent and only the former is returned. If set to</span>
+<span class="sd">            `True`, both (2, 1) and (1, 2) will be returned as they will be</span>
+<span class="sd">            considered to be distinct. [DEFAULT=False]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        unique_atom_pairs: A tensor specifying all unique atom pairs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">unique_atomic_numbers</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">unique_atomic_numbers</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">return_ordered_pairs</span><span class="p">:</span>
+        <span class="n">n_global</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_atomic_numbers</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+            <span class="n">unique_atomic_numbers</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">n_global</span><span class="p">),</span>
+            <span class="n">unique_atomic_numbers</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_global</span><span class="p">)])</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">unique_atomic_numbers</span><span class="p">,</span>
+                                  <span class="n">with_replacement</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="atomic_pair_distances">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.atomic_pair_distances.html#tbmalt.structures.geometry.atomic_pair_distances">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">atomic_pair_distances</span><span class="p">(</span>
+        <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">ignore_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">force_batch_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ignore_periodicity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Atomic pair distance generator.</span>
+
+<span class="sd">    Generates all unique element-pair types and, for each such pair, yields the</span>
+<span class="sd">    indices of the matching atom pairs along with the distance between each</span>
+<span class="sd">    pair. Useful for enumerating all pairwise interactions present in a system</span>
+<span class="sd">    or batch thereof, including possible consideration of periodic boundary</span>
+<span class="sd">    conditions.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: The system, or batch thereof, for which pair-wise</span>
+<span class="sd">            interaction indices are to be generated.</span>
+<span class="sd">        ignore_self: Boolean indicating whether self-interaction pairs should</span>
+<span class="sd">            be ignored. If enabled, any pair where both indices refer to the</span>
+<span class="sd">            same atom (i.e. an atom interacting with itself) is excluded.</span>
+<span class="sd">            This only pertains to self-interactions and not interactions</span>
+<span class="sd">            with copies in neighbouring images.[DEFAULT=False]</span>
+<span class="sd">        force_batch_index: If ``True``, forces the returned ``pair_indices``</span>
+<span class="sd">            to include a leading batch index dimension even for single systems.</span>
+<span class="sd">            By default, (``False``), a batch dimension is only included if</span>
+<span class="sd">            ``geometry`` actually represents a batch. [DEFAULT=False]</span>
+<span class="sd">        ignore_periodicity: If `True`, the system will be treated as</span>
+<span class="sd">            non-periodic. Interactions involving neighbouring cells will be</span>
+<span class="sd">            ignored and the cell index will be omitted from the returned pair</span>
+<span class="sd">            index tensor. [DEFAULT=False]</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        pair: A tensor of shape `(2,)` specifying the atomic numbers of the two</span>
+<span class="sd">            species that define the pair. For example, `(6, 8)` for a carbon -</span>
+<span class="sd">            oxygen pair.</span>
+<span class="sd">        pair_indices: A tensor of integer indices that identify each occurrence</span>
+<span class="sd">            of that ``pair`` in the system(s). The exact shape and meaning of</span>
+<span class="sd">            each row depends on three factors:</span>
+<span class="sd">            (1) whether the system is single or batched,</span>
+<span class="sd">            (2) whether the system is periodic, and</span>
+<span class="sd">            (3) whether ``force_batch_index`` is set:</span>
+
+<span class="sd">            - **Single, non-periodic**:</span>
+<span class="sd">              - `force_batch_index=False` ⇒ shape `(2, P)`</span>
+<span class="sd">              - `force_batch_index=True`  ⇒ shape `(3, P)`</span>
+<span class="sd">            - **Single, periodic**:</span>
+<span class="sd">              - `force_batch_index=False` ⇒ shape `(3, P)`</span>
+<span class="sd">              - `force_batch_index=True`  ⇒ shape `(4, P)`</span>
+<span class="sd">            - **Batched, non-periodic** ⇒ shape `(3, P)`</span>
+<span class="sd">            - **Batched, periodic** ⇒ shape `(4, P)`</span>
+
+<span class="sd">            In all cases, the final two rows (or columns, after transpose)</span>
+<span class="sd">            indicate the atomic indices of the interacting atoms. If there</span>
+<span class="sd">            is a batch dimension, it occupies the first row. If the system</span>
+<span class="sd">            is periodic, there is an additional row for the periodic cell</span>
+<span class="sd">            index (or indices, depending on implementation). The remaining</span>
+<span class="sd">            rows, if present, are the atomic indices within that batch and/or</span>
+<span class="sd">            cell context.</span>
+<span class="sd">        distances: A tensor of distances for each indexed pair, with the same</span>
+<span class="sd">            “pair-count” dimension `P`. For periodic systems this will be the</span>
+<span class="sd">            periodic distance; otherwise the direct distance.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">treat_as_periodic</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">is_periodic</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ignore_periodicity</span>
+
+    <span class="c1"># Compute distances between all atom pairs</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="o">.</span><span class="n">periodic_distances</span> \
+        <span class="k">if</span> <span class="n">treat_as_periodic</span> <span class="k">else</span> <span class="n">geometry</span><span class="o">.</span><span class="n">distances</span>
+
+    <span class="c1"># Enforcing the presence of a batch dimension if requested</span>
+    <span class="k">if</span> <span class="n">force_batch_index</span> <span class="ow">and</span> <span class="n">geometry</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">distances</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">distances</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span> <span class="k">if</span> <span class="n">treat_as_periodic</span> <span class="k">else</span> <span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
+
+    <span class="c1"># Wrap the `atomic_pair_indices` generator to extend its returns to</span>
+    <span class="c1"># include distances.</span>
+    <span class="k">for</span> <span class="n">pair</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">atomic_pair_indices</span><span class="p">(</span>
+            <span class="n">geometry</span><span class="p">,</span> <span class="n">ignore_self</span><span class="p">,</span> <span class="n">force_batch_index</span><span class="p">,</span> <span class="n">ignore_periodicity</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">pair</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">distances</span><span class="p">[</span><span class="o">*</span><span class="n">idx</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="atomic_pair_indices">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.geometry.atomic_pair_indices.html#tbmalt.structures.geometry.atomic_pair_indices">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">atomic_pair_indices</span><span class="p">(</span>
+        <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">ignore_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">force_batch_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">ignore_periodicity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Atomic pair index generator</span>
+
+<span class="sd">    Generates all unique element-pair types &amp; yields the corresponding indices</span>
+<span class="sd">    of atoms pairs that match those types.</span>
+
+<span class="sd">    Generates all unique element-pair types and, for each such pair, yields</span>
+<span class="sd">    the indices of the atoms (and possibly cells and/or batches) that</span>
+<span class="sd">    match that element-pair. The result is useful for enumerating all</span>
+<span class="sd">    pairwise interactions present in a single system or a batch of systems,</span>
+<span class="sd">    including possible consideration of periodic boundary conditions.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: The system, or batch thereof, for which pair-wise</span>
+<span class="sd">            interaction indices are to be generated.</span>
+<span class="sd">        ignore_self: Boolean indicating whether self-interaction pairs should</span>
+<span class="sd">            be ignored. If enabled, any pair where both indices refer to the</span>
+<span class="sd">            same atom (i.e. an atom interacting with itself) is excluded.</span>
+<span class="sd">            This only pertains to self-interactions and not interactions</span>
+<span class="sd">            with copies in neighbouring images.[DEFAULT=False]</span>
+<span class="sd">        force_batch_index: If `True`, forces the returned ``pair_indices``</span>
+<span class="sd">            to include a leading batch index dimension even for single systems.</span>
+<span class="sd">            By default (``False``), a batch dimension is only included if</span>
+<span class="sd">            ``geometry`` actually represents a batch. [DEFAULT=False]</span>
+<span class="sd">        ignore_periodicity: If `True`, the system will be treated as</span>
+<span class="sd">            non-periodic. Interactions involving neighbouring cells will be</span>
+<span class="sd">            ignored and the cell index will be omitted from the returned pair</span>
+<span class="sd">            index tensor. [DEFAULT=False]</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        pair: A tensor of shape `(2,)` specifying the atomic numbers of the two</span>
+<span class="sd">            species that define the pair. For example, `(6, 8)` for a carbon -</span>
+<span class="sd">            oxygen pair.</span>
+<span class="sd">        pair_indices: A tensor of integer indices that identify each occurrence</span>
+<span class="sd">            of that ``pair`` in the system(s). The exact shape and meaning of</span>
+<span class="sd">            each row depends on three factors:</span>
+<span class="sd">            (1) whether the system is single or batched,</span>
+<span class="sd">            (2) whether the system is periodic, and</span>
+<span class="sd">            (3) whether ``force_batch_index`` is set:</span>
+
+<span class="sd">            - **Single, non-periodic**:</span>
+<span class="sd">              - `force_batch_index=False` ⇒ shape `(2, P)`</span>
+<span class="sd">              - `force_batch_index=True`  ⇒ shape `(3, P)`</span>
+<span class="sd">            - **Single, periodic**:</span>
+<span class="sd">              - `force_batch_index=False` ⇒ shape `(3, P)`</span>
+<span class="sd">              - `force_batch_index=True`  ⇒ shape `(4, P)`</span>
+<span class="sd">            - **Batched, non-periodic** ⇒ shape `(3, P)`</span>
+<span class="sd">            - **Batched, periodic** ⇒ shape `(4, P)`</span>
+
+<span class="sd">            In all cases, the final two rows (or columns, after transpose)</span>
+<span class="sd">            indicate the atomic indices of the interacting atoms. If there</span>
+<span class="sd">            is a batch dimension, it occupies the first row. If the system</span>
+<span class="sd">            is periodic, there is an additional row for the periodic cell</span>
+<span class="sd">            index (or indices, depending on implementation). The remaining</span>
+<span class="sd">            rows, if present, are the atomic indices within that batch and/or</span>
+<span class="sd">            cell context.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">geometry</span><span class="o">.</span><span class="n">is_periodic</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ignore_periodicity</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_atomic_pair_indices_periodic</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">ignore_self</span><span class="p">,</span> <span class="n">force_batch_index</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_atomic_pair_indices</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">ignore_self</span><span class="p">,</span> <span class="n">force_batch_index</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_atomic_pair_indices</span><span class="p">(</span>
+        <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">ignore_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">force_batch_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Atomic pair index generator for clusters.</span>
+
+<span class="sd">    Generates all unique element-pair types &amp; yields the corresponding indices</span>
+<span class="sd">    of atoms pairs that match those types.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: The system, or batch thereof, for which pair-wise</span>
+<span class="sd">            interaction indices are to be generated.</span>
+<span class="sd">        ignore_self: Boolean indicating whether self-interaction pairs should</span>
+<span class="sd">            be ignored. If enabled, pairs involving an atom interacting with</span>
+<span class="sd">            itself will be filtered out. Caution is advised when using this</span>
+<span class="sd">            flag in conjunction with periodic systems. [DEFAULT=False]</span>
+<span class="sd">        force_batch_index: `bool` indicating whether to force the presence of</span>
+<span class="sd">            batch indices in the returned ``pair_indices`` tensor. By default,</span>
+<span class="sd">            batch indices are only present when the system in question is a</span>
+<span class="sd">            batch. However, it is sometimes useful to include a batch index</span>
+<span class="sd">            for single systems to aid in writing batch agnostic code.</span>
+<span class="sd">            [DEFAULT=False]</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        pair: Atomic-number pair tensor of shape (2, ) specifying which</span>
+<span class="sd">            species pair the indices correspond to.</span>
+<span class="sd">        pair_indices: Atomic index array identifying the atoms associated with</span>
+<span class="sd">            each interaction of the corresponding ``pair`` type. For a single</span>
+<span class="sd">            system this will be of shape 2xP, which, for each pair &quot;P&quot;,</span>
+<span class="sd">            provides the atomic indices of the two atoms. For batches, this</span>
+<span class="sd">            will be 3xP where the first dimension specifies which system in</span>
+<span class="sd">            the batch the atoms belong to.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Construct the atom resolved atomic number matrix</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">shape</span> <span class="o">+</span> <span class="n">geometry</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
+
+    <span class="k">if</span> <span class="n">force_batch_index</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="n">shape</span>
+
+    <span class="n">atomic_number_matrix</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span>
+        <span class="n">geometry</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
+        <span class="n">geometry</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">shape</span><span class="p">)),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Loop over the set of unique atomic number pairs</span>
+    <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">unique_atom_pairs</span><span class="p">(</span><span class="n">geometry</span><span class="p">):</span>
+
+        <span class="c1"># Get the atomic indices of all such atom pairs.</span>
+        <span class="n">pair_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">((</span><span class="n">atomic_number_matrix</span> <span class="o">==</span> <span class="n">pair</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># Skip the iteration if no such atom pairs exist.</span>
+        <span class="k">if</span> <span class="n">pair_indices</span><span class="o">.</span><span class="n">nelement</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># The means by which pair indices are generated results in homo-atomic</span>
+        <span class="c1"># interaction pairs indices being duplicated. Thus, a filtering step</span>
+        <span class="c1"># is required for homo-atomic pairs.</span>
+        <span class="k">if</span> <span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+
+            <span class="c1"># Also purge self-interactions if instructed to do so.</span>
+            <span class="k">if</span> <span class="n">ignore_self</span><span class="p">:</span>
+                <span class="n">pair_indices</span> <span class="o">=</span> <span class="n">pair_indices</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">pair_indices</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">lt</span><span class="p">(</span><span class="n">pair_indices</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))]</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pair_indices</span> <span class="o">=</span> <span class="n">pair_indices</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                    <span class="n">pair_indices</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">le</span><span class="p">(</span><span class="n">pair_indices</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))]</span>
+
+        <span class="c1"># Only yield if pairs remain after self-interaction purge</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pair_indices</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">pair</span><span class="p">,</span> <span class="n">pair_indices</span><span class="o">.</span><span class="n">T</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_atomic_pair_indices_periodic</span><span class="p">(</span>
+        <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">ignore_self</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">force_batch_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Atomic pair index generator for periodic systems.</span>
+
+<span class="sd">    Generates all unique element-pair types &amp; yields the corresponding indices</span>
+<span class="sd">    of atoms pairs that match those types.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: The system, or batch thereof, for which pair-wise</span>
+<span class="sd">            interaction indices are to be generated.</span>
+<span class="sd">        ignore_self: Boolean indicating whether self-interaction pairs should</span>
+<span class="sd">            be ignored. If enabled, pairs involving an atom interacting with</span>
+<span class="sd">            itself will be filtered out. Caution is advised when using this</span>
+<span class="sd">            flag in conjunction with periodic systems. [DEFAULT=False]</span>
+<span class="sd">        force_batch_index: `bool` indicating whether to force the presence of</span>
+<span class="sd">            batch indices in the returned ``pair_indices`` tensor. By default,</span>
+<span class="sd">            batch indices are only present when the system in question is a</span>
+<span class="sd">            batch. However, it is sometimes useful to include a batch index</span>
+<span class="sd">            for single systems to aid in writing batch agnostic code.</span>
+<span class="sd">            [DEFAULT=False]</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        pair: Atomic-number pair tensor of shape (2, ) specifying which</span>
+<span class="sd">            species pair the indices correspond to.</span>
+<span class="sd">        pair_indices: Atomic index array identifying the atoms associated with</span>
+<span class="sd">            each interaction of the corresponding ``pair`` type. For a single</span>
+<span class="sd">            system this will be of shape 3xP, which, for each pair &quot;P&quot;,</span>
+<span class="sd">            provides the cell index and the atomic indices of the two atoms.</span>
+<span class="sd">            For batches, this will be 4xP where the first dimension specifies</span>
+<span class="sd">            which system in the batch the atoms belong to.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Identify index of the origin cell(s). This is used later on to mask out</span>
+    <span class="c1"># on-site interactions if needed</span>
+    <span class="n">origin_cell_idx</span> <span class="o">=</span> <span class="p">(</span><span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="o">.</span><span class="n">n_cells</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="c1"># Non-periodic interaction pairs are duplicated so that there is one for</span>
+    <span class="c1"># every possible periodic image. Although the number of images differs from</span>
+    <span class="c1"># system to system, the largest of the batch is taken. This will create</span>
+    <span class="c1"># many ghost interactions involving non-existent images for most systems</span>
+    <span class="c1"># within a batch. However, these invalid interactions get filtered out by</span>
+    <span class="c1"># the neighbour list used just before the yield.</span>
+    <span class="n">n_images</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="o">.</span><span class="n">n_cells</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="c1"># Image index array used when duplicating interactions and adding in image</span>
+    <span class="c1"># index.</span>
+    <span class="n">cell_idxs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_images</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">geometry</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># Is this a batched system, and should it be treated as a batch?</span>
+    <span class="n">is_batch</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+    <span class="n">should_treat_as_batch</span> <span class="o">=</span> <span class="n">is_batch</span> <span class="ow">or</span> <span class="n">force_batch_index</span>
+
+    <span class="c1"># Neighbour list to identify which interactions are in range.</span>
+    <span class="n">neighbours</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">periodicity</span><span class="o">.</span><span class="n">neighbour</span>
+
+    <span class="c1"># Expand the neighbours tensor if forcing the present of batch indices</span>
+    <span class="k">if</span> <span class="n">force_batch_index</span><span class="p">:</span>
+        <span class="n">neighbours</span> <span class="o">=</span> <span class="n">neighbours</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">neighbours</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:])</span>
+
+    <span class="c1"># Loop over the non-periodic indices and expand them to account for</span>
+    <span class="c1"># periodicity. The `ignore_self` flag is not passed on otherwise indices</span>
+    <span class="c1"># for atoms interacting with copies of themselves would be missing.</span>
+    <span class="k">for</span> <span class="n">pair</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">_atomic_pair_indices</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">force_batch_index</span><span class="p">):</span>
+        <span class="c1"># Expand the pair indices to include interactions with all periodic cells</span>
+        <span class="n">idx_p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span>
+            <span class="n">cell_idxs</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">idx</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">n_images</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)])</span>
+
+        <span class="c1"># Adjust the indices so the batch index comes at the start as expected</span>
+        <span class="k">if</span> <span class="n">should_treat_as_batch</span><span class="p">:</span>
+            <span class="n">idx_p</span> <span class="o">=</span> <span class="n">idx_p</span><span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+
+        <span class="c1"># Remove on-site interactions if requested</span>
+        <span class="k">if</span> <span class="n">ignore_self</span> <span class="ow">and</span> <span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="c1"># Expand origin cells indices for batches of systems</span>
+            <span class="n">origin</span> <span class="o">=</span> <span class="n">origin_cell_idx</span><span class="p">[</span><span class="n">idx_p</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="k">if</span> <span class="n">is_batch</span> <span class="k">else</span> <span class="n">origin_cell_idx</span>
+
+            <span class="c1"># Filter out interactions within the origin cell between an atom</span>
+            <span class="c1"># and itself.</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">idx_p</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="n">origin</span><span class="p">)</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">idx_p</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="n">idx_p</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]))</span>
+            <span class="n">idx_p</span> <span class="o">=</span> <span class="n">idx_p</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)]</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># Filter the interaction list so that only those in range remain</span>
+        <span class="n">idx_p</span> <span class="o">=</span> <span class="n">idx_p</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">neighbours</span><span class="p">[</span><span class="o">*</span><span class="n">idx_p</span><span class="p">]]</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># Only yield if pairs remain after self-interaction purge</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx_p</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">pair</span><span class="p">,</span> <span class="n">idx_p</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

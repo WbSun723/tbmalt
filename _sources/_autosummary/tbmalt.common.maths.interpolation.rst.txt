@@ -1,0 +1,44 @@
+interpolation
+=============
+
+.. automodule:: tbmalt.common.maths.interpolation
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      poly_interp
+      poly_to_zero
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      BicubInterpSpl
+      CubicSpline
+      PolyInterpU
+   
+   
+
+   
+   
+   
+
+
+

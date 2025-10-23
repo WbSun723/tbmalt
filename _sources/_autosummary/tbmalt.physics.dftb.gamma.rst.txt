@@ -1,0 +1,35 @@
+gamma
+=====
+
+.. automodule:: tbmalt.physics.dftb.gamma
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      build_gamma_matrix
+      gamma_exponential
+      gamma_exponential_pbc
+      gamma_gaussian
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

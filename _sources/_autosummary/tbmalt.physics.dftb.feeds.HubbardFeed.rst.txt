@@ -1,0 +1,28 @@
+HubbardFeed
+===========
+
+.. currentmodule:: tbmalt.physics.dftb.feeds
+
+.. autoclass:: HubbardFeed
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, dtype
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~HubbardFeed.device
+   
+      ~HubbardFeed.dtype
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

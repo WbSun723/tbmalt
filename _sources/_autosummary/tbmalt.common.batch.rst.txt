@@ -1,0 +1,40 @@
+batch
+=====
+
+.. automodule:: tbmalt.common.batch
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      bT
+      bT2
+      deflate
+      merge
+      pack
+      pargsort
+      prepeat_interleave
+      psort
+      unpack
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

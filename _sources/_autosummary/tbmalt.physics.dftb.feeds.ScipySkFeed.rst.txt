@@ -1,0 +1,28 @@
+ScipySkFeed
+===========
+
+.. currentmodule:: tbmalt.physics.dftb.feeds
+
+.. autoclass:: ScipySkFeed
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, dtype
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~ScipySkFeed.device
+   
+      ~ScipySkFeed.dtype
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

@@ -1,0 +1,33 @@
+dataset
+=======
+
+.. automodule:: tbmalt.io.dataset
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      DataSet
+      DataSetIM
+   
+   
+
+   
+   
+   
+
+
+

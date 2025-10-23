@@ -1,0 +1,777 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5. Development Guide &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=7026087e"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="6. Release notes" href="release_notes.html" />
+    <link rel="prev" title="4. Development" href="development.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">4. Development</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">5. Development Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#docstrings">5.1. Docstrings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sections">5.1.1. Sections</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#one-line-summary">5.1.1.1. One Line Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#detailed-summary">5.1.1.2. Detailed Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#arguments">5.1.1.3. Arguments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#returns-and-yields">5.1.1.4. Returns and Yields</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#attributes">5.1.1.5. Attributes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#type-declarations">5.1.1.6. Type Declarations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#notes">5.1.1.7. Notes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#raises">5.1.1.8. Raises</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#warnings">5.1.1.9. Warnings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples">5.1.1.10. Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#references">5.1.1.11. References</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#putting-it-all-together">5.1.2. Putting it all Together</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-docstrings">5.1.3. Module Docstrings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#miscellaneous">5.1.4. Miscellaneous</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#code">5.2. Code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#comments">5.2.1. Comments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#paradigmatic-structure">5.2.2. Paradigmatic Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-structure">5.2.3. Module Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#general-coding-practices">5.2.4. General Coding Practices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#testing">5.2.5. Testing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#other-considerations">5.3. Other Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#id8">5.4. References</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#footnotes">5.4.1. Footnotes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#citations">5.4.2. Citations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5. </span>Development Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/developer_guide.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="development-guide">
+<h1><span class="section-number">5. </span>Development Guide<a class="headerlink" href="#development-guide" title="Link to this heading"></a></h1>
+<p>To ensure the continued health of the TBMaLT package, all python based contributions must
+follow the project’s style guide. This guide not only ensures that the code is written in
+a consistent and above all readable manner, but that the resulting package remains stable,
+trivially extensible, and bloat-free. This document is not intended to be a comprehensive
+guide but rather an extension of the Google python style guide. Developers should therefore
+consult the Google python style guide’s documentation for technical details and for information
+on the topics not covered here. <a class="footnote-reference brackets" href="#id9" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>*<span class="fn-bracket">]</span></a> This guide is divided into two main sections covering
+docstring-formatting and coding-style.</p>
+<section id="docstrings">
+<h2><span class="section-number">5.1. </span>Docstrings<a class="headerlink" href="#docstrings" title="Link to this heading"></a></h2>
+<p>Documentation is integral to helping users understand not only what a function does, but
+how it is to be used. Therefore, descriptive and well written docstrings must be provided,
+in English, for all functions, classes, generates, etc., including significant or non-trivial
+private methods. All text must be wrapped at the 79’th column; i.e. docstring lines may not
+exceed a width of 80 characters, including indentation and newline characters, except when
+giving URLs, path-names, etc. <a class="footnote-reference brackets" href="#id10" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>†<span class="fn-bracket">]</span></a> In general docstrings are composed of a one-line-summary
+followed by a longer, more detailed summary and then by one or more additional sections.</p>
+<section id="sections">
+<h3><span class="section-number">5.1.1. </span>Sections<a class="headerlink" href="#sections" title="Link to this heading"></a></h3>
+<p>While there are many possible sections that can be included, those which are considered
+to be the most important are outlined below. In subsequent sections the term “<code class="code docutils literal notranslate"><span class="pre">function</span></code>”
+(fixed width font) is used to refer to an actual python function instance, whereas “function”
+(standard font) is used to mean <code class="code docutils literal notranslate"><span class="pre">functions</span></code>, <code class="code docutils literal notranslate"><span class="pre">classes</span></code>, <code class="code docutils literal notranslate"><span class="pre">generators</span></code>,
+etc. in general.</p>
+<section id="one-line-summary">
+<h4><span class="section-number">5.1.1.1. </span>One Line Summary<a class="headerlink" href="#one-line-summary" title="Link to this heading"></a></h4>
+<p>This is a short one-line description that allows users to quickly discern a function’s
+purpose. This should immediately follow the opening quotes, terminate with a period and be
+followed by a blank line, as demonstrated in line-2 &amp; 3 of the <a class="reference internal" href="#docstring-general"><span class="std std-ref">Full docstring example</span></a>
+code-block. One line summaries are mandatory for all functions without exception. While it
+is not always possible to convey the full intent of a function in a single line, an attempt
+should still be made to do so as this is used by sphinx when building the documentation.
+Note that these are not required for class property <code class="docutils literal notranslate"><span class="pre">getter</span></code> or <code class="docutils literal notranslate"><span class="pre">setter</span></code> functions.</p>
+</section>
+<section id="detailed-summary">
+<h4><span class="section-number">5.1.1.2. </span>Detailed Summary<a class="headerlink" href="#detailed-summary" title="Link to this heading"></a></h4>
+<p>Following the one line summary, a second more detailed description should be given. This
+description must be able to completely describe what a function does and how it is invoked.
+<a class="footnote-reference brackets" href="#id11" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>‡<span class="fn-bracket">]</span></a> Explanations of <em>how</em> a function works can be left to the <em>notes</em> section. Detailed
+summaries are generally considered mandatory, however special exceptions may be made, i.e.
+for <code class="code docutils literal notranslate"><span class="pre">getters</span></code>, <code class="code docutils literal notranslate"><span class="pre">setters</span></code> or trivial convenience functions. This section may
+contain images, tables, paragraphs, references, maths, examples and so on. A simple example
+of a <code class="code docutils literal notranslate"><span class="pre">detailed_summary</span></code> is provide in lines 4 to 5 of code-block: <a class="reference internal" href="#docstring-general"><span class="std std-ref">Full docstring example</span></a>.</p>
+</section>
+<section id="arguments">
+<h4><span class="section-number">5.1.1.3. </span>Arguments<a class="headerlink" href="#arguments" title="Link to this heading"></a></h4>
+<p>Functions accepting non-method arguments must contain an <em>arguments</em> section within its
+docstring. This section, signified by the “<code class="code docutils literal notranslate"><span class="pre">Arguments:</span></code>” header, lists each argument
+by name and provides an informative description. The <em>arguments’</em> section format is demonstrated
+in code-blocks <a class="reference internal" href="#docstring-args-1"><span class="std std-ref">Argument declaration</span></a> and <a class="reference internal" href="#docstring-general"><span class="std std-ref">Full docstring example</span></a>. Names must be terminated
+by a colon and any hanging lines (multi-line descriptions) must be indented.</p>
+<div class="literal-block-wrapper docutils container" id="docstring-args-1">
+<div class="code-block-caption"><span class="caption-text">Argument declaration</span><a class="headerlink" href="#docstring-args-1" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+<span class="linenos"> 2</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;...</span>
+<span class="linenos"> 3</span><span class="sd">    Arguments:</span>
+<span class="linenos"> 4</span><span class="sd">        arg_1: A short one-line description of the ``arg_1`` argument.</span>
+<span class="linenos"> 5</span><span class="sd">        arg_2: A slightly longer, multi-line description can also be given.</span>
+<span class="linenos"> 6</span><span class="sd">            However, the following lines must be intended like so. There</span>
+<span class="linenos"> 7</span><span class="sd">            should be no space between subsequent argument descriptions.</span>
+<span class="linenos"> 8</span><span class="sd">    ...</span>
+<span class="linenos"> 9</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">10</span>    <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+<p>Method arguments such as <code class="code docutils literal notranslate"><span class="pre">self</span></code> and <code class="code docutils literal notranslate"><span class="pre">cls</span></code> should not be documented. Argument
+type information can be omitted from the docstring as PEP 484 style type declarations are
+used. See section <a class="reference internal" href="#type-declarations">Type Declarations</a> for more information. Any arguments with default
+values, must be explicitly state their defaults by appending “<code class="code docutils literal notranslate"><span class="pre">[DEFAULT=&lt;val&gt;]</span></code>”
+to the arguments description, where <code class="code docutils literal notranslate"><span class="pre">&lt;val&gt;</span></code> is replaced by the argument’s default
+value; Note, this should <em>not</em> be broken over multiple lines and is not nessiary if the
+default is <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p>Additionally, the <em>arguments</em> section should include any “<code class="code docutils literal notranslate"><span class="pre">*args</span></code>” arguments that
+it uses or consumes. Typing for “<code class="code docutils literal notranslate"><span class="pre">*args</span></code>” (and <code class="code docutils literal notranslate"><span class="pre">**kwargs</span></code>) should be done
+with standard google docstring typing convention, i.e. “<cite>&lt;name&gt; (&lt;type&gt;): &lt;description&gt;</cite>”.
+“<code class="code docutils literal notranslate"><span class="pre">**kwargs</span></code>”, on the other hand, are documented in their own section.</p>
+<section id="keyword-arguments">
+<h5><span class="section-number">5.1.1.3.1. </span>Keyword Arguments<a class="headerlink" href="#keyword-arguments" title="Link to this heading"></a></h5>
+<p>Any <code class="code docutils literal notranslate"><span class="pre">**kwargs</span></code> arguments that are used or consumed by a function should be documented
+identically to the how <code class="docutils literal notranslate"><span class="pre">*args</span></code> are in the standard arguments section, albeit in a separate
+“<em>keyword arguments</em>” section. If <code class="code docutils literal notranslate"><span class="pre">*args</span></code> and <code class="code docutils literal notranslate"><span class="pre">**kwargs</span></code> are directly passed on
+to another function or a parent class then they need not be documented. <a class="footnote-reference brackets" href="#id12" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>§<span class="fn-bracket">]</span></a></p>
+</section>
+</section>
+<section id="returns-and-yields">
+<h4><span class="section-number">5.1.1.4. </span>Returns and Yields<a class="headerlink" href="#returns-and-yields" title="Link to this heading"></a></h4>
+<p>Describes the entities returned/yielded by a function. Unlike numpy style docstring returns,
+Google does not natively support multiple returns, at least not elegantly. As such, a custom
+parser has been implemented. This allows the <em>returns/yields</em> section to be documented in an
+identical manner to the <em>arguments</em> section. Do <strong>not</strong> use standard google style returns as
+these will not be parsed correctly. Types should be omitted here as they are defined via the
+PEP 484 convention.</p>
+</section>
+<section id="attributes">
+<h4><span class="section-number">5.1.1.5. </span>Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h4>
+<p>The public attributes of a class should be documented in an <em>attributes</em> section.
+This section follows the <em>arguments</em> section(s) and should be documented in an
+identical manner. Unfortunately this is commonly a large source of duplication as
+many attributes <em>are</em> the arguments that were passed in to the <code class="docutils literal notranslate"><span class="pre">__init__</span></code> function.
+Thus, the decision has been made to only document attributes that do not directly map
+onto one of the arguments, i.e. do not document attributes whose names and descriptions
+are identical to one of the arguments’. This section is only required when documenting
+classes with public attributes. While private attributes do not require a doc-string
+entry they should should be documented with a comment. It should be noted that sphinx
+cannot currently parse PEP 484 style type declarations for attributes at the moment.
+Thus, such data is absent from the documentation.</p>
+<section id="properties">
+<h5><span class="section-number">5.1.1.5.1. </span>Properties<a class="headerlink" href="#properties" title="Link to this heading"></a></h5>
+<p>Properties should be documented in their <code class="docutils literal notranslate"><span class="pre">getter</span></code> function as shown in the
+<a class="reference internal" href="#docstring-type-2"><span class="std std-ref">Class type declarations.</span></a> code-block.</p>
+</section>
+</section>
+<section id="type-declarations">
+<h4><span class="section-number">5.1.1.6. </span>Type Declarations<a class="headerlink" href="#type-declarations" title="Link to this heading"></a></h4>
+<p>Type declarations following the PEP484 must be given for all non-method arguments and returns.
+<a class="reference internal" href="#pep484" id="id5"><span>[PEP484]</span></a> Type declarations should make use of the <cite>typing</cite> module wherever possible but use
+aliases sparingly. <a class="reference internal" href="#typing" id="id6"><span>[Typing]</span></a> If an argument is type-agnostic then its type should be “<code class="code docutils literal notranslate"><span class="pre">Any</span></code>”,
+if it is optional, i.e. “<code class="code docutils literal notranslate"><span class="pre">None</span></code>” is a valid type, then it should use the “<code class="code docutils literal notranslate"><span class="pre">Optional</span></code>”
+designation. Within the context of this project <code class="code docutils literal notranslate"><span class="pre">torch.Tensor</span></code> should always be aliased to
+<code class="code docutils literal notranslate"><span class="pre">Tensor</span></code>. A selection of PEP 484 type declaration examples can be found in the
+<a class="reference internal" href="#docstring-type-1"><span class="std std-ref">Function type declarations.</span></a> code-block below.</p>
+<div class="literal-block-wrapper docutils container" id="docstring-type-1">
+<div class="code-block-caption"><span class="caption-text">Function type declarations.</span><a class="headerlink" href="#docstring-type-1" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="linenos"> 2</span><span class="kn">from</span><span class="w"> </span><span class="nn">numbers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Real</span>
+<span class="linenos"> 3</span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Literal</span>
+<span class="linenos"> 4</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="k">def</span><span class="w"> </span><span class="nf">example</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">c</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Real</span><span class="p">],</span> <span class="n">d</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="linenos"> 8</span>            <span class="n">e</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;option_1&#39;</span><span class="p">,</span> <span class="s1">&#39;option_2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;option_1&#39;</span><span class="p">,</span>
+<span class="linenos"> 9</span>            <span class="n">g</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="linenos">10</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;...</span>
+<span class="linenos">11</span><span class="sd">    Arguments:</span>
+<span class="linenos">12</span><span class="sd">        a: an integer.</span>
+<span class="linenos">13</span><span class="sd">        b: An integer or a string.</span>
+<span class="linenos">14</span><span class="sd">        c: A list of anything numerical and real; integers, floats, etc.</span>
+<span class="linenos">15</span><span class="sd">        d: A dictionary keyed by strings and valued by any type.</span>
+<span class="linenos">16</span><span class="sd">        e: A torch tensor.</span>
+<span class="linenos">17</span><span class="sd">        f: Selection argument (with default) that can be one of the following:</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span><span class="sd">            - &quot;option_1&quot;: the first possible option</span>
+<span class="linenos">20</span><span class="sd">            - &quot;option_2&quot;: the section option.</span>
+<span class="linenos">21</span>
+<span class="linenos">22</span><span class="sd">            [DEFAULT=&#39;option_1&#39;]</span>
+<span class="linenos">23</span><span class="sd">        g: An optional integer. [DEFAULT=None]</span>
+<span class="linenos">24</span>
+<span class="linenos">25</span><span class="sd">    Returns:</span>
+<span class="linenos">26</span><span class="sd">        h: A tensor</span>
+<span class="linenos">27</span><span class="sd">    ...</span>
+<span class="linenos">28</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">29</span>    <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+<p>Type decorations are also expected for class attributes and properties and should be
+specified as demonstrated in code-block <a class="reference internal" href="#docstring-type-2"><span class="std std-ref">Class type declarations.</span></a>.</p>
+<div class="literal-block-wrapper docutils container" id="docstring-type-2">
+<div class="code-block-caption"><span class="caption-text">Class type declarations.</span><a class="headerlink" href="#docstring-type-2" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">class</span><span class="w"> </span><span class="nc">Example</span><span class="p">:</span>
+<span class="linenos"> 2</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;...</span>
+<span class="linenos"> 3</span><span class="sd">    Arguments:</span>
+<span class="linenos"> 4</span><span class="sd">        arg_1: The first argument here is an integer.</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="sd">    Attributes:</span>
+<span class="linenos"> 7</span><span class="sd">        attr_1: Attributes should be documented similar to arguments.</span>
+<span class="linenos"> 8</span><span class="sd">    ...</span>
+<span class="linenos"> 9</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arg_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="linenos">12</span>        <span class="bp">self</span><span class="o">.</span><span class="n">arg_1</span> <span class="o">=</span> <span class="n">arg_1</span>
+<span class="linenos">13</span>        <span class="bp">self</span><span class="o">.</span><span class="n">attr_1</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">arg_1</span><span class="p">,</span> <span class="n">arg_1</span> <span class="o">+</span> <span class="mi">2</span><span class="p">]</span>
+<span class="linenos">14</span>        <span class="o">...</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span>    <span class="nd">@property</span>
+<span class="linenos">17</span>    <span class="k">def</span><span class="w"> </span><span class="nf">prop_1</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="linenos">18</span><span class="w">        </span><span class="sd">&quot;&quot;&quot;properties should be documented like this.&quot;&quot;&quot;</span>
+<span class="linenos">19</span>        <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="notes">
+<h4><span class="section-number">5.1.1.7. </span>Notes<a class="headerlink" href="#notes" title="Link to this heading"></a></h4>
+<p>In general any additional comments about a function or its usage which do not fit into
+any other section can be placed into the <em>notes</em> section. If the function’s operation
+is complex enough to require a dedicated walk-through, then it should be given here. Any
+works on which a function is based, papers, books, etc. should also be mentioned and
+referenced in this section.</p>
+</section>
+<section id="raises">
+<h4><span class="section-number">5.1.1.8. </span>Raises<a class="headerlink" href="#raises" title="Link to this heading"></a></h4>
+<p>Any exceptions that are manually raised by a function should be documented in the
+<em>raises</em> section. This is particularly important when raising custom exceptions.
+This section should not only document what exceptions may be raised during operation, but
+also the circumstances under which they are raised. The <a class="reference internal" href="#docstring-raises"><span class="std std-ref">Raises section</span></a> code-block
+shows how such sections should be formatted.</p>
+<div class="literal-block-wrapper docutils container" id="docstring-raises">
+<div class="code-block-caption"><span class="caption-text">Raises section</span><a class="headerlink" href="#docstring-raises" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span><span class="w"> </span><span class="nf">example_function</span><span class="p">(</span><span class="n">val_1</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">val_2</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="linenos"> 2</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;...</span>
+<span class="linenos"> 3</span><span class="sd">    Raises:</span>
+<span class="linenos"> 4</span><span class="sd">        AttributeError: Each error that is manually raised should be listed in</span>
+<span class="linenos"> 5</span><span class="sd">            the ``Raises`` section, and a description given specifying under</span>
+<span class="linenos"> 6</span><span class="sd">            what circumstances it is raised.</span>
+<span class="linenos"> 7</span><span class="sd">        ValueError: If ``val_1`` and ``val_2`` are equal.</span>
+<span class="linenos"> 8</span><span class="sd">    ...</span>
+<span class="linenos"> 9</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">10</span>    <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="warnings">
+<h4><span class="section-number">5.1.1.9. </span>Warnings<a class="headerlink" href="#warnings" title="Link to this heading"></a></h4>
+<p>Any general warning about when a function may fail or where it might do something that the
+user may consider unexpected (<em>gotchas</em>) should be documented in the free-form <em>warnings</em>
+section.</p>
+</section>
+<section id="examples">
+<h4><span class="section-number">5.1.1.10. </span>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h4>
+<p>This section can be used to provide users with examples that illustrate a function’s usage.
+This should only be used to supplement a function’s operational description, not replace
+it. The inclusion of an <em>examples</em> section is highly encouraged, but is not mandatory.
+The example code given in this section must follow the <a class="reference internal" href="#doctest" id="id7"><span>[doctest]</span></a> format and should be fully
+self-contained. That is to say, the user should be able to copy, paste and run the code
+result without modification. However, the modules torch, numpy and matplotlib.pyplot should
+be considered implicit, i.e. they are always imported and thus do not need to be explicitly
+stated. Furthermore, any explicit imports should be assumed to be inherited by all subsequent
+examples. Multiple examples should be separated by blank lines, comments explaining the
+examples should also have blank lines above and below them. The <a class="reference internal" href="#docstring-examples"><span class="std std-ref">Examples section</span></a>
+code block demonstrates how the <em>examples</em> section is to be documented.</p>
+<div class="literal-block-wrapper docutils container" id="docstring-examples">
+<div class="code-block-caption"><span class="caption-text">Examples section</span><a class="headerlink" href="#docstring-examples" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span><span class="w"> </span><span class="nf">example_function</span><span class="p">(</span><span class="n">val_1</span><span class="p">:</span> <span class="n">Real</span><span class="p">,</span> <span class="n">val_2</span><span class="p">:</span> <span class="n">Real</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Real</span><span class="p">:</span>
+<span class="linenos"> 2</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;...</span>
+<span class="linenos"> 3</span><span class="sd">    Examples:</span>
+<span class="linenos"> 4</span><span class="sd">        &gt;&gt;&gt; from example_module import example_function</span>
+<span class="linenos"> 5</span><span class="sd">        &gt;&gt;&gt; a = 10</span>
+<span class="linenos"> 6</span><span class="sd">        &gt;&gt;&gt; b = 20</span>
+<span class="linenos"> 7</span><span class="sd">        &gt;&gt;&gt; c = example_function(a, b)</span>
+<span class="linenos"> 8</span><span class="sd">        &gt;&gt;&gt; print(c)</span>
+<span class="linenos"> 9</span><span class="sd">        200</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="sd">        Text can be placed above or below any example if needed but it is not</span>
+<span class="linenos">12</span><span class="sd">        mandatory. If a comment is made there must be a blank line between it</span>
+<span class="linenos">13</span><span class="sd">        and any example.</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span><span class="sd">        &gt;&gt;&gt; from example_module import example_function</span>
+<span class="linenos">16</span><span class="sd">        &gt;&gt;&gt; print(15.5 , 19.28)</span>
+<span class="linenos">17</span><span class="sd">        307.21</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span><span class="sd">    ...</span>
+<span class="linenos">20</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">21</span>    <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="references">
+<h4><span class="section-number">5.1.1.11. </span>References<a class="headerlink" href="#references" title="Link to this heading"></a></h4>
+<p>Any citations made in the notes section should be listed in the <em>references</em> section
+and must follow the Harvard style. It is expected that comments within a function’s code
+will also make use of these references. An example of how a reference is made is provided
+in code-block <a class="reference internal" href="#docstring-references"><span class="std std-ref">References section</span></a>.</p>
+<div class="literal-block-wrapper docutils container" id="docstring-references">
+<div class="code-block-caption"><span class="caption-text">References section</span><a class="headerlink" href="#docstring-references" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span><span class="w"> </span><span class="nf">example_function</span><span class="p">():</span>
+<span class="linenos"> 2</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;...</span>
+<span class="linenos"> 3</span><span class="sd">    Notes:</span>
+<span class="linenos"> 4</span><span class="sd">        A reference is cited like so [1]_ , It must then have a corresponding</span>
+<span class="linenos"> 5</span><span class="sd">        entry in the ``References`` section.</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="sd">    References:</span>
+<span class="linenos"> 8</span><span class="sd">        .. [1] Hourahine, B. et al. (2020) DFTB+, &quot;a software package for</span>
+<span class="linenos"> 9</span><span class="sd">           efficient approximate density functional theory based atomistic</span>
+<span class="linenos">10</span><span class="sd">           simulations&quot;, The Journal of chemical physics, 152(12), p. 124101.</span>
+<span class="linenos">11</span><span class="sd">    ...</span>
+<span class="linenos">12</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">13</span>    <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="putting-it-all-together">
+<h3><span class="section-number">5.1.2. </span>Putting it all Together<a class="headerlink" href="#putting-it-all-together" title="Link to this heading"></a></h3>
+<div class="literal-block-wrapper docutils container" id="docstring-general">
+<div class="code-block-caption"><span class="caption-text">Full docstring example</span><a class="headerlink" href="#docstring-general" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span><span class="w"> </span><span class="nf">example_function</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Real</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">Real</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Real</span><span class="p">:</span>
+<span class="linenos"> 2</span><span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;A short one line summary of the function should be provided here.</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="sd">    A longer multi-line function may follow if a more in-depth explanation of</span>
+<span class="linenos"> 5</span><span class="sd">    the function&#39;s purpose is necessary.</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="sd">    Arguments:</span>
+<span class="linenos"> 8</span><span class="sd">        a: Description of the first argument.</span>
+<span class="linenos"> 9</span><span class="sd">        b: Description of the second argument.</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="sd">    Returns:</span>
+<span class="linenos">12</span><span class="sd">        c: Description of the returned value.</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span><span class="sd">    Notes:</span>
+<span class="linenos">15</span><span class="sd">        This is a highly contrived example of a Python docstring and is overly</span>
+<span class="linenos">16</span><span class="sd">        verbose by intent. [1]_</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="sd">    Examples:</span>
+<span class="linenos">19</span><span class="sd">        An example of an example:</span>
+<span class="linenos">20</span>
+<span class="linenos">21</span><span class="sd">        &gt;&gt;&gt; from example import example_function()</span>
+<span class="linenos">22</span><span class="sd">        &gt;&gt;&gt; example_function(10, 20)</span>
+<span class="linenos">23</span><span class="sd">        200</span>
+<span class="linenos">24</span>
+<span class="linenos">25</span><span class="sd">    Raises:</span>
+<span class="linenos">26</span><span class="sd">        ValueError: If ``a`` is equal to 42.</span>
+<span class="linenos">27</span>
+<span class="linenos">28</span><span class="sd">    Warnings:</span>
+<span class="linenos">29</span><span class="sd">        This example has never been tested and there is a 1 in 10 chance of this</span>
+<span class="linenos">30</span><span class="sd">        code deciding to terminate itself.</span>
+<span class="linenos">31</span>
+<span class="linenos">32</span><span class="sd">    References:</span>
+<span class="linenos">33</span><span class="sd">        .. [1] Van Rossum, G. &amp; Drake Jr, F.L., 1995. &quot;Python reference manual,</span>
+<span class="linenos">34</span><span class="sd">           Centrum voor Wiskunde en Informatica Amsterdam&quot;.</span>
+<span class="linenos">35</span>
+<span class="linenos">36</span><span class="sd">    &quot;&quot;&quot;</span>
+<span class="linenos">37</span>    <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="mi">42</span><span class="p">:</span>  <span class="c1"># &lt;-- Raise an exception if a is equal to 42.</span>
+<span class="linenos">38</span>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Argument &quot;a&quot; cannot be equal to 42.&#39;</span><span class="p">)</span>
+<span class="linenos">39</span>
+<span class="linenos">40</span>    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">:</span>  <span class="c1"># &lt;-- Pointless exit roulette.</span>
+<span class="linenos">41</span>        <span class="n">exit</span><span class="p">()</span>
+<span class="linenos">42</span>
+<span class="linenos">43</span>    <span class="n">c</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span>  <span class="c1"># &lt;-- Calculate the product</span>
+<span class="linenos">44</span>
+<span class="linenos">45</span>    <span class="k">return</span> <span class="n">c</span>  <span class="c1"># &lt;-- Finally return the result</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="module-docstrings">
+<h3><span class="section-number">5.1.3. </span>Module Docstrings<a class="headerlink" href="#module-docstrings" title="Link to this heading"></a></h3>
+<p>Module level docstrings are required for each python module. These must proved a general
+overview of the module and a list of all module level <code class="code docutils literal notranslate"><span class="pre">variables</span></code> contained within.
+Like other docstrings, these should contain a one line summary followed by a more detailed
+description if necessary. Descriptions are intended to be read by the end-user, rather than
+developers, and so the writing style should reflect this. Note, only public module level
+<code class="code docutils literal notranslate"><span class="pre">variables</span></code> require descriptions.</p>
+<div class="literal-block-wrapper docutils container" id="module-docstring">
+<div class="code-block-caption"><span class="caption-text">Module docstring example</span><a class="headerlink" href="#module-docstring" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="linenos"> 2</span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;This is a simple example of a module level docstring.</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="sd">All modules should be provided with a short docstring detailing its function.</span>
+<span class="linenos"> 5</span><span class="sd">It does not need to list the classes and methods present only public module-</span>
+<span class="linenos"> 6</span><span class="sd">level variables, like so:</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="sd">Attributes:</span>
+<span class="linenos"> 9</span><span class="sd">    some_level_variable (int): Each module-level variable should be described.</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="sd">A further freeform (or structured) discussion can be given if deemed necessary.</span>
+<span class="linenos">12</span><span class="sd">Note that the docstring is immediately preceded by a short line specifying the</span>
+<span class="linenos">13</span><span class="sd">documents encoding ``# -*- coding: utf-8 -*-``.</span>
+<span class="linenos">14</span><span class="sd">&quot;&quot;&quot;</span>
+</pre></div>
+</div>
+</div>
+<p>Note that module docstrings are also required for any and all <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code> files.</p>
+</section>
+<section id="miscellaneous">
+<h3><span class="section-number">5.1.4. </span>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Link to this heading"></a></h3>
+<p>Docstrings may include UTF-8 characters and images where appropriate; with images saved to
+the <code class="code docutils literal notranslate"><span class="pre">doc/images</span></code> directory. Additional sections may be included at the developers
+desecration. However, while <code class="code docutils literal notranslate"><span class="pre">Todo</span></code> section usage is encouraged in developmental branches
+its use in the main branch should generally be avoided. If including maths in the docstring
+it is advisable to precede the triple-quote with an <code class="code docutils literal notranslate"><span class="pre">r</span></code> to indicate a raw string. This
+avoids having to escape every backslash. Docstrings should be parsed by autodoc and visually
+inspected prior to submitting a pull request. If an argument, attribute or property is referenced
+by name in the docstring it should be encased in a double prime, i.e. ``arg_1``. Where
+required, images may also be added to the docstrings. The associated image files should be
+placed in the <cite>tbmalt/docs/source/images</cite> directory and should use the svg format
+wherever possible. It is important to note that when referencing an image the path must be
+specified relative to the <cite>tbmalt/docs/source/_autosummary</cite> directory i.e.
+<cite>../images/My_Image.svg</cite>.</p>
+</section>
+</section>
+<section id="code">
+<h2><span class="section-number">5.2. </span>Code<a class="headerlink" href="#code" title="Link to this heading"></a></h2>
+<section id="comments">
+<h3><span class="section-number">5.2.1. </span>Comments<a class="headerlink" href="#comments" title="Link to this heading"></a></h3>
+<p>Although similar to docstrings, comments should be written to aid other developers rather
+than the end user. It is important that comments are detailed enough to allow a new developer
+to jump-in at any part of the code and quickly understand exactly what is going on. Comments
+must be provided for non-trivial lines of code, non-standard programming choices, etc.
+Comments become particularly important when performing tensor operations. Any sections of
+code that are not sufficiently commented may be rejected as they hinder maintainability.
+Comments are subject to the same column width restrictions as docstrings, i.e. 80 characters
+including the new-line and indentation characters, some exceptions are permitted if they
+improve readability. Comments can include UTF-8 characters and cite references in the
+docstring if needed. Code that follows a mathematical procedure from a paper or book
+should include the relevant equations in the comments to clarify what is being done in a
+step by step manner. Any deviations from the reference source should also be clearly stated
+and justified.</p>
+</section>
+<section id="paradigmatic-structure">
+<h3><span class="section-number">5.2.2. </span>Paradigmatic Structure<a class="headerlink" href="#paradigmatic-structure" title="Link to this heading"></a></h3>
+<p>Code should be written in a manner that ensures modularity, shape-agnosticism, and a
+plug-n-play nature. Within the context of this project “shape agnosticism” refers to the
+ability of a function to operate on inputs regardless of whether such inputs represent a
+single instance or a batch of instances. Shape agnosticism should be applied not only to
+the function as a whole but each line of code within it, i.e. a function is not considered
+shape agnostic if it contains a <code class="code docutils literal notranslate"><span class="pre">if</span> <span class="pre">batch:</span> <span class="pre">do</span> <span class="pre">A,</span> <span class="pre">else:</span> <span class="pre">do</span> <span class="pre">B</span></code> statement. Modularity
+refers to the ability to separate the code into independent components which contain only
+that which is necessary to their core functionality. Modularity ensures code extensibility,
+is conducive to a plug-n-play codebase and supports the ability to take a class or
+function and replace it with another, similar one, without requiring additional changes to
+the code to be made, i.e. swapping one mixer method for another or being able to drop in one
+representation method for another. The term <cite>plug-n-play</cite> refers to the ability to trivially
+combine multiple facits of the code to generate a new model.</p>
+</section>
+<section id="module-structure">
+<h3><span class="section-number">5.2.3. </span>Module Structure<a class="headerlink" href="#module-structure" title="Link to this heading"></a></h3>
+<p>Module directories do not require any specific considerations, other than the inclusion of
+an <code class="docutils literal notranslate"><span class="pre">__init__.py</span></code> file. Such a file is required for autodoc, autosummary, and pytest to
+index modules correctly. Functions, classes, variables, etc may also be included in this
+file where appropriate, see <code class="docutils literal notranslate"><span class="pre">tbmatl.common.maths.__init__.py</span></code> for an example.</p>
+<p>Other than there requirement of a encoding header and a module level docstring, no additional
+constraints are placed on a module file’s structure. This is generally left at the discretion
+of the developer. However, grouping like functions and classes together into sections, separated
+by comments, is encouraged.</p>
+</section>
+<section id="general-coding-practices">
+<h3><span class="section-number">5.2.4. </span>General Coding Practices<a class="headerlink" href="#general-coding-practices" title="Link to this heading"></a></h3>
+<p>In general, coding style should follow the guidelines laid out in the Google style guide.
+However, certain points which are considered important are outlined here.</p>
+<p>Variable names should be underscore separated (snake case) and as descriptive as possible,
+however, commonly accepted notation is preferred when applicable. For example; a pair of
+variables holding the Hamiltonian and Fock matrices could be named <code class="code docutils literal notranslate"><span class="pre">H</span></code> and <code class="code docutils literal notranslate"><span class="pre">F</span></code>
+respectively. When using commonly accepted notation, any violations of PEP8’s naming
+conventions will be waived, e.g. using a single upper case character as a variable name.</p>
+<p>Best efforts should be made to avoid the use of large dictionaries as they tend to result
+in a <em>black-box</em> like datastructure. Instead, consider using the datastructures made
+available by the <a class="reference external" href="https://docs.python.org/3/library/collections.html/">collections</a>
+and <a class="reference external" href="https://docs.python.org/3/library/dataclasses.html/">dataclasses</a> packages. The
+passing of large dictionaries to functions as arguments is discouraged, as functions should
+take only, and explicitly, the information required to fulfill their task. However, if such
+a datastructure is used then the number of locations at which it is updated should be limited;
+otherwise debugging and application becomes unnecessarily challenging, rapidly leading to an
+unmanageable code-base.</p>
+<p>The use of abstract base classes is encouraged wherever multiple similarly functioning
+classes exist. While this does not guarantee a reduction in the number of lines of source
+code, it dose improve consistency and modularity.</p>
+<p>When raising exceptions, built-in exception types should be use wherever possible. However,
+custom exceptions are permitted where appropriate. Custom exceptions must inherit from the
+base <code class="docutils literal notranslate"><span class="pre">TbmaltError</span></code> exception or its derivatives and should generally be defined in the
+<code class="docutils literal notranslate"><span class="pre">common/exceptions.py</span></code> module. Note that, as per Google style, catch-all excepts are not
+permitted.</p>
+<p>Commonly available python packages should be used where available and when appropriate. This
+will be enforced to prevent unnecessary code-bloat and improve maintainability.</p>
+<p>All internal code must be written in a manner consistent with the use of atomic units.</p>
+<p>Print operations should be done via the <code class="docutils literal notranslate"><span class="pre">logging</span></code> module, should be well formatted and
+should <strong>not</strong> print to the terminal by default. Such, logging operations should be limited
+to <code class="docutils literal notranslate"><span class="pre">torch.nn.Module</span></code> instances wherever possible.</p>
+</section>
+<section id="testing">
+<h3><span class="section-number">5.2.5. </span>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h3>
+<p>Every python module in the TBMaLT package, with few exceptions, should have a corresponding
+unit-test file associated with it, named “<code class="code docutils literal notranslate"><span class="pre">test_&lt;module_name&gt;.py</span></code>”. These files, located in the
+<code class="code docutils literal notranslate"><span class="pre">tests/unittests</span></code> directory, must be able to test each component of their associated
+modules using the <code class="code docutils literal notranslate"><span class="pre">pytest</span></code> package. Such tests should not require any external
+software or data to be installed or downloaded in order to run. Wherever possible, best
+efforts should be made to isolate the component being tested, as this aids the ability to
+track down the source of an error. Unit-tests should verify that functions perform as
+intended, produce results within acceptable tolerances, are stable during back-propagation,
+raise the correct exceptions in response to erroneous inputs, are GPU operable, batch
+operable, etc. On average, three tests are performed per-function:</p>
+<dl class="simple">
+<dt><span class="guilabel">single</span></dt><dd><p>Tests the ability of a function to operate on a single input and return a valid result.
+Furthermore, any general functionality tests, such as ensuring the correct errors are
+raised, should also be placed within this test-function.</p>
+</dd>
+<dt><span class="guilabel">batch</span></dt><dd><p>Ensures a valid result is still returned when operating on a batch of inputs.</p>
+</dd>
+<dt><span class="guilabel">grad</span></dt><dd><p>Uses the <code class="docutils literal notranslate"><span class="pre">torch.autograd.gradcheck</span></code> function to test the continuity and stability
+of a backwards pass through the function. This should test the gradient through both
+single point and batch-wise evaluations. Note that <code class="docutils literal notranslate"><span class="pre">raise_exception=False</span></code> must be set
+for it to be compatible with <code class="docutils literal notranslate"><span class="pre">pytest</span></code>. Furthermore, the dtype of the tensor must be
+a double precision float otherwise it will always fail.</p>
+</dd>
+</dl>
+<p>These tests should be conducted separately and in the order shown above. They should be named
+descriptively and follow the pattern: <code class="docutils literal notranslate"><span class="pre">test_&lt;f-name&gt;_&lt;info&gt;_&lt;type&gt;</span></code> where “<code class="docutils literal notranslate"><span class="pre">f-name</span></code>”
+is the name of the function being tested, “<code class="docutils literal notranslate"><span class="pre">type</span></code>” is a suffix that is <code class="docutils literal notranslate"><span class="pre">single</span></code>, <code class="docutils literal notranslate"><span class="pre">batch</span></code>
+or <code class="docutils literal notranslate"><span class="pre">grad</span></code> for single, batch and gradient tests respectively. If additional information is
+required it may be included in the optional <code class="docutils literal notranslate"><span class="pre">info</span></code> infix. All functions must take a pytest
+fixture argument named <code class="docutils literal notranslate"><span class="pre">device</span></code>, this is a <code class="docutils literal notranslate"><span class="pre">torch.device</span></code> object on which all torch objects
+must be created. To ensure GPU operability each test should check that torch objects returned
+from the tested function remain on the device specified by <code class="docutils literal notranslate"><span class="pre">device</span></code>. By default, tests will
+be run on the CPU, however passing the <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code> argument will run tests on the GPU.
+To ensure consistency all functions should be decorated with the <code class="docutils literal notranslate"><span class="pre">&#64;test_utils.fix_seed</span></code>
+decorator. This sets the numpy and pytorch random number generator seeds to 0 prior to
+running the function. All <code class="docutils literal notranslate"><span class="pre">assert</span></code> statements should also have a short message associated
+with them indicating what test is being performed. It is acknowledged that more/less complex
+functions may require a greater/lesser number of tests to be performed.</p>
+<p>As gradient tests tend to have long run times they should be marked with a <code class="docutils literal notranslate"><span class="pre">&#64;pytest.mark.grad</span></code>
+decorator flag, allowing them to be selectively skipped. Finally, test modules should import
+only the functions they need, this helps to decrease test interdependency. Some test examples
+are shown below in code-block <a class="reference internal" href="#unit-tests"><span class="std std-ref">Unit test examples</span></a>. Any operation involving a GPU-tensor and
+a non-GPU entity, such as a numpy array, will result in <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>. Thus, such tensors
+often need to be moved to the CPU, via the <code class="docutils literal notranslate"><span class="pre">.cpu()</span></code> attribute, during the final stages of
+testing. Furthermore, the <code class="docutils literal notranslate"><span class="pre">torch.Tensor</span></code> class has been overloaded with a new <code class="docutils literal notranslate"><span class="pre">.sft()</span></code>
+attribute which aliases the <code class="docutils literal notranslate"><span class="pre">.cpu().numpy()</span></code> command which is frequently used during testing.</p>
+<p>Autograd anomaly detection has been disabled by default for the TBMaLT unit-tests, i.e.
+<code class="docutils literal notranslate"><span class="pre">torch.autograd.detect_anomaly</span></code> is set to False. This is due to the <strong>significant</strong> increase
+in time it creates in running <code class="docutils literal notranslate"><span class="pre">torch.autograd.gradcheck</span></code>. If more detailed gradient tests
+tests are required during testing then anomaly detection can be enabled by setting the
+<code class="docutils literal notranslate"><span class="pre">--detect-anomaly</span></code> flag; e.g <code class="docutils literal notranslate"><span class="pre">pytest</span> <span class="pre">--detect-anomaly</span></code>. Be warned, gradient tests will
+take a very long time to run with autograd anomaly detection enabled!</p>
+<div class="literal-block-wrapper docutils container" id="unit-tests">
+<div class="code-block-caption"><span class="caption-text">Unit test examples</span><a class="headerlink" href="#unit-tests" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="nd">@fix_seed</span>
+<span class="linenos"> 2</span><span class="k">def</span><span class="w"> </span><span class="nf">test_example_single</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+<span class="linenos"> 3</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Single evaluation test of example.&quot;&quot;&quot;</span>
+<span class="linenos"> 4</span>    <span class="c1"># Generate test data</span>
+<span class="linenos"> 5</span>    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="linenos"> 6</span>    <span class="c1"># Call example function to get result</span>
+<span class="linenos"> 7</span>    <span class="n">value</span> <span class="o">=</span> <span class="n">example</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+<span class="linenos"> 8</span>    <span class="c1"># Get a reference value to compare to</span>
+<span class="linenos"> 9</span>    <span class="n">reference</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">example</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sft</span><span class="p">(),</span> <span class="n">b</span><span class="o">.</span><span class="n">sft</span><span class="p">())</span>
+<span class="linenos">10</span>    <span class="c1"># Calculate the maximum absolute error.</span>
+<span class="linenos">11</span>    <span class="n">mae</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span> <span class="o">-</span> <span class="n">reference</span><span class="p">))</span>
+<span class="linenos">12</span>    <span class="c1"># Ensure the result is on the same device as the input</span>
+<span class="linenos">13</span>    <span class="n">same_device</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">device</span>
+<span class="linenos">14</span>    <span class="c1"># Assert results are within tolerance</span>
+<span class="linenos">15</span>    <span class="k">assert</span> <span class="n">mae</span> <span class="o">&lt;</span> <span class="mf">1E-12</span><span class="p">,</span> <span class="s1">&#39;Example single tolerance test&#39;</span>
+<span class="linenos">16</span>    <span class="c1"># Assert result persists on the same device</span>
+<span class="linenos">17</span>    <span class="k">assert</span> <span class="n">same_device</span><span class="p">,</span> <span class="s1">&#39;Device persistence check&#39;</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span>
+<span class="linenos">20</span><span class="nd">@fix_seed</span>
+<span class="linenos">21</span><span class="k">def</span><span class="w"> </span><span class="nf">test_example_batch</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+<span class="linenos">22</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Batch evaluation test of example.&quot;&quot;&quot;</span>
+<span class="linenos">23</span>    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="linenos">24</span>    <span class="n">value</span> <span class="o">=</span> <span class="n">example</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+<span class="linenos">25</span>    <span class="n">reference</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">example</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">sft</span><span class="p">(),</span> <span class="n">b</span><span class="o">.</span><span class="n">sft</span><span class="p">())</span>
+<span class="linenos">26</span>    <span class="n">mae</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span> <span class="o">-</span> <span class="n">reference</span><span class="p">))</span>
+<span class="linenos">27</span>    <span class="n">same_device</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">device</span>
+<span class="linenos">28</span>    <span class="k">assert</span> <span class="n">mae</span> <span class="o">&lt;</span> <span class="mf">1E-12</span><span class="p">,</span> <span class="s1">&#39;Example batch tolerance test&#39;</span>
+<span class="linenos">29</span>    <span class="k">assert</span> <span class="n">same_device</span><span class="p">,</span> <span class="s1">&#39;Device persistence check&#39;</span>
+<span class="linenos">30</span>
+<span class="linenos">31</span>
+<span class="linenos">32</span><span class="nd">@fix_seed</span>
+<span class="linenos">33</span><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">grad</span>
+<span class="linenos">34</span><span class="k">def</span><span class="w"> </span><span class="nf">test_example_grad</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+<span class="linenos">35</span><span class="w">    </span><span class="sd">&quot;&quot;&quot;Gradient evaluation test of example.&quot;&quot;&quot;</span>
+<span class="linenos">36</span>    <span class="n">a1</span><span class="p">,</span> <span class="n">b1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="linenos">37</span>    <span class="n">a2</span><span class="p">,</span> <span class="n">b2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+<span class="linenos">38</span>    <span class="c1"># Perform a check of the gradient</span>
+<span class="linenos">39</span>    <span class="n">grad_is_safe_single</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">gradcheck</span><span class="p">(</span><span class="n">example</span><span class="p">,</span> <span class="p">(</span><span class="n">a1</span><span class="p">,</span> <span class="n">b1</span><span class="p">),</span>
+<span class="linenos">40</span>                                                   <span class="n">raise_exception</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="linenos">41</span>    <span class="n">grad_is_safe_batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">gradcheck</span><span class="p">(</span><span class="n">example</span><span class="p">,</span> <span class="p">(</span><span class="n">a2</span><span class="p">,</span> <span class="n">b2</span><span class="p">),</span>
+<span class="linenos">42</span>                                                  <span class="n">raise_exception</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="linenos">43</span>    <span class="c1"># Assert the stability of the gradients</span>
+<span class="linenos">44</span>    <span class="k">assert</span> <span class="n">grad_is_safe_single</span><span class="p">,</span> <span class="s1">&#39;Gradient stability test single&#39;</span>
+<span class="linenos">45</span>    <span class="k">assert</span> <span class="n">grad_is_safe_batch</span><span class="p">,</span> <span class="s1">&#39;Gradient stability test batch&#39;</span>
+</pre></div>
+</div>
+</div>
+<p>In addition to the standard unit-tests there also exist a series of deep tests, located
+in the <code class="code docutils literal notranslate"><span class="pre">tests/deeptests</span></code> directory. These tests are entirely optional and are
+traditionally reserved for testing core functionality. Unlike unit-test these may require
+additional data to be downloaded and new software packages, such as DFTB+, to be installed
+in order to run.</p>
+<p>While tests are expected to provide a reasonable degree of coverage, it is unreasonable to
+strive for 100% coverage. It should also be noted that commenting and docstring rules are
+significantly relaxed within test files, i.e. rigorous documentation is not enforced.</p>
+<p>For a full, working example of a module-level unit test see <code class="docutils literal notranslate"><span class="pre">tbmalt/tests/unittests/test_maths.py</span></code>.</p>
+</section>
+</section>
+<section id="other-considerations">
+<h2><span class="section-number">5.3. </span>Other Considerations<a class="headerlink" href="#other-considerations" title="Link to this heading"></a></h2>
+<p>The expected Git workflow for developers and contributors is identical to that of DFTB+.
+See the <a class="reference external" href="https://google.github.io/styleguide/pyguide.html/">DFTB+ Developer’s Guide</a>
+for more information. Currently a Pylint is used to evaluate code quality using a custom
+<cite>pylintrc</cite> file, located in the <code class="docutils literal notranslate"><span class="pre">tbmalt/misc</span></code> directory. It is acknowledged that Pylint
+struggles to grade PyTorch code, thus the use of Pylint is subject to change.</p>
+</section>
+<section id="id8">
+<h2><span class="section-number">5.4. </span>References<a class="headerlink" href="#id8" title="Link to this heading"></a></h2>
+<section id="footnotes">
+<h3><span class="section-number">5.4.1. </span>Footnotes<a class="headerlink" href="#footnotes" title="Link to this heading"></a></h3>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id9" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">*</a><span class="fn-bracket">]</span></span>
+<p><a class="reference external" href="https://google.github.io/styleguide/pyguide.html">https://google.github.io/styleguide/pyguide.html</a></p>
+</aside>
+<aside class="footnote brackets" id="id10" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">†</a><span class="fn-bracket">]</span></span>
+<p>See the Google style definition for more information.</p>
+</aside>
+<aside class="footnote brackets" id="id11" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">‡</a><span class="fn-bracket">]</span></span>
+<p>In conjunction with the arguments and returns section of the docstring.</p>
+</aside>
+<aside class="footnote brackets" id="id12" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">§</a><span class="fn-bracket">]</span></span>
+<p>Exception: If the downstream function is private then the arguments should be specified.</p>
+</aside>
+</aside>
+</section>
+<section id="citations">
+<h3><span class="section-number">5.4.2. </span>Citations<a class="headerlink" href="#citations" title="Link to this heading"></a></h3>
+<div role="list" class="citation-list">
+<div class="citation" id="pep484" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">PEP484</a><span class="fn-bracket">]</span></span>
+<p><a class="reference external" href="https://www.python.org/dev/peps/pep-0484/">https://www.python.org/dev/peps/pep-0484/</a></p>
+</div>
+<div class="citation" id="typing" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id6">Typing</a><span class="fn-bracket">]</span></span>
+<p><a class="reference external" href="https://docs.python.org/3/library/typing.html">https://docs.python.org/3/library/typing.html</a></p>
+</div>
+<div class="citation" id="doctest" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id7">doctest</a><span class="fn-bracket">]</span></span>
+<p><a class="reference external" href="https://docs.python.org/3/library/doctest.html">https://docs.python.org/3/library/doctest.html</a></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="development.html" class="btn btn-neutral float-left" title="4. Development" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="release_notes.html" class="btn btn-neutral float-right" title="6. Release notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

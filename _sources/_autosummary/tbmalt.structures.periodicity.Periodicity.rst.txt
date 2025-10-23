@@ -1,0 +1,54 @@
+Periodicity
+===========
+
+.. currentmodule:: tbmalt.structures.periodicity
+
+.. autoclass:: Periodicity
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: cellvec, cellvol, get_reciprocal_volume, lattice, n_atoms, n_cells, neighbour, neighbour_distance, neighbour_vector, pbc, periodic_distances, positions, positions_vec, rcellvec, reciprocal_lattice
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~Periodicity.cellvec
+   
+      ~Periodicity.cellvol
+   
+      ~Periodicity.get_reciprocal_volume
+   
+      ~Periodicity.lattice
+   
+      ~Periodicity.n_atoms
+   
+      ~Periodicity.n_cells
+   
+      ~Periodicity.neighbour
+   
+      ~Periodicity.neighbour_distance
+   
+      ~Periodicity.neighbour_vector
+   
+      ~Periodicity.pbc
+   
+      ~Periodicity.periodic_distances
+   
+      ~Periodicity.positions
+   
+      ~Periodicity.positions_vec
+   
+      ~Periodicity.rcellvec
+   
+      ~Periodicity.reciprocal_lattice
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

@@ -1,0 +1,54 @@
+Triclinic
+=========
+
+.. currentmodule:: tbmalt.structures.periodicity
+
+.. autoclass:: Triclinic
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: cellvec, cellvol, get_reciprocal_volume, lattice, n_atoms, n_cells, neighbour, neighbour_distance, neighbour_vector, pbc, periodic_distances, positions, positions_vec, rcellvec, reciprocal_lattice
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~Triclinic.cellvec
+   
+      ~Triclinic.cellvol
+   
+      ~Triclinic.get_reciprocal_volume
+   
+      ~Triclinic.lattice
+   
+      ~Triclinic.n_atoms
+   
+      ~Triclinic.n_cells
+   
+      ~Triclinic.neighbour
+   
+      ~Triclinic.neighbour_distance
+   
+      ~Triclinic.neighbour_vector
+   
+      ~Triclinic.pbc
+   
+      ~Triclinic.periodic_distances
+   
+      ~Triclinic.positions
+   
+      ~Triclinic.positions_vec
+   
+      ~Triclinic.rcellvec
+   
+      ~Triclinic.reciprocal_lattice
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

@@ -1,0 +1,685 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.structures.periodicity &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">tbmalt.structures.periodicity</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.structures.periodicity</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Code associated with performing cell translation.</span>
+
+<span class="sd">This module implement cell translation for 1D &amp; 2D &amp; 3D periodic</span>
+<span class="sd">boundary conditions. Distance matrix and position vectors for pbc</span>
+<span class="sd">will be constructed.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack</span><span class="p">,</span> <span class="n">bT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
+
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span>
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.structures.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">Geometry</span>
+
+
+<div class="viewcode-block" id="Periodicity">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Periodicity</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Properties and functionality associated with periodic systems.</span>
+
+<span class="sd">    Derived classes can be used to calculate various properties of 1D, 2D, &amp; 3D</span>
+<span class="sd">    periodic systems, such as the translation vectors. This is not intended to</span>
+<span class="sd">    store much in the way of data itself but rather provides useful methods.</span>
+<span class="sd">    The periodicity entity will instead source information from the `Geometry`</span>
+<span class="sd">    object it is provided.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: Geometry object from which information like atomic positions</span>
+<span class="sd">            and lattice parameters are to be sourced.</span>
+<span class="sd">        cutoff: Interaction cutoff distance for interactions in units of Bohr.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        geometry: the associated `Geometry` instance.</span>
+<span class="sd">        cutoff: Interaction cutoff distance for interactions in units of Bohr.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        It is important to note that `Periodicity` entities are recursively</span>
+<span class="sd">        linked to their corresponding `Geometry` instances. As such, the manual</span>
+<span class="sd">        creation of `Periodicity` type instances, such as `Triclinic`, is not</span>
+<span class="sd">        supported. Instead, one should provide the `lattice_vector` &amp; `cutoff`</span>
+<span class="sd">        arguments to the `Geometry` class which will create a `Periodicity`</span>
+<span class="sd">        instance assigned to the `Geometry.periodicity` attribute. The</span>
+<span class="sd">        recursive nature of the `Periodicity` and `Geometry` classes is</span>
+<span class="sd">        something that will be addressed in future updates.</span>
+<span class="sd">        </span>
+<span class="sd">        This class make extensive use of cached properties and thus may use</span>
+<span class="sd">        more memory than one might expect.</span>
+
+<span class="sd">        When representing batch systems, the &#39;cellvec&#39; and &#39;periodic_distances&#39;</span>
+<span class="sd">        will be padded with large numbers. Mixing of periodic &amp; non-periodic</span>
+<span class="sd">        systems and mixing of different types of pbc is forbidden.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt import Geometry</span>
+<span class="sd">        &gt;&gt;&gt; geometry = Geometry(torch.tensor([1, 1]), torch.rand(2, 3),</span>
+<span class="sd">        ...                     lattice_vector=torch.eye(3) * 3.0, cutoff=2.0)</span>
+<span class="sd">        &gt;&gt;&gt; pbc = geometry.periodicity</span>
+<span class="sd">        &gt;&gt;&gt; print(pbc.positions_vec.shape)</span>
+<span class="sd">        torch.Size([27, 2, 2, 3])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">]):</span>
+
+        <span class="n">cutoff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check</span><span class="p">(</span><span class="n">geometry</span><span class="o">.</span><span class="n">lattice</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span> <span class="o">=</span> <span class="n">geometry</span>
+
+        <span class="c1"># Intrinsic state attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff</span>
+
+        <span class="c1"># Note that this is set within the `cellvec` property method.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_cells</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">positions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">positions</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">lattice</span>
+
+    <span class="nd">@lattice</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">lattice</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">geometry</span><span class="o">.</span><span class="n">n_atoms</span>
+
+    <span class="nd">@cached_property</span><span class="p">(</span><span class="s1">&#39;cellvec&#39;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of periodic cell images within the cutoff distance.&quot;&quot;&quot;</span>
+
+        <span class="c1"># The `cellvec` property has been marked as a dependency even though</span>
+        <span class="c1"># the number of cells (`n_cells`) is not technically its dependency.</span>
+        <span class="c1"># This is done as it is easiest to just set the value as `cellvec` is</span>
+        <span class="c1"># being constructed.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_cells</span>
+
+    <span class="nd">@cached_property</span><span class="p">(</span><span class="s2">&quot;positions&quot;</span><span class="p">,</span> <span class="s2">&quot;rcellvec&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">positions_vec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Distance vectors between atoms in the central and neighbouring cells.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Positions of atoms in all images</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rcellvec</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+
+        <span class="c1"># distance vectors</span>
+        <span class="n">distance_vec</span> <span class="o">=</span> <span class="p">(</span><span class="n">positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span> <span class="o">-</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">distance_vec</span>
+
+
+<div class="viewcode-block" id="Periodicity.get_periodic_distances">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity.get_periodic_distances">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_periodic_distances</span><span class="p">(</span>
+            <span class="n">cell_translation_vectors</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">positions</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">n_atoms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Distances between atoms in the central and neighbouring cells.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Positions of atoms in all images</span>
+        <span class="n">positions_expanded</span> <span class="o">=</span> <span class="p">(</span><span class="n">cell_translation_vectors</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span>
+                     <span class="n">positions</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">))</span>
+
+        <span class="c1"># Distance matrix, large values will be padded for batch systems</span>
+        <span class="k">if</span> <span class="n">positions</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># -&gt; single</span>
+            <span class="n">distance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+                <span class="p">((</span><span class="n">positions_expanded</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span>
+                    <span class="n">positions</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                    <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">))</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; batch</span>
+            <span class="k">if</span> <span class="n">n_atoms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Number of atoms per system must be specified when working&quot;</span>
+                    <span class="s2">&quot; with batches as it cannot be inferred easily.&quot;</span><span class="p">)</span>
+            <span class="n">distance</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(((</span><span class="n">ipos</span><span class="p">[:,</span> <span class="p">:</span><span class="n">inat</span><span class="p">]</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">inat</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span>
+                              <span class="n">icp</span><span class="p">[:</span><span class="n">inat</span><span class="p">]</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">inat</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                              <span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">inat</span><span class="p">,</span> <span class="n">inat</span><span class="p">)</span>
+                 <span class="k">for</span> <span class="n">ipos</span><span class="p">,</span> <span class="n">icp</span><span class="p">,</span> <span class="n">inat</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="n">positions_expanded</span><span class="p">,</span> <span class="n">positions</span><span class="p">,</span> <span class="n">n_atoms</span><span class="p">)</span>
+                 <span class="p">],</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">distance</span></div>
+
+
+    <span class="nd">@cached_property</span><span class="p">(</span><span class="s2">&quot;positions&quot;</span><span class="p">,</span> <span class="s2">&quot;rcellvec&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">periodic_distances</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Distances between atoms in the central and neighbouring cells.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_periodic_distances</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rcellvec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions</span><span class="p">,</span> <span class="n">n_atoms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reciprocal_lattice</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get reciprocal lattice vectors.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invlatvec</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_reciprocal_volume</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get reciprocal lattice unit cell volume.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_invlatvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cellvol</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get unit cell volume.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">det</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="Periodicity.get_neighbours">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity.get_neighbours">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_neighbours</span><span class="p">(</span><span class="n">periodic_distances</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A mask to choose atoms of images inside the cutoff distance.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cutoff</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">periodic_distances</span><span class="o">.</span><span class="n">le</span><span class="p">(</span><span class="n">cutoff</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">ipd</span><span class="o">.</span><span class="n">le</span><span class="p">(</span><span class="n">ico</span><span class="p">)</span> <span class="k">for</span> <span class="n">ipd</span><span class="p">,</span> <span class="n">ico</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">periodic_distances</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)])</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">neighbour</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;A mask to choose atoms of images inside the cutoff distance.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_neighbours</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">periodic_distances</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span><span class="p">)</span>
+
+
+    <span class="nd">@cached_property</span><span class="p">(</span><span class="s2">&quot;positions_vec&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">neighbour_vector</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get positions for neighbour list within cutoff distance.&quot;&quot;&quot;</span>
+        <span class="c1"># Mask for images containing atoms within cutoff distance</span>
+        <span class="n">_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbour</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Pre-fetched to prevent having to go through the cache each time</span>
+        <span class="c1"># within the periodic system&#39;s list comprehension.</span>
+        <span class="n">positions_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">positions_vec</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">:</span>  <span class="c1"># -&gt; single</span>
+            <span class="n">neighbour_vec</span> <span class="o">=</span> <span class="n">positions_vector</span><span class="p">[</span><span class="n">_mask</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; batch</span>
+            <span class="n">neighbour_vec</span> <span class="o">=</span> <span class="n">pack</span><span class="p">([</span><span class="n">positions_vector</span><span class="p">[</span><span class="n">ibatch</span><span class="p">][</span><span class="n">_mask</span><span class="p">[</span><span class="n">ibatch</span><span class="p">]]</span>
+                                  <span class="k">for</span> <span class="n">ibatch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">)],</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">neighbour_vec</span>
+
+    <span class="nd">@cached_property</span><span class="p">(</span><span class="s2">&quot;periodic_distances&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">neighbour_distance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get distance matrix for neighbour list within cutoff distance.&quot;&quot;&quot;</span>
+        <span class="c1"># Mask for images containing atoms within cutoff distance</span>
+        <span class="n">_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbour</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Pre-fetched to prevent having to go through the cache each time</span>
+        <span class="c1"># within the periodic system&#39;s list comprehension.</span>
+        <span class="n">periodic_distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodic_distances</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">:</span>  <span class="c1"># -&gt; single</span>
+            <span class="n">neighbour_dist</span> <span class="o">=</span> <span class="n">periodic_distances</span><span class="p">[</span><span class="n">_mask</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; batch</span>
+            <span class="n">neighbour_dist</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">periodic_distances</span><span class="p">[</span><span class="n">ibatch</span><span class="p">][</span><span class="n">_mask</span><span class="p">[</span><span class="n">ibatch</span><span class="p">]]</span>
+                 <span class="k">for</span> <span class="n">ibatch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">)],</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e3</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">neighbour_dist</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_n_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span> <span class="k">return</span> <span class="p">(</span>
+        <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_mask_zero</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Periodicity.inverse_lattice_vector">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity.inverse_lattice_vector">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inverse_lattice_vector</span><span class="p">(</span><span class="n">lattice_vector</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;inverse lattice vectors.&quot;&quot;&quot;</span>
+
+        <span class="n">mask_zero</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;mask_zero&#39;</span><span class="p">,</span> <span class="n">lattice_vector</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">n_batch</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;n_batch&quot;</span><span class="p">,</span>
+            <span class="kc">None</span> <span class="k">if</span> <span class="n">lattice_vector</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">lattice_vector</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="n">_latvec</span> <span class="o">=</span> <span class="n">lattice_vector</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag_embed</span><span class="p">(</span>
+            <span class="n">mask_zero</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">lattice_vector</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+        <span class="n">eye</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span>
+            <span class="n">_latvec</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">lattice_vector</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">lattice_vector</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">n_batch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">eye</span> <span class="o">=</span> <span class="n">eye</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Inverse lattice vectors</span>
+        <span class="n">invlat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">_latvec</span><span class="p">,</span> <span class="n">eye</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">invlat</span><span class="p">[</span><span class="n">mask_zero</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">invlat</span></div>
+
+
+    <span class="nd">@cached_property</span><span class="p">(</span><span class="s2">&quot;lattice&quot;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_invlatvec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;inverse lattice vectors.&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">inverse_lattice_vector</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">,</span> <span class="n">n_batch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_batch</span><span class="p">,</span> <span class="n">mask_zero</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask_zero</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">latvec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check dimension, type of lattice vector and cutoff.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Lattice vector packing is not necessary here for the same reasons</span>
+        <span class="c1"># outlined above at the end of this function.</span>
+
+        <span class="c1"># # Lattice vectors can still be updated</span>
+        <span class="c1"># if isinstance(latvec, list):</span>
+        <span class="c1">#     latvec = pack(latvec)</span>
+
+        <span class="c1"># Check the shape of lattice vectors</span>
+        <span class="k">if</span> <span class="n">latvec</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">latvec</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;lattice vector dimension should be 2 or 3&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Check the format of cutoff</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">cutoff</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="n">cutoff</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">cutoff</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">cutoff</span><span class="p">)</span> <span class="ow">is</span> <span class="n">Tensor</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">cutoff</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">cutoff</span> <span class="o">=</span> <span class="n">cutoff</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">cutoff</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;cutoff should be 0, 1 dimension tensor or float&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">cutoff</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;cutoff should be tensor or float&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Unit conversion within `Periodicity` entities disabled for now.</span>
+        <span class="c1"># Currently, instances are only created from within the `Geometry`</span>
+        <span class="c1"># class which already performs the unit conversion. Furthermore,</span>
+        <span class="c1"># it would be best not to modify the `Geometry` instance when</span>
+        <span class="c1"># creating a new `Periodicity` object. This will get cleaned up</span>
+        <span class="c1"># later when the two classes are decoupled.</span>
+
+        <span class="c1"># # Default lattice vector is from geometry, thus default unit is bohr</span>
+        <span class="c1"># unit = kwargs.get(&#39;unit&#39;, &#39;bohr&#39;)</span>
+        <span class="c1"># if unit != &#39;bohr&#39;:</span>
+        <span class="c1">#     latvec = latvec * length_units[unit]</span>
+        <span class="c1">#     cutoff = cutoff * length_units[unit]</span>
+
+        <span class="k">return</span> <span class="n">cutoff</span>
+
+<div class="viewcode-block" id="Periodicity.get_cell_translation_vectors">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity.get_cell_translation_vectors">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_cell_translation_vectors</span><span class="p">(</span>
+            <span class="n">lattice_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">cell_translation_vector_indices</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cell translation vectors in absolute units.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">lattice_vector</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span>
+                         <span class="n">cell_translation_vector_indices</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+    <span class="nd">@cached_property</span><span class="p">(</span><span class="s1">&#39;lattice&#39;</span><span class="p">,</span> <span class="s1">&#39;cellvec&#39;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rcellvec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cell translation vectors in absolute units.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cell_translation_vectors</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cellvec</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Periodicity.get_cell_translation_vector_indices">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity.get_cell_translation_vector_indices">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_cell_translation_vector_indices</span><span class="p">(</span>
+            <span class="n">inverse_lattice_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate cell translation vector indices.&quot;&quot;&quot;</span>
+
+        <span class="c1"># This is exposed as a static method for the sake of the coulomb module</span>
+
+        <span class="c1"># Issues, will change with the cutoff value thus this value should be</span>
+        <span class="c1"># static.</span>
+
+        <span class="n">dd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">inverse_lattice_vector</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+              <span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="n">inverse_lattice_vector</span><span class="o">.</span><span class="n">device</span><span class="p">}</span>
+
+        <span class="c1"># Ranges of cell translation on three dimensions</span>
+        <span class="n">n_images</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">cutoff</span> <span class="o">*</span> <span class="n">bT</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+            <span class="n">inverse_lattice_vector</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">))))</span>
+
+        <span class="n">ranges</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="o">-</span><span class="n">n_images</span><span class="p">,</span> <span class="n">n_images</span><span class="p">])</span>
+
+        <span class="c1"># For 1D/2D cell translation, non-periodic direction will be zero</span>
+        <span class="n">mask_zero</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;mask_zero&#39;</span><span class="p">,</span> <span class="n">inverse_lattice_vector</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">ranges</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">mask_zero</span><span class="p">,</span> <span class="n">mask_zero</span><span class="p">])]</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># length of the first, second and third column in ranges</span>
+        <span class="n">leng</span> <span class="o">=</span> <span class="n">ranges</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">long</span><span class="p">()</span> <span class="o">-</span> <span class="n">ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">long</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="c1"># number of cells</span>
+        <span class="n">n_cells</span> <span class="o">=</span> <span class="n">leng</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">leng</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">leng</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># Cell translation vectors in relative coordinates</span>
+        <span class="k">if</span> <span class="n">inverse_lattice_vector</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># -&gt; single</span>
+            <span class="c1"># Would be worth replacing this with `torch.cartesian_prod` at</span>
+            <span class="c1"># some point.</span>
+            <span class="n">cellvec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">ranges</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                               <span class="n">leng</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">leng</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">leng</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">ranges</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                               <span class="n">leng</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">leng</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">leng</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">ranges</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+                               <span class="n">leng</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">leng</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">leng</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; batch</span>
+            <span class="c1"># Large values are padded at the end of short cell vectors.</span>
+            <span class="n">cellvec</span> <span class="o">=</span> <span class="n">pack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">iran</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">iran</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                               <span class="n">ile</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">ile</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">ile</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">iran</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">iran</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                               <span class="n">ile</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">ile</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">ile</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">iran</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">iran</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+                               <span class="n">ile</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">ile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">ile</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+                <span class="k">for</span> <span class="n">ile</span><span class="p">,</span> <span class="n">iran</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                    <span class="n">leng</span><span class="p">,</span> <span class="n">ranges</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">))],</span> <span class="n">value</span><span class="o">=</span><span class="mf">1e4</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cellvec</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">n_cells</span></div>
+
+
+    <span class="nd">@cached_property</span><span class="p">(</span><span class="s1">&#39;_invlatvec&#39;</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cellvec</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Implement cell translation.&quot;&quot;&quot;</span>
+        <span class="c1"># This just redirects to the static method.</span>
+
+        <span class="c1"># It is worth noting that the `_n_cells` value will also be set here</span>
+        <span class="c1"># for performance and stability reasons.</span>
+        <span class="n">cell_vectors</span><span class="p">,</span> <span class="n">n_cells</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cell_translation_vector_indices</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_invlatvec</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cutoff</span><span class="p">,</span> <span class="n">mask_zero</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mask_zero</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_cells</span> <span class="o">=</span> <span class="n">n_cells</span>
+
+        <span class="k">return</span> <span class="n">cell_vectors</span>
+
+<div class="viewcode-block" id="Periodicity.frac_to_cartesian">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity.frac_to_cartesian">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">frac_to_cartesian</span><span class="p">(</span><span class="n">lattice</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">positions_frac</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert fractional coordinates to cartesian coordinates.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            lattice: Lattice vectors.</span>
+<span class="sd">            positions_frac: Positions of the atoms in fractional coordinates.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            positions_cart: Positions of the atoms in Cartesian coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Periodicity.get_cell_lengths">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity.get_cell_lengths">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_cell_lengths</span><span class="p">(</span><span class="n">cell</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the length of each lattice vector.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Periodicity.get_cell_angles">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Periodicity.html#tbmalt.structures.periodicity.Periodicity.get_cell_angles">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_cell_angles</span><span class="p">(</span><span class="n">cell</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the angles&#39; alpha, beta and gamma of lattice vectors.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pbc</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Directions along which the system is deemed to be periodic.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="Triclinic">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Triclinic.html#tbmalt.structures.periodicity.Triclinic">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Triclinic</span><span class="p">(</span><span class="n">Periodicity</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents PBC systems that can be described by three basis vectors.</span>
+
+<span class="sd">    This extends the functional of the `Periodicity` abstract base class to</span>
+<span class="sd">    perform functionality associated with triclinic systems. Note that the</span>
+<span class="sd">    term &quot;triclinic&quot; is use here to represent any and all boxed periodic</span>
+<span class="sd">    systems that can be described using three basis vectors.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        geometry: Geometry object from which information like atomic positions</span>
+<span class="sd">            and lattice parameters are to be sourced.</span>
+<span class="sd">        cutoff: Interaction cutoff distance for interactions in units of Bohr.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        geometry: the associated `Geometry` instance.</span>
+<span class="sd">        cutoff: Interaction cutoff distance for interactions in units of Bohr.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt import Geometry</span>
+<span class="sd">        &gt;&gt;&gt; geometry = Geometry(torch.tensor([1, 1]), torch.rand(2, 3),</span>
+<span class="sd">        ...                     lattice_vector=torch.eye(3) * 3.0, cutoff=2.0)</span>
+<span class="sd">        &gt;&gt;&gt; pbc = geometry.periodicity</span>
+<span class="sd">        &gt;&gt;&gt; print(pbc.positions_vec.shape)</span>
+<span class="sd">        torch.Size([27, 2, 2, 3])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geometry</span><span class="p">:</span> <span class="n">Geometry</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">]):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">geometry</span><span class="p">,</span> <span class="n">cutoff</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pbc</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Directions along which the system is deemed to be periodic.&quot;&quot;&quot;</span>
+
+        <span class="c1"># This will also check the format of lattice vectors and other cell</span>
+        <span class="c1"># information</span>
+
+        <span class="n">n_batch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>
+                                  <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">))</span>
+
+        <span class="c1"># Check the format of lattice vectors</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input cell should be defined by three &#39;</span>
+                             <span class="s1">&#39;lattice vectors.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Masks of periodic systems</span>
+        <span class="n">_is_periodic</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Check the dimensions of periodic boundary condition</span>
+        <span class="n">_sum_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">_dim_pe</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="o">.</span><span class="n">ne</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">n_batch</span><span class="p">:</span>  <span class="c1"># -&gt; single</span>
+            <span class="c1"># Type of pbc</span>
+            <span class="n">pbc</span> <span class="o">=</span> <span class="n">_dim_pe</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># -&gt; batch</span>
+            <span class="c1"># Mixing of different pbc</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">isd</span> <span class="o">==</span> <span class="n">_sum_dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                                           <span class="k">for</span> <span class="n">isd</span> <span class="ow">in</span> <span class="n">_sum_dim</span><span class="p">])):</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+                    <span class="s1">&#39;Mixing of different types of pbcs is not supported.&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Check directions of periodic boundary condition</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">idp</span> <span class="o">==</span> <span class="n">_dim_pe</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                                               <span class="k">for</span> <span class="n">idp</span> <span class="ow">in</span> <span class="n">_dim_pe</span><span class="p">])):</span>
+                    <span class="c1"># Different periodic directions but same type of pbc</span>
+                    <span class="n">pbc</span> <span class="o">=</span> <span class="n">_dim_pe</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Same periodic directions</span>
+                    <span class="n">pbc</span> <span class="o">=</span> <span class="n">_dim_pe</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">pbc</span>
+
+<div class="viewcode-block" id="Triclinic.frac_to_cartesian">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Triclinic.html#tbmalt.structures.periodicity.Triclinic.frac_to_cartesian">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">frac_to_cartesian</span><span class="p">(</span><span class="n">lattice</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">positions_frac</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert fractional coordinates to cartesian coordinates.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            lattice: Lattice vectors.</span>
+<span class="sd">            positions_frac: Positions of the atoms in fractional coordinates.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            positions_cart: Positions of the atoms in Cartesian coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Wrap the fractional coordinates to the domain [0, 1) if necessary.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">positions_frac</span><span class="o">.</span><span class="n">ge</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="n">positions_frac</span><span class="o">.</span><span class="n">lt</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()):</span>
+            <span class="n">positions_frac</span> <span class="o">=</span> <span class="n">positions_frac</span><span class="o">.</span><span class="n">remainder</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="c1"># Covert from fractional to cartesian coordinates &amp; return the result</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">positions_frac</span><span class="p">,</span> <span class="n">lattice</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Triclinic.get_cell_lengths">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Triclinic.html#tbmalt.structures.periodicity.Triclinic.get_cell_lengths">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_cell_lengths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the length of each lattice vector.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Triclinic.get_cell_angles">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.periodicity.Triclinic.html#tbmalt.structures.periodicity.Triclinic.get_cell_angles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_cell_angles</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the angles&#39; alpha, beta and gamma of lattice vectors.&quot;&quot;&quot;</span>
+        <span class="n">_cos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">CosineSimilarity</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">cosine</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">_cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+                              <span class="n">_cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+                              <span class="n">_cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">lattice</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">cosine</span><span class="p">)</span> <span class="o">*</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span></div>
+</div>
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

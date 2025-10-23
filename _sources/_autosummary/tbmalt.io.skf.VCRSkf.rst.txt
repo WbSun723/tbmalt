@@ -1,0 +1,30 @@
+VCRSkf
+======
+
+.. currentmodule:: tbmalt.io.skf
+
+.. autoclass:: VCRSkf
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: from_sfk, to_sfk, version
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~VCRSkf.from_sfk
+   
+      ~VCRSkf.to_sfk
+   
+      ~VCRSkf.version
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

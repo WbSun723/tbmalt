@@ -1,0 +1,18 @@
+Scheme
+======
+
+.. currentmodule:: tbmalt.physics.filling
+
+.. autoclass:: Scheme
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: 
+
+   
+
+   
+   .. rubric:: Methods
+
+   

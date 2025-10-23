@@ -1,0 +1,18 @@
+Ewald
+=====
+
+.. currentmodule:: tbmalt.physics.dftb.coulomb
+
+.. autoclass:: Ewald
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: 
+
+   
+
+   
+   .. rubric:: Methods
+
+   

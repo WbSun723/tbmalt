@@ -1,0 +1,8 @@
+gamma\_exponential
+==================
+
+.. currentmodule:: tbmalt.physics.dftb.gamma
+
+.. autofunction:: tbmalt.physics.dftb.gamma.gamma_exponential
+
+    .. autosummary::

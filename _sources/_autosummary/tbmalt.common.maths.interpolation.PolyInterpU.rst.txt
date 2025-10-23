@@ -1,0 +1,32 @@
+PolyInterpU
+===========
+
+.. currentmodule:: tbmalt.common.maths.interpolation
+
+.. autoclass:: PolyInterpU
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, tail, x, y
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~PolyInterpU.device
+   
+      ~PolyInterpU.tail
+   
+      ~PolyInterpU.x
+   
+      ~PolyInterpU.y
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

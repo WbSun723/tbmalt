@@ -1,0 +1,208 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.6.1.1. atomic_pair_distances &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.6.1.2. atomic_pair_indices" href="tbmalt.structures.geometry.atomic_pair_indices.html" />
+    <link rel="prev" title="2.1.6.1. geometry" href="tbmalt.structures.geometry.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.structures.geometry.html">2.1.6.1. geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.structures.orbitalinfo.html">2.1.6.2. orbitalinfo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.structures.periodicity.html">2.1.6.3. periodicity</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.structures.html"><span class="section-number">2.1.6. </span>structures</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.structures.geometry.html"><span class="section-number">2.1.6.1. </span>geometry</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.6.1.1. </span>atomic_pair_distances</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.structures.geometry.atomic_pair_distances.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="atomic-pair-distances">
+<h1><span class="section-number">2.1.6.1.1. </span>atomic_pair_distances<a class="headerlink" href="#atomic-pair-distances" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.atomic_pair_distances">
+<span class="sig-name descname"><span class="pre">atomic_pair_distances</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_self</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_batch_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_periodicity</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#atomic_pair_distances"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.atomic_pair_distances" title="Link to this definition"></a></dt>
+<dd><p>Atomic pair distance generator.</p>
+<p>Generates all unique element-pair types and, for each such pair, yields the
+indices of the matching atom pairs along with the distance between each
+pair. Useful for enumerating all pairwise interactions present in a system
+or batch thereof, including possible consideration of periodic boundary
+conditions.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>geometry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span>) – The system, or batch thereof, for which pair-wise
+interaction indices are to be generated.</p></li>
+<li><p><strong>ignore_self</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Boolean indicating whether self-interaction pairs should
+be ignored. If enabled, any pair where both indices refer to the
+same atom (i.e. an atom interacting with itself) is excluded.
+This only pertains to self-interactions and not interactions
+with copies in neighbouring images.[DEFAULT=False]</p></li>
+<li><p><strong>force_batch_index</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, forces the returned <code class="docutils literal notranslate"><span class="pre">pair_indices</span></code>
+to include a leading batch index dimension even for single systems.
+By default, (<code class="docutils literal notranslate"><span class="pre">False</span></code>), a batch dimension is only included if
+<code class="docutils literal notranslate"><span class="pre">geometry</span></code> actually represents a batch. [DEFAULT=False]</p></li>
+<li><p><strong>ignore_periodicity</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If <cite>True</cite>, the system will be treated as
+non-periodic. Interactions involving neighbouring cells will be
+ignored and the cell index will be omitted from the returned pair
+index tensor. [DEFAULT=False]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><ul>
+<li><p><em>pair</em> – A tensor of shape <cite>(2,)</cite> specifying the atomic numbers of the two
+species that define the pair. For example, <cite>(6, 8)</cite> for a carbon -
+oxygen pair.</p></li>
+<li><p><em>pair_indices</em> – A tensor of integer indices that identify each occurrence
+of that <code class="docutils literal notranslate"><span class="pre">pair</span></code> in the system(s). The exact shape and meaning of
+each row depends on three factors:
+(1) whether the system is single or batched,
+(2) whether the system is periodic, and
+(3) whether <code class="docutils literal notranslate"><span class="pre">force_batch_index</span></code> is set:</p>
+<ul class="simple">
+<li><p><strong>Single, non-periodic</strong>:
+- <cite>force_batch_index=False</cite> ⇒ shape <cite>(2, P)</cite>
+- <cite>force_batch_index=True</cite>  ⇒ shape <cite>(3, P)</cite></p></li>
+<li><p><strong>Single, periodic</strong>:
+- <cite>force_batch_index=False</cite> ⇒ shape <cite>(3, P)</cite>
+- <cite>force_batch_index=True</cite>  ⇒ shape <cite>(4, P)</cite></p></li>
+<li><p><strong>Batched, non-periodic</strong> ⇒ shape <cite>(3, P)</cite></p></li>
+<li><p><strong>Batched, periodic</strong> ⇒ shape <cite>(4, P)</cite></p></li>
+</ul>
+<p>In all cases, the final two rows (or columns, after transpose)
+indicate the atomic indices of the interacting atoms. If there
+is a batch dimension, it occupies the first row. If the system
+is periodic, there is an additional row for the periodic cell
+index (or indices, depending on implementation). The remaining
+rows, if present, are the atomic indices within that batch and/or
+cell context.</p>
+</li>
+<li><p><em>distances</em> – A tensor of distances for each indexed pair, with the same
+“pair-count” dimension <cite>P</cite>. For periodic systems this will be the
+periodic distance; otherwise the direct distance.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span></p>
+</dd>
+</dl>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+</tbody>
+</table>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.structures.geometry.html" class="btn btn-neutral float-left" title="2.1.6.1. geometry" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.structures.geometry.atomic_pair_indices.html" class="btn btn-neutral float-right" title="2.1.6.1.2. atomic_pair_indices" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

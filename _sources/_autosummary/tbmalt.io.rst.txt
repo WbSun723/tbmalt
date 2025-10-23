@@ -1,0 +1,33 @@
+io
+==
+
+.. automodule:: tbmalt.io
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: module.rst
+   :recursive:
+
+   dataset
+   skf
+

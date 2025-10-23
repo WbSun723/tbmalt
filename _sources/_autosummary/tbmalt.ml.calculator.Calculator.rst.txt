@@ -1,0 +1,36 @@
+Calculator
+==========
+
+.. currentmodule:: tbmalt.ml.calculator
+
+.. autoclass:: Calculator
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, dtype, geometry, is_batch, is_periodic, orbs
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~Calculator.device
+   
+      ~Calculator.dtype
+   
+      ~Calculator.geometry
+   
+      ~Calculator.is_batch
+   
+      ~Calculator.is_periodic
+   
+      ~Calculator.orbs
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

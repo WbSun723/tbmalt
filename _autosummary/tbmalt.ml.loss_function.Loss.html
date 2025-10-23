@@ -1,0 +1,262 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.4.5.4. Loss &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.5. physics" href="tbmalt.physics.html" />
+    <link rel="prev" title="2.1.4.5.3. mse_loss" href="tbmalt.ml.loss_function.mse_loss.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.ml.Feed.html">2.1.4.1. Feed</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.ml.acsf.html">2.1.4.2. acsf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.ml.calculator.html">2.1.4.3. calculator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.ml.integralfeeds.html">2.1.4.4. integralfeeds</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.ml.loss_function.html">2.1.4.5. loss_function</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.ml.html"><span class="section-number">2.1.4. </span>ml</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.ml.loss_function.html"><span class="section-number">2.1.4.5. </span>loss_function</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.4.5.4. </span>Loss</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.ml.loss_function.Loss.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="loss">
+<h1><span class="section-number">2.1.4.5.4. </span>Loss<a class="headerlink" href="#loss" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.ml.loss_function.Loss">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction_data_delegate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_data_delegate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">system_weight_delegate=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_functions=&lt;function</span> <span class="pre">l1_loss&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_weights=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/loss_function.html#Loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.loss_function.Loss" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Component for extracting prediction/reference data &amp; computing losses.</p>
+<p>This class facilitates the evaluation of losses by delegating the
+responsibility for fetching prediction data, reference data, and optional
+system weights to user-defined functions. The flexibility in defining
+custom loss functions for different properties and their respective weights
+allows for tailored optimisation strategies.</p>
+<p>This entity is fairly simple in operation as it contains very little in the
+way of active logic. It is primarily intended as a means of clearing up the
+main training loop, as it abstracts some of the tedious &amp; repetitive code.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.ml.loss_function.Loss.prediction_data_delegate">
+<span class="sig-name descname"><span class="pre">prediction_data_delegate</span></span><a class="headerlink" href="#tbmalt.ml.loss_function.Loss.prediction_data_delegate" title="Link to this definition"></a></dt>
+<dd><p>A delegate function tasked with fetching
+predicted data from a given calculator entity.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.ml.loss_function.Loss.reference_data_delegate">
+<span class="sig-name descname"><span class="pre">reference_data_delegate</span></span><a class="headerlink" href="#tbmalt.ml.loss_function.Loss.reference_data_delegate" title="Link to this definition"></a></dt>
+<dd><p>A delegate function responsible for obtaining
+reference from a dataset.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.ml.loss_function.Loss.system_weight_delegate">
+<span class="sig-name descname"><span class="pre">system_weight_delegate</span></span><a class="headerlink" href="#tbmalt.ml.loss_function.Loss.system_weight_delegate" title="Link to this definition"></a></dt>
+<dd><p>An optional delegate function that provides
+weights for each system present in a batch. This allows for some
+molecules to have a greater or lesser influence on the loss. By
+default, system specific weighting is disabled.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.ml.loss_function.Loss.loss_functions">
+<span class="sig-name descname"><span class="pre">loss_functions</span></span><a class="headerlink" href="#tbmalt.ml.loss_function.Loss.loss_functions" title="Link to this definition"></a></dt>
+<dd><p>A single loss function, or a dictionary of such keyed
+by property names, used for computing individual losses. This will
+default to the L1 loss. If using a dictionary, the key <cite>default</cite>
+can be used to specify what loss function should be used for
+properties whose loss functions are not explicitly specified.
+[DEFAULT=l1_loss]</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.ml.loss_function.Loss.loss_weights">
+<span class="sig-name descname"><span class="pre">loss_weights</span></span><a class="headerlink" href="#tbmalt.ml.loss_function.Loss.loss_weights" title="Link to this definition"></a></dt>
+<dd><p>A dictionary mapping property names to their respective
+weights in the final loss calculation. If not provided, a uniform
+weighting is assumed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.ml.loss_function.Loss.reduction">
+<span class="sig-name descname"><span class="pre">reduction</span></span><a class="headerlink" href="#tbmalt.ml.loss_function.Loss.reduction" title="Link to this definition"></a></dt>
+<dd><p>The reduction method used to obtain output, which has the
+option of ‘mean’ or ‘sum’. By default, ‘mean’ will be applied.</p>
+</dd></dl>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is expected that the prediction &amp; reference data delegate functions
+will each accept three parameters: <cite>calculator</cite>, <cite>dataset</cite>, &amp; <cite>**kwargs</cite>.
+These functions must return a dictionary containing the properties to
+be utilised in the computation of the total loss. Runtime warnings will
+be issued if and when key dependencies are encountered. That is to say
+if there are keys found in one dictionary that are not in the other.</p>
+<p>Optionally, a system weight delegate method may be provided through the
+<code class="docutils literal notranslate"><span class="pre">system_weight_delegate</span></code> argument. This method should return a torch
+tensor that specifies a weight for each system within the current batch,
+adhering to the same calling convention as the prediction and reference
+data delegate functions.</p>
+<p>The mechanism for computing the component losses tied to each property
+can be defined using the <code class="docutils literal notranslate"><span class="pre">loss_functions</span></code> argument. This allows for
+the assignment of distinct loss functions to different properties by
+employing a dictionary. Additionally, property-specific weights may be
+designated via the <code class="docutils literal notranslate"><span class="pre">loss_weights</span></code> attribute, facilitating the
+calculation of the final loss as a weighted sum of all individual
+losses rather than a mere aggregation.</p>
+</div>
+<p class="rubric">Example</p>
+<p>The class is instantiated with delegate functions for data retrieval &amp;
+optionally system weighting, alongside a specification of loss functions
+and their weights.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">example_prediction_delegate</span><span class="p">(</span><span class="n">calculator</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">predictions</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">predictions</span><span class="p">[</span><span class="s2">&quot;fermi_energy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">fermi_energy</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">predictions</span><span class="p">[</span><span class="s2">&quot;mulliken&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">calculator</span><span class="o">.</span><span class="n">q_final</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">predictions</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">example_reference_delegate</span><span class="p">(</span><span class="n">calculator</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">references</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">references</span><span class="p">[</span><span class="s2">&quot;fermi_energy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;fermi_energy&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">references</span><span class="p">[</span><span class="s2">&quot;mulliken&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;mulliken_population&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">references</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loss_entity</span> <span class="o">=</span> <span class="n">Loss</span><span class="p">(</span><span class="n">example_prediction_delegate</span><span class="p">,</span>
+<span class="gp">&gt;&gt;&gt; </span>                   <span class="n">example_reference_delegate</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It is then called with a calculator &amp; dataset to compute the total and
+individual losses, facilitating the optimisation of complex systems
+with multiple properties.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">some_calculator</span><span class="p">(</span><span class="n">some_geometry</span><span class="p">,</span> <span class="n">some_orbitalinfo</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">total_loss</span><span class="p">,</span> <span class="n">raw_losses</span> <span class="o">=</span> <span class="n">loss_entity</span><span class="p">(</span><span class="n">some_calculator</span><span class="p">,</span> <span class="n">some_dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prediction_data_delegate</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[<a class="reference internal" href="tbmalt.ml.calculator.Calculator.html#tbmalt.ml.calculator.Calculator" title="tbmalt.ml.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Calculator</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]]</span>)</p></li>
+<li><p><strong>reference_data_delegate</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[<a class="reference internal" href="tbmalt.ml.calculator.Calculator.html#tbmalt.ml.calculator.Calculator" title="tbmalt.ml.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Calculator</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]]</span>)</p></li>
+<li><p><strong>system_weight_delegate</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[<a class="reference internal" href="tbmalt.ml.calculator.Calculator.html#tbmalt.ml.calculator.Calculator" title="tbmalt.ml.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Calculator</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]]</span>)</p></li>
+<li><p><strong>loss_functions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Callable</span></code>[[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]], <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]]]</span>)</p></li>
+<li><p><strong>loss_weights</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>)</p></li>
+<li><p><strong>reduction</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>]</span>)</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.ml.loss_function.mse_loss.html" class="btn btn-neutral float-left" title="2.1.4.5.3. mse_loss" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.physics.html" class="btn btn-neutral float-right" title="2.1.5. physics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

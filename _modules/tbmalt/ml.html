@@ -1,0 +1,168 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.ml &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">tbmalt.ml</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.ml</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;This module houses the majority of TBMaLT&#39;s machine learning code.</span>
+
+<span class="sd">The primary machine learning components of TBMaLT are located within this</span>
+<span class="sd">module.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span>
+
+
+<div class="viewcode-block" id="Feed">
+<a class="viewcode-back" href="../../_autosummary/tbmalt.ml.Feed.html#tbmalt.ml.Feed">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Feed</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract base class for all feed components in the TBMaLT framework.</span>
+
+<span class="sd">    The `Feed` class serves as a foundational building block for creating</span>
+<span class="sd">    diverse and flexible components that process inputs to generate outputs.</span>
+<span class="sd">    These components, referred to as &quot;feeds,&quot; encapsulate optimisable</span>
+<span class="sd">    parameters that can be tuned to enhance the output. This class is designed</span>
+<span class="sd">    to integrate seamlessly with the PyTorch ecosystem, allowing for the</span>
+<span class="sd">    utilization of PyTorch&#39;s optimizers, device management, and other</span>
+<span class="sd">    functionalities.</span>
+
+<span class="sd">    Subclasses of `Feed` must implement specific methods to define how inputs</span>
+<span class="sd">    are processed and how the parameters are used. The parameters within each</span>
+<span class="sd">    `Feed` object can vary significantly, as the class is intended to support a</span>
+<span class="sd">    wide range of computational processes, from spline interpolations to</span>
+<span class="sd">    quantum mechanical solvers.</span>
+
+<span class="sd">    Key Features:</span>
+
+<span class="sd">    - Automatic tracking of optimisable parameters, facilitating integration</span>
+<span class="sd">      with PyTorch&#39;s optimization routines.</span>
+<span class="sd">    - Support for nested `Feed` objects, allowing for the construction of</span>
+<span class="sd">      complex computational workflows.</span>
+<span class="sd">    - Flexibility in input and output definitions, with no enforced method</span>
+<span class="sd">      signature, enabling subclasses to define methods with varying</span>
+<span class="sd">      arguments according to their specific needs.</span>
+
+<span class="sd">    This class is crucial for the modular design of the framework, enabling</span>
+<span class="sd">    components to be easily combined, extended, and reused across different</span>
+<span class="sd">    applications.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Subclasses must implement the `forward` method to define the computation</span>
+<span class="sd">        performed by the feed. However, as per PyTorch&#39;s recommendation, feeds</span>
+<span class="sd">        should be invoked via their call method. Other methods may be required</span>
+<span class="sd">        depending on the specific subclass implementation.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span></div>
+
+
+    <span class="c1"># Note that the `forward` method must be implemented but inheriting</span>
+    <span class="c1"># classes, as mandated by the parent class `torch.nn.Module`. However,</span>
+    <span class="c1"># to prevent method signature conflict warnings the abstract method has</span>
+    <span class="c1"># not been concretely enforced.</span>
+    <span class="c1"># @abstractmethod</span>
+    <span class="c1"># def forward(self, *args, **kwargs):</span>
+    <span class="c1">#     raise NotImplementedError(</span>
+    <span class="c1">#         &quot;Abstract method `forward` has not been implemented.&quot;)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

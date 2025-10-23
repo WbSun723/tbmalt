@@ -1,0 +1,34 @@
+mixers
+======
+
+.. automodule:: tbmalt.common.maths.mixers
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      Anderson
+      Mixer
+      Simple
+   
+   
+
+   
+   
+   
+
+
+

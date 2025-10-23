@@ -1,0 +1,28 @@
+SkfOnSiteFeed
+=============
+
+.. currentmodule:: tbmalt.physics.dftb.feeds
+
+.. autoclass:: SkfOnSiteFeed
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, dtype
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~SkfOnSiteFeed.device
+   
+      ~SkfOnSiteFeed.dtype
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

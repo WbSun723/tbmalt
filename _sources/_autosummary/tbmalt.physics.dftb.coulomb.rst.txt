@@ -1,0 +1,44 @@
+coulomb
+=======
+
+.. automodule:: tbmalt.physics.dftb.coulomb
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      build_coulomb_matrix
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      Ewald
+      Ewald1d
+      Ewald2d
+      Ewald3d
+   
+   
+
+   
+   
+   
+
+
+

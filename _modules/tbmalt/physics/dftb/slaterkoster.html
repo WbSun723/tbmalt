@@ -1,0 +1,640 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.physics.dftb.slaterkoster &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../dftb.html">tbmalt.physics.dftb</a></li>
+      <li class="breadcrumb-item active">tbmalt.physics.dftb.slaterkoster</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.physics.dftb.slaterkoster</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Code associated with performing Slater-Koster transformations.</span>
+
+<span class="sd">This houses the code responsible for constructing &amp; applying the Slater-Koster</span>
+<span class="sd">transformations that rotate matrix elements from the reference frame of the</span>
+<span class="sd">parametrisation set, [0,0,1], into that required by the calculation.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">stack</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">bT</span>
+
+<span class="c1"># Static module-level constants (used for SK transformation operations)</span>
+<span class="n">_SQR3</span><span class="p">,</span> <span class="n">_SQR6</span><span class="p">,</span> <span class="n">_SQR10</span><span class="p">,</span> <span class="n">_SQR15</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">6.</span><span class="p">,</span> <span class="mf">10.</span><span class="p">,</span> <span class="mf">15.</span><span class="p">]))</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="n">_HSQR3</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="sub_block_rot">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.physics.dftb.slaterkoster.sub_block_rot.html#tbmalt.physics.dftb.slaterkoster.sub_block_rot">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sub_block_rot</span><span class="p">(</span><span class="n">l_pair</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">u_vec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                  <span class="n">integrals</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Diatomic sub-block rotated into the reference frame of the system.</span>
+
+<span class="sd">    This takes the unit distance vector and Slater-Koster integrals between a</span>
+<span class="sd">    pair of orbitals and constructs the associated diatomic block which has</span>
+<span class="sd">    been rotated into the reference frame of the system.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        l_pair: Azimuthal quantum numbers associated with the orbitals.</span>
+<span class="sd">        u_vec: Unit distance vector between the atoms.</span>
+<span class="sd">        integrals: Slater-Koster integrals between the orbitals, in order of</span>
+<span class="sd">            σ, π, δ, γ, etc.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        block: Diatomic block(s)</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.physics.dftb.slaterkoster import sub_block_rot</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Slater-Koster transformation for single system</span>
+<span class="sd">        &gt;&gt;&gt; l_pair = torch.tensor([0, 0])  # s-s orbital</span>
+<span class="sd">        &gt;&gt;&gt; u_vecs = torch.tensor([0.7001, 0.6992, 0.1449])</span>
+<span class="sd">        &gt;&gt;&gt; integrals = torch.tensor([-0.1610])</span>
+<span class="sd">        &gt;&gt;&gt; pred = sub_block_rot(l_pair, u_vecs, integrals)</span>
+<span class="sd">        &gt;&gt;&gt; print(pred)</span>
+<span class="sd">        tensor([[-0.1610]])</span>
+<span class="sd">        &gt;&gt;&gt; # Slater-Koster transformation for batch system</span>
+<span class="sd">        &gt;&gt;&gt; l_pair = torch.tensor([0, 1])  # s-p orbital</span>
+<span class="sd">        &gt;&gt;&gt; u_vecs  = torch.tensor([</span>
+<span class="sd">        ...     [0.7001, 0.6992, 0.1449], [0.8199, 0.5235, 0.2317],</span>
+<span class="sd">        ...     [0.1408, 0.7220, 0.6774], [0.5945, 0.6138, 0.5195],</span>
+<span class="sd">        ...     [0.5749, 0.6112, 0.5440], [0.4976, 0.5884, 0.6374],</span>
+<span class="sd">        ...     [0.0075, 0.5677, 0.8232], [0.7632, 0.4264, 0.4856],</span>
+<span class="sd">        ...     [0.3923, 0.3178, 0.8632], [0.0278, 0.6896, 0.7237]])</span>
+<span class="sd">        &gt;&gt;&gt; integrals = torch.tensor([</span>
+<span class="sd">        ...     [-0.1011], [-0.1011], [-0.1011], [-0.1011], [-0.1011],</span>
+<span class="sd">        ...     [-0.1011], [-0.1011], [-0.1011], [-0.1011], [-0.1011]])</span>
+<span class="sd">        &gt;&gt;&gt; pred = sub_block_rot(l_pair, u_vecs, integrals)</span>
+<span class="sd">        &gt;&gt;&gt; print(pred)</span>
+<span class="sd">        tensor([[[-0.0707, -0.0146, -0.0708]],</span>
+<span class="sd">                [[-0.0529, -0.0234, -0.0829]],</span>
+<span class="sd">                [[-0.0730, -0.0685, -0.0142]],</span>
+<span class="sd">                [[-0.0621, -0.0525, -0.0601]],</span>
+<span class="sd">                [[-0.0618, -0.0550, -0.0581]],</span>
+<span class="sd">                [[-0.0595, -0.0644, -0.0503]],</span>
+<span class="sd">                [[-0.0574, -0.0832, -0.0008]],</span>
+<span class="sd">                [[-0.0431, -0.0491, -0.0772]],</span>
+<span class="sd">                [[-0.0321, -0.0873, -0.0397]],</span>
+<span class="sd">                [[-0.0697, -0.0732, -0.0028]]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">u_vec</span><span class="o">.</span><span class="n">device</span> <span class="o">!=</span> <span class="n">integrals</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>  <span class="c1"># Better to throw this exception manually</span>
+            <span class="sa">f</span><span class="s1">&#39;Expected u_vec(</span><span class="si">{</span><span class="n">u_vec</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s1">) &amp; integrals(</span><span class="si">{</span><span class="n">integrals</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s1">) &#39;</span>
+            <span class="s1">&#39;to be on the same device!&#39;</span><span class="p">)</span>
+
+    <span class="c1"># If smallest is ℓ first the matrix multiplication complexity is reduced</span>
+    <span class="n">l1</span><span class="p">,</span> <span class="n">l2</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">l_pair</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">l_pair</span><span class="p">))</span>
+
+    <span class="c1"># Tensor in which to place the results.</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">u_vec</span><span class="p">)</span> <span class="k">if</span> <span class="n">u_vec</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="mi">2</span> <span class="o">*</span> <span class="n">l1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">l2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">integrals</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># Integral matrix block (in the reference frame of the parameter set)</span>
+    <span class="n">i_mat</span> <span class="o">=</span> <span class="n">sub_block_ref</span><span class="p">(</span><span class="n">l_pair</span><span class="o">.</span><span class="n">sort</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">integrals</span><span class="p">)</span>
+
+    <span class="c1"># Identify which vectors must use yz type rotations &amp; which must use xy.</span>
+    <span class="n">rot_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">gt</span><span class="p">(</span><span class="n">u_vec</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">(),</span> <span class="n">u_vec</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">abs</span><span class="p">())</span>
+
+    <span class="c1"># Perform transformation operation (must do yz &amp; xy type rotations)</span>
+    <span class="k">for</span> <span class="n">rots</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">((</span><span class="n">_sk_yz_rots</span><span class="p">,</span> <span class="n">_sk_xy_rots</span><span class="p">),</span> <span class="p">(</span><span class="n">rot_mask</span><span class="p">,</span> <span class="o">~</span><span class="n">rot_mask</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">u_vec_selected</span> <span class="o">:=</span> <span class="n">u_vec</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">rot_a</span> <span class="o">=</span> <span class="n">rots</span><span class="p">[</span><span class="n">l1</span><span class="p">](</span><span class="n">u_vec_selected</span><span class="p">)</span>
+            <span class="n">rot_b</span> <span class="o">=</span> <span class="n">rots</span><span class="p">[</span><span class="n">l2</span><span class="p">](</span><span class="n">u_vec_selected</span><span class="p">)</span>
+            <span class="n">block</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+                <span class="s1">&#39;...ji,...ik,...ck-&gt;...jc&#39;</span><span class="p">,</span> <span class="n">rot_a</span><span class="p">,</span> <span class="n">i_mat</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="n">rot_b</span><span class="p">)</span>
+
+    <span class="c1"># The masking operation converts single instances into batches of size 1,</span>
+    <span class="c1"># therefore a catch is added to undo this.</span>
+    <span class="k">if</span> <span class="n">u_vec</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Transpose if ℓ₁&gt;ℓ₂ and flip the sign as needed.</span>
+    <span class="k">if</span> <span class="n">l_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">l_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">sign</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="n">l1</span> <span class="o">+</span> <span class="n">l2</span><span class="p">)</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">block</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">block</span></div>
+
+
+
+<div class="viewcode-block" id="sub_block_ref">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.physics.dftb.slaterkoster.sub_block_ref.html#tbmalt.physics.dftb.slaterkoster.sub_block_ref">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sub_block_ref</span><span class="p">(</span><span class="n">l_pair</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">integrals</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Diatomic sub-block in the Slater-Koster integrals&#39; reference frame.</span>
+
+<span class="sd">    This yields the tensor that is multiplied with the transformation matrices</span>
+<span class="sd">    to produce the diatomic sub-block in the atomic reference frame.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        l_pair: Angular momenta of the two systems.</span>
+<span class="sd">        integrals: Slater-Koster integrals between orbitals with the specified</span>
+<span class="sd">            angular momenta, in order of σ, π, δ, γ, etc.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        block: Diatomic sub-block in the reference frame of the integrals.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        Each row of ``integrals`` should represent a separate system; i.e.,</span>
+<span class="sd">        a 3x1 matrix would indicate a batch of size 3, each with one integral.</span>
+<span class="sd">        Whereas a matrix of size 1x3 or a vector of size 3 would indicate one</span>
+<span class="sd">        system with three integral values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l1</span><span class="p">,</span> <span class="n">l2</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">l_pair</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="n">l_pair</span><span class="p">)</span>
+
+    <span class="c1"># Test for anticipated number of integrals to ensure `integrals` is in the</span>
+    <span class="c1"># correct shape.</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">m</span> <span class="o">:=</span> <span class="n">integrals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">!=</span> <span class="p">(</span><span class="n">n</span> <span class="o">:=</span> <span class="n">l1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;Expected </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> integrals per-system (l_min=</span><span class="si">{</span><span class="n">l1</span><span class="si">}</span><span class="s1">), but found </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Generate integral reference frame block; extending its dimensionality if</span>
+    <span class="c1"># working on multiple systems.</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">l1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">l2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">integrals</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">integrals</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">integrals</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+    <span class="c1"># Fetch the block&#39;s diagonal and assign the integrals to it like so</span>
+    <span class="c1">#      ┌               ┐</span>
+    <span class="c1">#      │ i_1, 0.0, 0.0 │  Where i_0 and i_1 are the first and second</span>
+    <span class="c1">#      │ 0.0, i_0, 0.0 │  integral values respectively.</span>
+    <span class="c1">#      │ 0.0, 0.0, i_1 │</span>
+    <span class="c1">#      └               ┘</span>
+    <span class="c1"># While this method is a little messy it is faster than alternate methods</span>
+    <span class="n">diag</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">offset</span><span class="o">=</span><span class="n">l2</span> <span class="o">-</span> <span class="n">l1</span><span class="p">,</span> <span class="n">dim1</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim2</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">size</span> <span class="o">=</span> <span class="n">integrals</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">diag</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="o">-</span><span class="n">size</span><span class="p">:]</span> <span class="o">=</span> <span class="n">integrals</span>
+    <span class="n">diag</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">integrals</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># Return the results; a transpose s required if l1 &gt; l2</span>
+    <span class="k">return</span> <span class="n">block</span> <span class="k">if</span> <span class="n">l1</span> <span class="o">==</span> <span class="n">l_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">else</span> <span class="n">block</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+
+<span class="c1">#################################</span>
+<span class="c1"># Slater-Koster Transformations #</span>
+<span class="c1">#################################</span>
+<span class="c1"># Note that the internal Slater-Koster transformation functions &quot;_skt_*&quot; are</span>
+<span class="c1"># able to handle batches of systems, not just one system at a time.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_rot_yz_s</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;s-block transformation matrix rotating about the y and z axes.</span>
+
+<span class="sd">    Transformation matrix for rotating s-orbital blocks, about the y &amp; z axes,</span>
+<span class="sd">    from the integration frame to the molecular frame. Multiple transformation</span>
+<span class="sd">    matrices can be produced simultaneously.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        unit_vector: Unit vector(s) between pair(s) of orbitals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rot: Transformation matrix.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        This function acts as a dummy subroutine, as integrals do not</span>
+<span class="sd">        require transformation operations. This exists primarily to maintain</span>
+<span class="sd">        functional consistency.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Using `norm()` rather than `ones()` allows for backpropagation</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">unit_vector</span><span class="o">.</span><span class="n">ndim</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rot_xy_s</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;s-block transformation matrix rotating about the x and y axes.</span>
+
+<span class="sd">    Transformation matrix for rotating s-orbital blocks, about the x &amp; y axes,</span>
+<span class="sd">    from the integration frame to the molecular frame. Multiple transformation</span>
+<span class="sd">    matrices can be produced simultaneously.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        unit_vector: Unit vector(s) between pair(s) of orbitals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rot: Transformation matrix.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        This function acts as a dummy subroutine, as integrals do not</span>
+<span class="sd">        require transformation operations. This exists primarily to maintain</span>
+<span class="sd">        functional consistency.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Using `norm()` rather than `ones()` allows for backpropagation</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
+        <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">unit_vector</span><span class="o">.</span><span class="n">ndim</span><span class="p">))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rot_yz_p</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;p-block transformation matrix rotating about the y and z axes.</span>
+
+<span class="sd">    Transformation matrix for rotating p-orbital blocks, about the y &amp; z axes,</span>
+<span class="sd">    from the integration frame to the molecular frame. Multiple transformation</span>
+<span class="sd">    matrices can be produced simultaneously.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        unit_vector: Unit vector(s) between pair(s) of orbitals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rot: Transformation matrix.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        The resulting transformation matrix becomes numerically ill-defined</span>
+<span class="sd">        when z≈1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">)</span>
+    <span class="n">zeros</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">z</span> <span class="o">*</span> <span class="n">z</span><span class="p">)</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">stack</span><span class="p">([</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">x</span> <span class="o">/</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="o">-</span><span class="n">y</span> <span class="o">/</span> <span class="n">alpha</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">y</span> <span class="o">*</span> <span class="n">z</span> <span class="o">/</span> <span class="n">alpha</span><span class="p">,</span> <span class="o">-</span><span class="n">alpha</span><span class="p">,</span> <span class="n">x</span> <span class="o">*</span> <span class="n">z</span> <span class="o">/</span> <span class="n">alpha</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rot</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rot_xy_p</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;p-block transformation matrix rotating about the x and y axes.</span>
+
+<span class="sd">    Transformation matrix for rotating p-orbital blocks, about the x &amp; y axes,</span>
+<span class="sd">    from the integration frame to the molecular frame. Multiple transformation</span>
+<span class="sd">    matrices can be produced simultaneously.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        unit_vector: Unit vector(s) between pair(s) of orbitals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rot: Transformation matrix.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        The resulting transformation matrix becomes numerically ill-defined</span>
+<span class="sd">        when y≈1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">)</span>
+    <span class="n">zeros</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">y</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">stack</span><span class="p">([</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">alpha</span><span class="p">,</span> <span class="o">-</span><span class="n">y</span> <span class="o">*</span> <span class="n">z</span> <span class="o">/</span> <span class="n">alpha</span><span class="p">,</span> <span class="o">-</span><span class="n">x</span> <span class="o">*</span> <span class="n">y</span> <span class="o">/</span> <span class="n">alpha</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">zeros</span><span class="p">,</span> <span class="o">-</span><span class="n">x</span> <span class="o">/</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">z</span> <span class="o">/</span> <span class="n">alpha</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rot</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rot_yz_d</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;d-block transformation matrix rotating about the y and z axes.</span>
+
+<span class="sd">    Transformation matrix for rotating d-orbital blocks, about the y &amp; z axes,</span>
+<span class="sd">    from the integration frame to the molecular frame. Multiple transformation</span>
+<span class="sd">    matrices can be produced simultaneously.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        unit_vector: Unit vector(s) between pair(s) of orbitals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rot: Transformation matrix.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        The resulting transformation matrix becomes numerically ill-defined</span>
+<span class="sd">        when z≈1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">unit_vector_t</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">unit_vector_t</span>
+    <span class="n">zeros</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">z</span> <span class="o">*</span> <span class="n">z</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">xz</span><span class="p">,</span> <span class="n">xy</span><span class="p">,</span> <span class="n">yz</span> <span class="o">=</span> <span class="n">unit_vector_t</span> <span class="o">*</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">yz</span>
+    <span class="n">x2</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">stack</span><span class="p">([</span>
+        <span class="n">stack</span><span class="p">([</span><span class="o">-</span><span class="n">z</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">*</span> <span class="n">z</span> <span class="o">/</span> <span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="n">x</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">a</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="o">-</span><span class="n">b</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="n">xz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="o">-</span><span class="n">yz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">/</span> <span class="n">b</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">xy</span> <span class="o">*</span> <span class="n">_SQR3</span><span class="p">,</span> <span class="n">yz</span> <span class="o">*</span> <span class="n">_SQR3</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">a</span><span class="p">,</span> <span class="n">xz</span> <span class="o">*</span> <span class="n">_SQR3</span><span class="p">,</span>
+               <span class="n">_SQR3</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="n">x2</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">y</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="n">_SQR3</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span>
+               <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">x</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="n">z</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">*</span> <span class="n">z</span> <span class="o">/</span> <span class="n">b</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="o">-</span><span class="n">xy</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">/</span> <span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="n">yz</span><span class="p">,</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">_SQR3</span> <span class="o">*</span> <span class="n">a</span><span class="p">,</span> <span class="o">-</span><span class="n">xz</span><span class="p">,</span>
+               <span class="mf">0.5</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="n">a</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rot</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rot_xy_d</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;d-block transformation matrix rotating about the x and y axes.</span>
+
+<span class="sd">    Transformation matrix for rotating d-orbital blocks, about the x &amp; y axes,</span>
+<span class="sd">    from the integration frame to the molecular frame. Multiple transformation</span>
+<span class="sd">    matrices can be produced simultaneously.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        unit_vector: Unit vector(s) between pair(s) of orbitals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rot: Transformation matrix.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        The resulting transformation matrix becomes numerically ill-defined</span>
+<span class="sd">        when y≈1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">unit_vector_t</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">unit_vector_t</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">y</span> <span class="o">*</span> <span class="n">y</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">xz</span><span class="p">,</span> <span class="n">xy</span><span class="p">,</span> <span class="n">yz</span> <span class="o">=</span> <span class="n">unit_vector_t</span> <span class="o">*</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">yz</span>
+    <span class="n">z2</span> <span class="o">=</span> <span class="n">z</span> <span class="o">*</span> <span class="n">z</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">stack</span><span class="p">([</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">z</span><span class="p">,</span> <span class="o">-</span><span class="n">x</span><span class="p">,</span> <span class="n">xyz</span> <span class="o">*</span> <span class="n">_SQR3</span> <span class="o">/</span> <span class="n">a</span><span class="p">,</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span> <span class="o">-</span><span class="n">xyz</span> <span class="o">/</span> <span class="n">a</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+               <span class="o">-</span><span class="n">y</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">*</span> <span class="n">_SQR3</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">b</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">xy</span> <span class="o">*</span> <span class="n">_SQR3</span><span class="p">,</span> <span class="n">yz</span> <span class="o">*</span> <span class="n">_SQR3</span><span class="p">,</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">xz</span> <span class="o">*</span> <span class="n">_SQR3</span><span class="p">,</span>
+               <span class="mf">0.5</span> <span class="o">*</span> <span class="n">_SQR3</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="n">z2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">yz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="n">xy</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="n">xz</span> <span class="o">*</span> <span class="n">_SQR3</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="n">b</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span> <span class="n">xz</span> <span class="o">/</span> <span class="n">b</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span><span class="n">xy</span><span class="p">,</span> <span class="n">yz</span><span class="p">,</span> <span class="n">_SQR3</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+               <span class="n">xz</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">xz</span> <span class="o">/</span> <span class="n">a</span><span class="p">,</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">+</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rot</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rot_yz_f</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;f-block transformation matrix rotating about the y and z axes.</span>
+
+<span class="sd">    Transformation matrix for rotating f-orbital blocks, about the y &amp; z axes,</span>
+<span class="sd">    from the integration frame to the molecular frame. Multiple transformation</span>
+<span class="sd">    matrices can be produced simultaneously.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        unit_vector: Unit vector(s) between pair(s) of orbitals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rot: Transformation matrix.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        The resulting transformation matrix becomes numerically ill-defined</span>
+<span class="sd">        when z≈1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">unit_vector_t</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">unit_vector_t</span>
+    <span class="n">xz</span><span class="p">,</span> <span class="n">xy</span><span class="p">,</span> <span class="n">yz</span> <span class="o">=</span> <span class="n">unit_vector_t</span> <span class="o">*</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">yz</span>
+    <span class="n">zeros</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">z</span> <span class="o">*</span> <span class="n">z</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">b</span> <span class="o">**</span> <span class="mi">3</span>
+    <span class="n">x2</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">stack</span><span class="p">([</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.25</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">x2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">c</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="mf">0.25</span> <span class="o">*</span> <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">zeros</span><span class="p">,</span>
+            <span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">12</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">xz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.5</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">4</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">z</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span>
+            <span class="mf">0.5</span> <span class="o">*</span> <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="n">z</span><span class="p">,</span>
+            <span class="n">xy</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">a</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.25</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">zeros</span><span class="p">,</span>
+            <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.25</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="o">-</span><span class="n">_SQR10</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">y</span> <span class="o">*</span> <span class="n">_SQR10</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="n">x2</span><span class="p">),</span>
+            <span class="n">xyz</span> <span class="o">*</span> <span class="n">_SQR15</span><span class="p">,</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.25</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.5</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.25</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="n">x2</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="n">x2</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">3.75</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.25</span> <span class="o">*</span> <span class="n">c</span> <span class="o">-</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">xz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">3.75</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">c</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mf">6.0</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">xz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">xyz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">3</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">),</span>
+            <span class="mf">0.5</span> <span class="o">*</span> <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">a</span> <span class="o">*</span> <span class="n">z</span><span class="p">,</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">),</span>
+            <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mf">6.0</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">a</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="p">(</span><span class="n">x2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">c</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="mf">0.25</span> <span class="o">*</span> <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span>
+            <span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">c</span><span class="p">,</span>
+            <span class="mf">0.25</span> <span class="o">*</span> <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">xz</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">c</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">xz</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">+</span> <span class="mi">12</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">x2</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rot</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rot_xy_f</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;f-block transformation matrix rotating about the x and y axes.</span>
+
+<span class="sd">    Transformation matrix for rotating f-orbital blocks, about the x &amp; y axes,</span>
+<span class="sd">    from the integration frame to the molecular frame. Multiple transformation</span>
+<span class="sd">    matrices can be produced simultaneously.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        unit_vector: Unit vector(s) between pair(s) of orbitals.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        rot: Transformation matrix.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        The resulting transformation matrix becomes numerically ill-defined</span>
+<span class="sd">        when y≈1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">unit_vector_t</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">unit_vector_t</span>
+    <span class="n">xz</span><span class="p">,</span> <span class="n">xy</span><span class="p">,</span> <span class="n">yz</span> <span class="o">=</span> <span class="n">unit_vector_t</span> <span class="o">*</span> <span class="n">bT</span><span class="p">(</span><span class="n">unit_vector</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">yz</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">y</span> <span class="o">*</span> <span class="n">y</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">b</span> <span class="o">**</span> <span class="mi">3</span>
+    <span class="n">z2</span> <span class="o">=</span> <span class="n">z</span> <span class="o">*</span> <span class="n">z</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">stack</span><span class="p">([</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">c</span> <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.75</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">xz</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="n">z2</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">c</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">c</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.75</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">-</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">c</span><span class="p">),</span>
+            <span class="n">xy</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">b</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">-</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">xz</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">,</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">xz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">,</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">xy</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="mf">0.75</span> <span class="o">*</span> <span class="p">(</span><span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">xz</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="p">(</span><span class="mf">3.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mf">2.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">*</span> <span class="p">(</span><span class="mi">15</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">yz</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="n">b</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">0.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.25</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">xy</span> <span class="o">*</span> <span class="n">z</span><span class="p">,</span>
+            <span class="mf">0.25</span> <span class="o">*</span> <span class="n">_SQR6</span> <span class="o">*</span> <span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span><span class="p">,</span>
+            <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="mf">2.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">1.5</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.25</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.25</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.75</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="mf">0.5</span> <span class="o">*</span> <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="o">-</span><span class="mf">2.5</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mi">5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">2.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">15</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">xyz</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.25</span> <span class="o">-</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">1.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">3.5</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">-</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">-</span> <span class="mf">0.75</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">a</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">stack</span><span class="p">([</span>
+            <span class="mf">1.5</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">b</span><span class="p">),</span>
+            <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">xyz</span> <span class="o">/</span> <span class="n">b</span><span class="p">,</span>
+            <span class="n">_SQR10</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">c</span><span class="p">),</span>
+            <span class="n">_SQR15</span> <span class="o">*</span> <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.75</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">-</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">c</span><span class="p">),</span>
+            <span class="n">_SQR6</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">+</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.25</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">-</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">c</span><span class="p">),</span>
+            <span class="n">z</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">b</span> <span class="o">-</span> <span class="p">(</span><span class="mf">0.75</span> <span class="o">*</span> <span class="n">z2</span> <span class="o">+</span> <span class="mf">0.75</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span> <span class="o">+</span> <span class="n">z2</span> <span class="o">/</span> <span class="n">c</span><span class="p">)</span>
+        <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rot</span>
+
+
+<span class="n">_sk_yz_rots</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">_rot_yz_s</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="n">_rot_yz_p</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="n">_rot_yz_d</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="n">_rot_yz_f</span><span class="p">}</span>
+<span class="n">_sk_xy_rots</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="n">_rot_xy_s</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span> <span class="n">_rot_xy_p</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="n">_rot_xy_d</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span> <span class="n">_rot_xy_f</span><span class="p">}</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

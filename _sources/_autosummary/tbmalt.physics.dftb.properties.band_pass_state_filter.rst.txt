@@ -1,0 +1,8 @@
+band\_pass\_state\_filter
+=========================
+
+.. currentmodule:: tbmalt.physics.dftb.properties
+
+.. autofunction:: tbmalt.physics.dftb.properties.band_pass_state_filter
+
+    .. autosummary::

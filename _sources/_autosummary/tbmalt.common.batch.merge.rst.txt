@@ -1,0 +1,8 @@
+merge
+=====
+
+.. currentmodule:: tbmalt.common.batch
+
+.. autofunction:: tbmalt.common.batch.merge
+
+    .. autosummary::

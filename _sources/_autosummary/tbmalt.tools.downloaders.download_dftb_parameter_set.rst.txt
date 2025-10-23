@@ -1,0 +1,8 @@
+download\_dftb\_parameter\_set
+==============================
+
+.. currentmodule:: tbmalt.tools.downloaders
+
+.. autofunction:: tbmalt.tools.downloaders.download_dftb_parameter_set
+
+    .. autosummary::

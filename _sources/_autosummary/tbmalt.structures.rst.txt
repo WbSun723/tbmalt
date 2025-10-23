@@ -1,0 +1,34 @@
+structures
+==========
+
+.. automodule:: tbmalt.structures
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: module.rst
+   :recursive:
+
+   geometry
+   orbitalinfo
+   periodicity
+

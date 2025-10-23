@@ -1,0 +1,44 @@
+OrbitalInfo
+===========
+
+.. currentmodule:: tbmalt.structures.orbitalinfo
+
+.. autoclass:: OrbitalInfo
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, n_res, on_atoms, on_res, on_shells, orbs_per_atom, orbs_per_res, orbs_per_shell, res_matrix_shape, shells_per_atom
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~OrbitalInfo.device
+   
+      ~OrbitalInfo.n_res
+   
+      ~OrbitalInfo.on_atoms
+   
+      ~OrbitalInfo.on_res
+   
+      ~OrbitalInfo.on_shells
+   
+      ~OrbitalInfo.orbs_per_atom
+   
+      ~OrbitalInfo.orbs_per_res
+   
+      ~OrbitalInfo.orbs_per_shell
+   
+      ~OrbitalInfo.res_matrix_shape
+   
+      ~OrbitalInfo.shells_per_atom
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

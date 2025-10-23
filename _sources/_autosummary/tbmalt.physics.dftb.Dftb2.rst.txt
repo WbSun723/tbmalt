@@ -1,0 +1,102 @@
+Dftb2
+=====
+
+.. currentmodule:: tbmalt.physics.dftb
+
+.. autoclass:: Dftb2
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: band_energy, band_free_energy, core_band_energy, core_band_free_energy, core_hamiltonian, device, dipole, dos, dos_energy, dtype, fermi_energy, forces, gamma, geometry, hamiltonian, homo, homo_lumo, invr, is_batch, is_periodic, lumo, mermin_energy, n_electrons, occupancy, orbs, overlap, q_delta, q_delta_atomic, q_delta_shells, q_final, q_final_atomic, q_final_shells, q_zero, q_zero_atomic, q_zero_res, q_zero_shells, repulsive_energy, scc_energy, total_energy
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~Dftb2.band_energy
+   
+      ~Dftb2.band_free_energy
+   
+      ~Dftb2.core_band_energy
+   
+      ~Dftb2.core_band_free_energy
+   
+      ~Dftb2.core_hamiltonian
+   
+      ~Dftb2.device
+   
+      ~Dftb2.dipole
+   
+      ~Dftb2.dos
+   
+      ~Dftb2.dos_energy
+   
+      ~Dftb2.dtype
+   
+      ~Dftb2.fermi_energy
+   
+      ~Dftb2.forces
+   
+      ~Dftb2.gamma
+   
+      ~Dftb2.geometry
+   
+      ~Dftb2.hamiltonian
+   
+      ~Dftb2.homo
+   
+      ~Dftb2.homo_lumo
+   
+      ~Dftb2.invr
+   
+      ~Dftb2.is_batch
+   
+      ~Dftb2.is_periodic
+   
+      ~Dftb2.lumo
+   
+      ~Dftb2.mermin_energy
+   
+      ~Dftb2.n_electrons
+   
+      ~Dftb2.occupancy
+   
+      ~Dftb2.orbs
+   
+      ~Dftb2.overlap
+   
+      ~Dftb2.q_delta
+   
+      ~Dftb2.q_delta_atomic
+   
+      ~Dftb2.q_delta_shells
+   
+      ~Dftb2.q_final
+   
+      ~Dftb2.q_final_atomic
+   
+      ~Dftb2.q_final_shells
+   
+      ~Dftb2.q_zero
+   
+      ~Dftb2.q_zero_atomic
+   
+      ~Dftb2.q_zero_res
+   
+      ~Dftb2.q_zero_shells
+   
+      ~Dftb2.repulsive_energy
+   
+      ~Dftb2.scc_energy
+   
+      ~Dftb2.total_energy
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

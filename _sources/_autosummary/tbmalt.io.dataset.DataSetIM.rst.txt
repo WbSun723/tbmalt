@@ -1,0 +1,18 @@
+DataSetIM
+=========
+
+.. currentmodule:: tbmalt.io.dataset
+
+.. autoclass:: DataSetIM
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: 
+
+   
+
+   
+   .. rubric:: Methods
+
+   

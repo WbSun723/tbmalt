@@ -1,0 +1,32 @@
+downloaders
+===========
+
+.. automodule:: tbmalt.tools.downloaders
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      download_dftb_parameter_set
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

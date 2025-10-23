@@ -1,0 +1,8 @@
+hellinger\_loss
+===============
+
+.. currentmodule:: tbmalt.ml.loss_function
+
+.. autofunction:: tbmalt.ml.loss_function.hellinger_loss
+
+    .. autosummary::

@@ -1,0 +1,8 @@
+gaussian\_smearing
+==================
+
+.. currentmodule:: tbmalt.physics.filling
+
+.. autofunction:: tbmalt.physics.filling.gaussian_smearing
+
+    .. autosummary::

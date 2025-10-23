@@ -1,0 +1,8 @@
+gaussian
+========
+
+.. currentmodule:: tbmalt.common.maths
+
+.. autofunction:: tbmalt.common.maths.gaussian
+
+    .. autosummary::

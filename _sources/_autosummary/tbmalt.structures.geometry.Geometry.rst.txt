@@ -1,0 +1,48 @@
+Geometry
+========
+
+.. currentmodule:: tbmalt.structures.geometry
+
+.. autoclass:: Geometry
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: atomic_numbers, positions, n_atoms, periodicity, lattice, chemical_symbols, device, distance_vectors, distances, dtype, is_periodic, pbc
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~Geometry.atomic_numbers
+   
+      ~Geometry.positions
+   
+      ~Geometry.n_atoms
+   
+      ~Geometry.periodicity
+   
+      ~Geometry.lattice
+   
+      ~Geometry.chemical_symbols
+   
+      ~Geometry.device
+   
+      ~Geometry.distance_vectors
+   
+      ~Geometry.distances
+   
+      ~Geometry.dtype
+   
+      ~Geometry.is_periodic
+   
+      ~Geometry.pbc
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

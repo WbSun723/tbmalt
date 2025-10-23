@@ -1,0 +1,291 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.5.1.5.7. SkfOnSiteFeed &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.5.1.5.8. VcrSkFeed" href="tbmalt.physics.dftb.feeds.VcrSkFeed.html" />
+    <link rel="prev" title="2.1.5.1.5.6. SkfOccupationFeed" href="tbmalt.physics.dftb.feeds.SkfOccupationFeed.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.physics.dftb.html">2.1.5.1. dftb</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.physics.filling.html">2.1.5.2. filling</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.html"><span class="section-number">2.1.5. </span>physics</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.dftb.html"><span class="section-number">2.1.5.1. </span>dftb</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.dftb.feeds.html"><span class="section-number">2.1.5.1.5. </span>feeds</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.5.1.5.7. </span>SkfOnSiteFeed</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.physics.dftb.feeds.SkfOnSiteFeed.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="skfonsitefeed">
+<h1><span class="section-number">2.1.5.1.5.7. </span>SkfOnSiteFeed<a class="headerlink" href="#skfonsitefeed" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.SkfOnSiteFeed">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SkfOnSiteFeed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">on_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">azimuthal_numbers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/dftb/feeds.html#SkfOnSiteFeed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.dftb.feeds.SkfOnSiteFeed" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="tbmalt.ml.Feed.html#tbmalt.ml.Feed" title="tbmalt.ml.Feed"><code class="xref py py-class docutils literal notranslate"><span class="pre">Feed</span></code></a></p>
+<p>On-site term feed backed by shell-resolved SKF data.</p>
+<p>This feed provides access to azimuthally (shell-)resolved on-site terms
+read from Slater–Koster parameter files and exposes them in a form suitable
+for DFTB matrix construction. A single optimisable value is stored per
+subshell (e.g. one value for s, one for p, one for d), and it is expanded
+on demand to one value per magnetic orbital within <a class="reference internal" href="#tbmalt.physics.dftb.feeds.SkfOnSiteFeed.forward" title="tbmalt.physics.dftb.feeds.SkfOnSiteFeed.forward"><code class="xref py py-meth docutils literal notranslate"><span class="pre">forward()</span></code></a> by
+repeating according to the multiplicity <span class="math notranslate nohighlight">\((2\ell + 1)\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>on_sites</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter)</span></code></span>) – A <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.ParameterDict</span></code> whose keys are atomic
+numbers represented as strings (e.g. <cite>“1”</cite>, <cite>“6”</cite>) and whose values
+are <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Parameter</span></code> objects containing the azimuthally
+resolved on-site terms for the corresponding species. One scalar
+parameter per subshell is expected (e.g. <cite>[s]</cite>, <cite>[s, p]</cite>,
+<cite>[s, p, d]</cite>).</p></li>
+<li><p><strong>azimuthal_numbers</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]]</span>) – A dictionary in which keys are atomic numbers (as
+strings) and values are 1-D integer tensors giving the azimuthal
+quantum number <cite>l</cite> for each azimuthally resolved on-site term in
+<code class="docutils literal notranslate"><span class="pre">on_sites</span></code>. When this argument is omitted, a minimal, valence-
+-only shell ordering is assumed and <cite>l</cite> is inferred as
+<cite>torch.arange(len(on_site))</cite> for the corresponding species. The
+<cite>l</cite> values are used solely to expand each azimuthal on-site term
+into its magnetic-orbital multiplicity <cite>(2l + 1)</cite> within <cite>forward</cite>.
+In this way a single subshell parameter (e.g. one d value) is
+repeated to yield the required number of magnetic entries (five
+for d), avoiding their separate optimisation. [DEFAULT=`None`]</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">tensor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parameter</span><span class="p">,</span> <span class="n">ParameterDict</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.physics.dftb.feeds</span><span class="w"> </span><span class="kn">import</span> <span class="n">SkfOnSiteFeed</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">on</span> <span class="o">=</span> <span class="n">ParameterDict</span><span class="p">({</span>
+<span class="gp">... </span>    <span class="s2">&quot;1&quot;</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">tensor</span><span class="p">([</span><span class="o">-</span><span class="mf">0.5</span><span class="p">])),</span>          <span class="c1"># H: [s]</span>
+<span class="gp">... </span>    <span class="s2">&quot;6&quot;</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">tensor</span><span class="p">([</span><span class="o">-</span><span class="mf">0.3</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.2</span><span class="p">]))</span>     <span class="c1"># C: [s, p]</span>
+<span class="gp">... </span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">feed</span> <span class="o">=</span> <span class="n">SkfOnSiteFeed</span><span class="p">(</span><span class="n">on</span><span class="p">)</span>       <span class="c1"># azimuthal_numbers inferred</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">feed</span><span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">)</span>                      <span class="c1"># s → (2*0+1)=1 value</span>
+<span class="go">tensor([-0.5000])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">feed</span><span class="p">(</span><span class="s2">&quot;6&quot;</span><span class="p">)</span>                      <span class="c1"># s, p → 1 + 3 values</span>
+<span class="go">tensor([-0.3000, -0.2000, -0.2000, -0.2000])</span>
+</pre></div>
+</div>
+<p class="rubric">Attributes and Properties</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">device</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.SkfOnSiteFeed.from_database">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_database</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">species</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requires_grad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/dftb/feeds.html#SkfOnSiteFeed.from_database"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.dftb.feeds.SkfOnSiteFeed.from_database" title="Link to this definition"></a></dt>
+<dd><p>Instantiate instance from an HDF5 Slater–Koster database.</p>
+<p>On-site terms are read for the requested species from an HDF5 SKF
+database and stored as azimuthally (subshell) resolved parameters.
+A single value per subshell is retained (e.g. one for s, one for p),
+and expansion to one value per magnetic orbital is performed on demand
+in <a class="reference internal" href="#tbmalt.physics.dftb.feeds.SkfOnSiteFeed.forward" title="tbmalt.physics.dftb.feeds.SkfOnSiteFeed.forward"><code class="xref py py-meth docutils literal notranslate"><span class="pre">forward()</span></code></a>. When the overlap target is selected, all on-site
+terms are set to unity so that identity blocks are emitted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to the HDF5 file from which on-sites should be taken.</p></li>
+<li><p><strong>species</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]</span>) – On-sites will only be loaded for the requested species.</p></li>
+<li><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'hamiltonian'</span></code>, <code class="docutils literal notranslate"><span class="pre">'overlap'</span></code>]</span>) – Specifies which set of on-site terms is to be loaded.
+Options are <cite>“hamiltonian”</cite> and <cite>“overlap”</cite>. For overlap,
+the on-site terms are set to ones (identity) and are never
+differentiable.</p></li>
+<li><p><strong>requires_grad</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If <cite>True</cite>, gradient tracking is enabled for the
+Hamiltonian on-site parameters. This flag is ignored when
+<code class="docutils literal notranslate"><span class="pre">target</span></code> is set to <cite>“overlap”</cite> since those terms are always
+unity. [DEFAULT=`False`]</p></li>
+<li><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code>]</span>) – Device on which the feed object and its contents reside.</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>]</span>) – dtype used by feed object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>on_sites</em> – A <cite>SkfOnSiteFeed</cite> instance containing the requested
+on-site terms for the specified species.</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">tensor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.physics.dftb.feeds</span><span class="w"> </span><span class="kn">import</span> <span class="n">SkfOnSiteFeed</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.tools.downloaders</span><span class="w"> </span><span class="kn">import</span> <span class="n">download_dftb_parameter_set</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/dftbparams/auorg/releases/download/v1.1.0/auorg-1-1.tar.xz&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;auorg.h5&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">download_dftb_parameter_set</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">feed</span> <span class="o">=</span> <span class="n">SkfOnSiteFeed</span><span class="o">.</span><span class="n">from_database</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">79</span><span class="p">],</span> <span class="s2">&quot;hamiltonian&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">feed</span><span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">)</span>
+<span class="go">tensor([-0.2386])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">feed</span><span class="p">(</span><span class="s2">&quot;6&quot;</span><span class="p">)</span>
+<span class="go">tensor([-0.5049, -0.1944, -0.1944, -0.1944])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">feed</span><span class="p">(</span><span class="s2">&quot;79&quot;</span><span class="p">)</span>
+<span class="go">tensor([-0.2108, -0.0279, -0.0279, -0.0279,</span>
+<span class="go">        -0.2532, -0.2532, -0.2532, -0.2532,</span>
+<span class="go">        -0.2532])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.SkfOnSiteFeed.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">species</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/dftb/feeds.html#SkfOnSiteFeed.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.dftb.feeds.SkfOnSiteFeed.forward" title="Link to this definition"></a></dt>
+<dd><p>Return per-orbital on-site terms for a given species.</p>
+<p>The azimuthally resolved on-site values stored in <cite>on_sites</cite> are
+expanded to one value per magnetic orbital by repeating each subshell
+term according to its magnetic multiplicity <span class="math notranslate nohighlight">\((2\ell + 1)\)</span>. The
+species identifier is normalised to a string before lookup.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>species</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> | <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Atomic number of the species for which on-site terms are
+requested. May be provided as an <cite>int</cite> (e.g. <cite>6</cite>) or a
+string (e.g. <cite>“6”</cite>).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>on_site</em> – A 1-D <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code> containing one on-site value
+for each magnetic orbital of the requested species. Its length
+equals <cite>sum(2*l + 1 for l in azimuthal_numbers[species])</cite>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.SkfOnSiteFeed.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/dftb/feeds.html#SkfOnSiteFeed.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.dftb.feeds.SkfOnSiteFeed.to" title="Link to this definition"></a></dt>
+<dd><p>Return a copy of the feed placed on the specified device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code></span>) – Device to which all associated tensor should be moved.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.physics.dftb.feeds.SkfOnSiteFeed" title="tbmalt.physics.dftb.feeds.SkfOnSiteFeed"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkfOnSiteFeed</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>on_site_feed</em> – A copy of the <cite>SkfOnSiteFeed</cite> instance placed on
+the specified device.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.physics.dftb.feeds.SkfOccupationFeed.html" class="btn btn-neutral float-left" title="2.1.5.1.5.6. SkfOccupationFeed" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.physics.dftb.feeds.VcrSkFeed.html" class="btn btn-neutral float-right" title="2.1.5.1.5.8. VcrSkFeed" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

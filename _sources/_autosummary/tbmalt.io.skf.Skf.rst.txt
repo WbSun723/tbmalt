@@ -1,0 +1,26 @@
+Skf
+===
+
+.. currentmodule:: tbmalt.io.skf
+
+.. autoclass:: Skf
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: version
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~Skf.version
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

@@ -1,0 +1,8 @@
+eighb
+=====
+
+.. currentmodule:: tbmalt.common.maths
+
+.. autofunction:: tbmalt.common.maths.eighb
+
+    .. autosummary::

@@ -1,0 +1,8 @@
+poly\_interp
+============
+
+.. currentmodule:: tbmalt.common.maths.interpolation
+
+.. autofunction:: tbmalt.common.maths.interpolation.poly_interp
+
+    .. autosummary::

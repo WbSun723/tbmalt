@@ -1,0 +1,8 @@
+sub\_block\_rot
+===============
+
+.. currentmodule:: tbmalt.physics.dftb.slaterkoster
+
+.. autofunction:: tbmalt.physics.dftb.slaterkoster.sub_block_rot
+
+    .. autosummary::

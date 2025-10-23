@@ -1,0 +1,6 @@
+tbmalt.common.exceptions.TbmaltError
+====================================
+
+.. currentmodule:: tbmalt.common.exceptions
+
+.. autoexception:: TbmaltError

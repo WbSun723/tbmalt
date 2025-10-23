@@ -1,0 +1,30 @@
+Anderson
+========
+
+.. currentmodule:: tbmalt.common.maths.mixers
+
+.. autoclass:: Anderson
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: converged, delta, step_number
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~Anderson.converged
+   
+      ~Anderson.delta
+   
+      ~Anderson.step_number
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

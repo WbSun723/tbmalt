@@ -1,0 +1,872 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.common.maths.interpolation &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../common.html">tbmalt.common</a></li>
+          <li class="breadcrumb-item"><a href="../maths.html">tbmalt.common.maths</a></li>
+      <li class="breadcrumb-item active">tbmalt.common.maths.interpolation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.common.maths.interpolation</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;General purpose interpolation methods.&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numbers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Real</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parameter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack</span><span class="p">,</span> <span class="n">bT</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.ml</span><span class="w"> </span><span class="kn">import</span> <span class="n">Feed</span>
+<span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+
+<div class="viewcode-block" id="BicubInterpSpl">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.common.maths.interpolation.BicubInterpSpl.html#tbmalt.common.maths.interpolation.BicubInterpSpl">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BicubInterpSpl</span><span class="p">(</span><span class="n">Feed</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Special purpose Bicubic like interpolation method.</span>
+
+<span class="sd">    This bicubic like interpolation method is designed to interpolate Slater-</span>
+<span class="sd">    Koster integrals over both compression radii and distances.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        compr: Grid points for interpolation, 1D Tensor.</span>
+<span class="sd">        zmesh: 2D, 3D or 4D Tensor, 2D is for single integral with various</span>
+<span class="sd">            compression radii, 3D is for multi integrals.</span>
+<span class="sd">        hs_grid: Distances at which the ``hamiltonian`` &amp; ``overlap``</span>
+<span class="sd">            elements were evaluated.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        This feed does not contain any optimisable parameters as it is not</span>
+<span class="sd">        intended to be optimised directly. Instead, it is the compression</span>
+<span class="sd">        radii of the atoms that are to be optimised.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.common.maths.interpolation import BicubInterpSpl</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.arange(0., 5., 0.25)</span>
+<span class="sd">        &gt;&gt;&gt; y = torch.arange(0., 5., 0.25)</span>
+<span class="sd">        &gt;&gt;&gt; xx, yy = torch.meshgrid(x, y)</span>
+<span class="sd">        &gt;&gt;&gt; z = torch.sin(xx) + torch.cos(yy)</span>
+<span class="sd">        &gt;&gt;&gt; bi_interp = BicubInterpSpl(x, z)</span>
+<span class="sd">        &gt;&gt;&gt; xnew = torch.arange(0., 5., 1e-2)</span>
+<span class="sd">        &gt;&gt;&gt; ynew = torch.arange(0., 5., 1e-2)</span>
+<span class="sd">        &gt;&gt;&gt; znew = bi_interp(torch.stack([xnew, ynew]).T)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(x, z.diagonal(), &#39;ro-&#39;, xnew, znew, &#39;b-&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">zmesh</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">hs_grid</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">assert</span> <span class="n">zmesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">zmesh</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span> \
+            <span class="s1">&#39;Size of last two dimensions of zmesh must be the same.&#39;</span>
+        <span class="k">if</span> <span class="n">zmesh</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">zmesh</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;zmesh should be 2, 3, or 4D, get </span><span class="si">{</span><span class="n">zmesh</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">hs_grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">zmesh</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;zemsh dimension error&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">compr</span> <span class="o">=</span> <span class="n">compr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zmesh</span> <span class="o">=</span> <span class="n">zmesh</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hs_grid</span> <span class="o">=</span> <span class="n">hs_grid</span>
+
+        <span class="c1"># Internal attributes used during interpolation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx2</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nind</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx_1</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1"># Device type of the tensor in this class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">compr</span><span class="o">.</span><span class="n">device</span>
+
+<div class="viewcode-block" id="BicubInterpSpl.forward">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.common.maths.interpolation.BicubInterpSpl.html#tbmalt.common.maths.interpolation.BicubInterpSpl.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">distances</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate bicubic interpolation.</span>
+
+<span class="sd">        If distances is not None, the polynomial interpolation will be</span>
+<span class="sd">        used to interpolate distances from ``hamiltonian`` &amp; ``overlap``.</span>
+<span class="sd">        Then the bicubic interpolation will be used to interpolate rr</span>
+<span class="sd">        from the interpolated ``hamiltonian`` &amp; ``overlap`` values.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            rr: The points to be interpolated for the first dimension and</span>
+<span class="sd">                second dimension.</span>
+<span class="sd">            distances: Distances between atoms.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            znew: Interpolation values with given rr, or rr and distances.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hs_grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">distances</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;distances should not be None&#39;</span>
+
+        <span class="n">xi</span> <span class="o">=</span> <span class="n">rr</span> <span class="k">if</span> <span class="n">rr</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">rr</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">xi</span><span class="o">.</span><span class="n">is_contiguous</span><span class="p">():</span>
+            <span class="n">xi</span> <span class="o">=</span> <span class="n">xi</span><span class="o">.</span><span class="n">contiguous</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch</span> <span class="o">=</span> <span class="n">xi</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">arange_batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hs_grid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># with DFTB+ distance interpolation</span>
+            <span class="k">assert</span> <span class="n">distances</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;if hs_grid is not None, &#39;</span><span class="o">+</span> \
+                <span class="s1">&#39;distances is expected&#39;</span>
+
+            <span class="n">ski</span> <span class="o">=</span> <span class="n">PolyInterpU</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hs_grid</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zmesh</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+            <span class="n">zmesh</span> <span class="o">=</span> <span class="n">ski</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">zmesh</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">zmesh</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">zmesh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">zmesh</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">rr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Incompatible z-mesh dimension&quot;</span><span class="p">)</span>
+
+        <span class="n">coeff</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+                              <span class="p">[</span><span class="o">-</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">3.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]],</span>
+                              <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+        <span class="n">coeff_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">3.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">],</span>
+                               <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]],</span>
+                               <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+
+        <span class="c1"># get the nearest grid points, 1st and second neighbour indices of xi</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_indices</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span>
+
+        <span class="c1"># this is to transfer x to fraction and its square, cube</span>
+        <span class="n">x_fra</span> <span class="o">=</span> <span class="p">(</span><span class="n">xi</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">compr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">compr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_nx1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">compr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">])</span>
+        <span class="n">xmat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x_fra</span> <span class="o">**</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x_fra</span> <span class="o">**</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x_fra</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">x_fra</span> <span class="o">**</span> <span class="mi">3</span><span class="p">])</span>
+
+        <span class="c1"># get four nearest grid points values, each will be: [natom, natom, 20]</span>
+        <span class="n">f00</span><span class="p">,</span> <span class="n">f10</span><span class="p">,</span> <span class="n">f01</span><span class="p">,</span> <span class="n">f11</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fmat0th</span><span class="p">(</span><span class="n">zmesh</span><span class="p">)</span>
+
+        <span class="c1"># get four nearest grid points derivative over x, y, xy</span>
+        <span class="n">f02</span><span class="p">,</span> <span class="n">f03</span><span class="p">,</span> <span class="n">f12</span><span class="p">,</span> <span class="n">f13</span><span class="p">,</span> <span class="n">f20</span><span class="p">,</span> <span class="n">f21</span><span class="p">,</span> <span class="n">f30</span><span class="p">,</span> <span class="n">f31</span><span class="p">,</span> <span class="n">f22</span><span class="p">,</span> <span class="n">f23</span><span class="p">,</span> <span class="n">f32</span><span class="p">,</span> <span class="n">f33</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">_fmat1th</span><span class="p">(</span><span class="n">zmesh</span><span class="p">,</span> <span class="n">f00</span><span class="p">,</span> <span class="n">f10</span><span class="p">,</span> <span class="n">f01</span><span class="p">,</span> <span class="n">f11</span><span class="p">)</span>
+        <span class="n">fmat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">f00</span><span class="p">,</span> <span class="n">f01</span><span class="p">,</span> <span class="n">f02</span><span class="p">,</span> <span class="n">f03</span><span class="p">]),</span>
+                            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">f10</span><span class="p">,</span> <span class="n">f11</span><span class="p">,</span> <span class="n">f12</span><span class="p">,</span> <span class="n">f13</span><span class="p">]),</span>
+                            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">f20</span><span class="p">,</span> <span class="n">f21</span><span class="p">,</span> <span class="n">f22</span><span class="p">,</span> <span class="n">f23</span><span class="p">]),</span>
+                            <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">f30</span><span class="p">,</span> <span class="n">f31</span><span class="p">,</span> <span class="n">f32</span><span class="p">,</span> <span class="n">f33</span><span class="p">])])</span>
+
+        <span class="n">pdim</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">fmat</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">a_mat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">coeff</span><span class="p">,</span> <span class="n">fmat</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">pdim</span><span class="p">)),</span> <span class="n">coeff_</span><span class="p">)</span>
+
+        <span class="n">znew</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+            <span class="n">xmat</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">a_mat</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">xmat</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">znew</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xi</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get indices and repeat indices.&quot;&quot;&quot;</span>
+        <span class="c1"># Note that this function assigns to _nx0, _nind, _nx1, _nx_1, &amp; _nx2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">searchsorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compr</span><span class="p">,</span> <span class="n">xi</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="c1"># get all surrounding 4 grid points indices and repeat indices</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">ii</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">batch</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">]),</span> <span class="mi">0</span><span class="p">,</span>
+                                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">ii</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">]),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nx2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">ii</span> <span class="o">+</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">]),</span> <span class="mi">0</span><span class="p">,</span>
+                                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compr</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fmat0th</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zmesh</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct f(0/1, 0/1) in fmat.&quot;&quot;&quot;</span>
+        <span class="n">f00</span> <span class="o">=</span> <span class="n">zmesh</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">arange_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">f10</span> <span class="o">=</span> <span class="n">zmesh</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">arange_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">f01</span> <span class="o">=</span> <span class="n">zmesh</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">arange_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="n">f11</span> <span class="o">=</span> <span class="n">zmesh</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">arange_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">f00</span><span class="p">,</span> <span class="n">f10</span><span class="p">,</span> <span class="n">f01</span><span class="p">,</span> <span class="n">f11</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fmat1th</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">zmesh</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">f00</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">f10</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">f01</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                 <span class="n">f11</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the 1st derivative of four grid points over x, y and xy.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Helper functions to avoid code repetition</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">f1</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">zmesh</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">arange_batch</span><span class="p">,</span> <span class="n">i</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">j</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">f2</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">bT</span><span class="p">(</span><span class="n">bT</span><span class="p">(</span><span class="n">f1</span> <span class="o">-</span> <span class="n">f2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">n2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">j</span><span class="p">]))</span>
+
+        <span class="c1"># Bring class instance attributes into the local name space to avoid</span>
+        <span class="c1"># repeatedly having to call `self`.</span>
+        <span class="n">nx_1</span><span class="p">,</span> <span class="n">nx0</span><span class="p">,</span> <span class="n">nx1</span><span class="p">,</span> <span class="n">nx2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx_1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nx2</span>
+
+        <span class="n">f_10</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">nx_1</span><span class="p">,</span> <span class="n">nx0</span><span class="p">)</span>
+        <span class="n">f_11</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">nx_1</span><span class="p">,</span> <span class="n">nx1</span><span class="p">)</span>
+        <span class="n">f0_1</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">nx0</span><span class="p">,</span> <span class="n">nx_1</span><span class="p">)</span>
+        <span class="n">f02</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">nx0</span><span class="p">,</span> <span class="n">nx2</span><span class="p">)</span>
+        <span class="n">f1_1</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">nx1</span><span class="p">,</span> <span class="n">nx_1</span><span class="p">)</span>
+        <span class="n">f12</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">nx1</span><span class="p">,</span> <span class="n">nx2</span><span class="p">)</span>
+        <span class="n">f20</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">nx2</span><span class="p">,</span> <span class="n">nx0</span><span class="p">)</span>
+        <span class="n">f21</span> <span class="o">=</span> <span class="n">f1</span><span class="p">(</span><span class="n">nx2</span><span class="p">,</span> <span class="n">nx1</span><span class="p">)</span>
+
+        <span class="c1"># calculate the derivative: (F(1) - F(-1) / (2 * grid)</span>
+        <span class="n">fy00</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">f01</span><span class="p">,</span> <span class="n">f0_1</span><span class="p">,</span> <span class="n">nx1</span><span class="p">,</span> <span class="n">nx_1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">fy01</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">f02</span><span class="p">,</span> <span class="n">f00</span><span class="p">,</span> <span class="n">nx2</span><span class="p">,</span> <span class="n">nx0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">fy10</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">f11</span><span class="p">,</span> <span class="n">f1_1</span><span class="p">,</span> <span class="n">nx1</span><span class="p">,</span> <span class="n">nx_1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">fy11</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">f12</span><span class="p">,</span> <span class="n">f10</span><span class="p">,</span> <span class="n">nx2</span><span class="p">,</span> <span class="n">nx0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">fx00</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">f10</span><span class="p">,</span> <span class="n">f_10</span><span class="p">,</span> <span class="n">nx1</span><span class="p">,</span> <span class="n">nx_1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">fx01</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">f20</span><span class="p">,</span> <span class="n">f00</span><span class="p">,</span> <span class="n">nx2</span><span class="p">,</span> <span class="n">nx0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">fx10</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">f11</span><span class="p">,</span> <span class="n">f_11</span><span class="p">,</span> <span class="n">nx1</span><span class="p">,</span> <span class="n">nx_1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">fx11</span> <span class="o">=</span> <span class="n">f2</span><span class="p">(</span><span class="n">f21</span><span class="p">,</span> <span class="n">f01</span><span class="p">,</span> <span class="n">nx2</span><span class="p">,</span> <span class="n">nx0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">fxy00</span><span class="p">,</span> <span class="n">fxy11</span> <span class="o">=</span> <span class="n">fy00</span> <span class="o">*</span> <span class="n">fx00</span><span class="p">,</span> <span class="n">fx11</span> <span class="o">*</span> <span class="n">fy11</span>
+        <span class="n">fxy01</span><span class="p">,</span> <span class="n">fxy10</span> <span class="o">=</span> <span class="n">fx01</span> <span class="o">*</span> <span class="n">fy01</span><span class="p">,</span> <span class="n">fx10</span> <span class="o">*</span> <span class="n">fy10</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">fy00</span><span class="p">,</span> <span class="n">fy01</span><span class="p">,</span> <span class="n">fy10</span><span class="p">,</span> <span class="n">fy11</span><span class="p">,</span> <span class="n">fx00</span><span class="p">,</span> <span class="n">fx01</span><span class="p">,</span> <span class="n">fx10</span><span class="p">,</span> <span class="n">fx11</span><span class="p">,</span> <span class="n">fxy00</span><span class="p">,</span>
+                <span class="n">fxy01</span><span class="p">,</span> <span class="n">fxy10</span><span class="p">,</span> <span class="n">fxy11</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="PolyInterpU">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.common.maths.interpolation.PolyInterpU.html#tbmalt.common.maths.interpolation.PolyInterpU">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PolyInterpU</span><span class="p">(</span><span class="n">Feed</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Polynomial interpolation method with uniform grid points.</span>
+
+<span class="sd">    The boundary condition will use `poly_to_zero` function, which make the</span>
+<span class="sd">    polynomial values smoothly converge to zero at the boundary.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        x: Grid points for interpolation, 1D Tensor.</span>
+<span class="sd">        y: Values to be interpolated at each grid point. Note that this must</span>
+<span class="sd">            be a `torch.nn.Parameter` rather than a standard torch `Tensor`.</span>
+<span class="sd">        tail: Distance to smooth the tail. [DEFAULT=1.0]</span>
+<span class="sd">        delta_r: Delta distance for 1st, 2nd derivative. [DEFAULT=1E-5]</span>
+<span class="sd">        n_interp: Number of total interpolation grid points. [DEFAULT=8]</span>
+<span class="sd">        n_interp_r: Number of right side interpolation grid points. [DEFAULT=4]</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        delta_r: Delta distance for 1st, 2nd derivative.</span>
+<span class="sd">        n_interp: Number of total interpolation grid points.</span>
+<span class="sd">        n_interp_r: Number of right side interpolation grid points.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The `PolyInterpU` class, which is taken from the DFTB+, assumes a</span>
+<span class="sd">        uniform grid. Here, the y and x arguments are the values to be</span>
+<span class="sd">        interpolated and their associated grid points respectively. The tail</span>
+<span class="sd">        end of the spline is smoothed to zero, meaning that extrapolated</span>
+<span class="sd">        points will rapidly, but smoothly, decay to zero.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from torch.nn import Parameter</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.common.maths.interpolation import PolyInterpU</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.linspace(0, 2. * torch.pi, 100)</span>
+<span class="sd">        &gt;&gt;&gt; y = Parameter(torch.sin(x), requires_grad=False)</span>
+<span class="sd">        &gt;&gt;&gt; poly = PolyInterpU(x, y, n_interp=8, n_interp_r=4)</span>
+<span class="sd">        &gt;&gt;&gt; new_x = torch.rand(10) * 2. * torch.pi</span>
+<span class="sd">        &gt;&gt;&gt; new_y = poly(new_x)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(x.numpy(), y.detach().numpy(), &#39;k-&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(new_x.numpy(), new_y.numpy(), &#39;rx&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># TODO:</span>
+    <span class="c1">#   - Resolve bug causing incorrect value to be returned when</span>
+    <span class="c1">#     interpolating at the last grid point.</span>
+    <span class="c1">#   - Either implement cache based updating to detect when changes have</span>
+    <span class="c1">#     been made to tensor contents or make it clear through documentation</span>
+    <span class="c1">#     what is not permitted to be modified.</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">,</span> <span class="n">tail</span><span class="p">:</span> <span class="n">Real</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+            <span class="n">delta_r</span><span class="p">:</span> <span class="n">Real</span> <span class="o">=</span> <span class="mf">1E-5</span><span class="p">,</span> <span class="n">n_interp</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span> <span class="n">n_interp_r</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">diff</span><span class="p">(),</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                              <span class="n">atol</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">resolution</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Spacing of grid points must be uniform.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Ensure that the y values are a parameter instance</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;An instance of `torch.nn.Parameter` was expected for the &quot;</span>
+                <span class="s2">&quot;attribute `y`, but a `torch.Tensor` was received. The tensor &quot;</span>
+                <span class="s2">&quot;will be automatically cast to a parameter.&quot;</span><span class="p">,</span>
+                <span class="ne">UserWarning</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y</span> <span class="o">=</span> <span class="n">y</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delta_r</span> <span class="o">=</span> <span class="n">delta_r</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tail</span> <span class="o">=</span> <span class="n">tail</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_interp</span> <span class="o">=</span> <span class="n">n_interp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_interp_r</span> <span class="o">=</span> <span class="n">n_interp_r</span>
+
+        <span class="c1"># Device type of the tensor in this class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span>
+
+        <span class="c1"># Get grid points with external tail for index operation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x_ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_external_tail</span><span class="p">()</span>
+
+        <span class="c1"># Check xx is uniform &amp; that len(xx) &gt; n_interp</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">n_interp</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;`n_interp` (</span><span class="si">{</span><span class="n">n_interp</span><span class="si">}</span><span class="s1">) exceeds the number of&#39;</span>
+                             <span class="sa">f</span><span class="s1">&#39;data points `xx` (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">y</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Interpolation values&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span>
+
+    <span class="nd">@y</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;An instance of `torch.nn.Parameter` was expected for the &quot;</span>
+                <span class="s2">&quot;attribute `y`, but a `torch.Tensor` was received. The tensor &quot;</span>
+                <span class="s2">&quot;will be automatically cast to a parameter.&quot;</span><span class="p">,</span>
+                <span class="ne">UserWarning</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">Parameter</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="n">y</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y</span> <span class="o">=</span> <span class="n">y</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Interpolation grid points&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span>
+
+    <span class="nd">@x</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="c1"># If a new array of x values have been provided then ensure that it is</span>
+        <span class="c1"># the right length.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">diff</span><span class="p">(),</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Spacing of grid points must be uniform.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x_ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_external_tail</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tail</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Real</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Distance over which to smooth the tail to zero.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tail</span>
+
+    <span class="nd">@tail</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tail</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tail</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tail</span> <span class="o">=</span> <span class="n">tail</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_x_ext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_external_tail</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">device</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Device on which data is located.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device</span>
+
+<div class="viewcode-block" id="PolyInterpU.forward">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.common.maths.interpolation.PolyInterpU.html#tbmalt.common.maths.interpolation.PolyInterpU.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get interpolation according to given rr.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            rr: interpolation points for single and batch.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            result: Interpolation values with given rr.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">n_grid_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">)</span>  <span class="c1"># -&gt; number of grid points</span>
+
+        <span class="n">grid_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">r_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tail</span>
+
+        <span class="n">interpolate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">rr</span><span class="p">,</span> <span class="n">rr</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">extrapolate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">rr</span><span class="p">,</span> <span class="n">rr</span> <span class="o">&lt;=</span> <span class="n">r_max</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rr</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">rr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">rr</span><span class="p">[</span><span class="n">interpolate</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">grid_step</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+
+            <span class="n">ind_last</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">ind</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interp_r</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_interp_r</span><span class="p">,</span> <span class="nb">max</span><span class="o">=</span><span class="n">n_grid_points</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">idxs</span> <span class="o">=</span> <span class="p">(</span><span class="n">ind_last</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interp</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_interp</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+
+            <span class="n">result</span><span class="p">[</span><span class="n">interpolate</span><span class="p">]</span> <span class="o">=</span> <span class="n">poly_interp</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_x</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">[</span><span class="n">idxs</span><span class="p">],</span> <span class="n">rr</span><span class="p">[</span><span class="n">interpolate</span><span class="p">])</span>
+
+        <span class="c1"># Beyond the grid =&gt; extrapolation with polynomial of 5th order</span>
+        <span class="k">if</span> <span class="n">extrapolate</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+
+            <span class="n">dr</span> <span class="o">=</span> <span class="n">rr</span><span class="p">[</span><span class="n">extrapolate</span><span class="p">]</span> <span class="o">-</span> <span class="n">r_max</span>
+
+            <span class="n">dr</span> <span class="o">=</span> <span class="n">dr</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">dr</span>
+
+            <span class="n">xa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">n_interp</span><span class="p">:]</span>
+
+            <span class="n">xa</span> <span class="o">=</span> <span class="n">xa</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">yb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">n_interp</span><span class="p">:]</span>
+
+            <span class="n">yb</span> <span class="o">=</span> <span class="n">yb</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">dr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="n">y0</span> <span class="o">=</span> <span class="n">poly_interp</span><span class="p">(</span><span class="n">xa</span><span class="p">,</span> <span class="n">yb</span><span class="p">,</span> <span class="n">xa</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interp</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_r</span><span class="p">)</span>
+            <span class="n">y2</span> <span class="o">=</span> <span class="n">poly_interp</span><span class="p">(</span><span class="n">xa</span><span class="p">,</span> <span class="n">yb</span><span class="p">,</span> <span class="n">xa</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_interp</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_r</span><span class="p">)</span>
+
+            <span class="n">y1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">y1p</span> <span class="o">=</span> <span class="p">(</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_r</span><span class="p">)</span>
+            <span class="n">y1pp</span> <span class="o">=</span> <span class="p">(</span><span class="n">y2</span> <span class="o">+</span> <span class="n">y0</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">y1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delta_r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_r</span><span class="p">)</span>
+
+            <span class="n">result</span><span class="p">[</span><span class="n">extrapolate</span><span class="p">]</span> <span class="o">=</span> <span class="n">poly_to_zero</span><span class="p">(</span>
+                <span class="n">dr</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tail</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tail</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">y1p</span><span class="p">,</span> <span class="n">y1pp</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_external_tail</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute and return the external tail.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            external_tail: The external tail.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_x</span>
+        <span class="n">tail</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tail</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span>
+            <span class="n">xx</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xx</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">tail</span><span class="p">,</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">xx</span><span class="p">)</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">tail</span> <span class="o">/</span> <span class="p">(</span><span class="n">xx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">xx</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span>
+            <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="poly_to_zero">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.common.maths.interpolation.poly_to_zero.html#tbmalt.common.maths.interpolation.poly_to_zero">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">poly_to_zero</span><span class="p">(</span><span class="n">xx</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">dx</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">inv_x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+                 <span class="n">y0</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">y0p</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">y0pp</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get interpolation if beyond the grid range with 5th order polynomial.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        xx: Grid points.</span>
+<span class="sd">        dx: The grid point range for y0 and its derivative.</span>
+<span class="sd">        inv_x: Reciprocal of dx</span>
+<span class="sd">        y0: Values to be interpolated at each grid point.</span>
+<span class="sd">        y0p: First derivative of y0.</span>
+<span class="sd">        y0pp: Second derivative of y0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        yy: The interpolation values with given xx points in the tail.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The function `poly_to_zero` realize the interpolation of the points</span>
+<span class="sd">        beyond the range of grid points, which make the polynomial values</span>
+<span class="sd">        smoothly converge to zero at the boundary. The variable dx determines</span>
+<span class="sd">        the point to be zero. This code is consistent with the function</span>
+<span class="sd">        `poly5ToZero` in DFTB+.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dx1</span> <span class="o">=</span> <span class="n">y0p</span> <span class="o">*</span> <span class="n">dx</span>
+    <span class="n">dx2</span> <span class="o">=</span> <span class="n">y0pp</span> <span class="o">*</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">dx</span>
+    <span class="n">dd</span> <span class="o">=</span> <span class="mf">10.0</span> <span class="o">*</span> <span class="n">y0</span> <span class="o">-</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">dx1</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dx2</span>
+    <span class="n">ee</span> <span class="o">=</span> <span class="o">-</span><span class="mf">15.0</span> <span class="o">*</span> <span class="n">y0</span> <span class="o">+</span> <span class="mf">7.0</span> <span class="o">*</span> <span class="n">dx1</span> <span class="o">-</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">dx2</span>
+    <span class="n">ff</span> <span class="o">=</span> <span class="mf">6.0</span> <span class="o">*</span> <span class="n">y0</span> <span class="o">-</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">dx1</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">dx2</span>
+    <span class="n">xr</span> <span class="o">=</span> <span class="n">xx</span> <span class="o">*</span> <span class="n">inv_x</span>
+    <span class="n">yy</span> <span class="o">=</span> <span class="p">((</span><span class="n">ff</span> <span class="o">*</span> <span class="n">xr</span> <span class="o">+</span> <span class="n">ee</span><span class="p">)</span> <span class="o">*</span> <span class="n">xr</span> <span class="o">+</span> <span class="n">dd</span><span class="p">)</span> <span class="o">*</span> <span class="n">xr</span> <span class="o">*</span> <span class="n">xr</span> <span class="o">*</span> <span class="n">xr</span>
+
+    <span class="k">return</span> <span class="n">yy</span></div>
+
+
+
+<div class="viewcode-block" id="poly_interp">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.common.maths.interpolation.poly_interp.html#tbmalt.common.maths.interpolation.poly_interp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">poly_interp</span><span class="p">(</span><span class="n">xp</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">yp</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">rr</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interpolation with given uniform grid points.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        xp: The grid points, 2D Tensor, first dimension is for different</span>
+<span class="sd">            system and second is for the corresponding grids in each system.</span>
+<span class="sd">        yp: The values at the gird points.</span>
+<span class="sd">        rr: Points to be interpolated.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        yy: Interpolation values corresponding to input rr.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The function `poly_interp` is designed for both single and multi</span>
+<span class="sd">        system interpolation. Therefore, xp will be 2D Tensor.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">xp</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;xp is not 2D Tensor&#39;</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">device</span>
+    <span class="n">nn0</span><span class="p">,</span> <span class="n">nn1</span> <span class="o">=</span> <span class="n">xp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">xp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">index_nn0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nn0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">icl</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nn0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+    <span class="n">cc</span><span class="p">,</span> <span class="n">dd</span> <span class="o">=</span> <span class="n">yp</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">yp</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">dxp</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">rr</span> <span class="o">-</span> <span class="n">xp</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">icl</span><span class="p">])</span>
+
+    <span class="c1"># find the most close point to rr (single atom pair or multi pairs)</span>
+    <span class="n">_mask</span><span class="p">,</span> <span class="n">ii</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rr</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+    <span class="n">_dx_new</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">rr</span> <span class="o">-</span> <span class="n">xp</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="k">while</span> <span class="p">(</span><span class="n">_dx_new</span> <span class="o">&lt;</span> <span class="n">dxp</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">ii</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">assert</span> <span class="n">ii</span> <span class="o">&lt;</span> <span class="n">nn1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;index ii range from 0 to </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">nn1</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">_mask</span> <span class="o">=</span> <span class="n">_dx_new</span> <span class="o">&lt;</span> <span class="n">dxp</span>
+        <span class="n">icl</span><span class="p">[</span><span class="n">_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
+        <span class="n">dxp</span><span class="p">[</span><span class="n">_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">rr</span> <span class="o">-</span> <span class="n">xp</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span><span class="p">])[</span><span class="n">_mask</span><span class="p">]</span>
+
+    <span class="n">yy</span> <span class="o">=</span> <span class="n">yp</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">icl</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">mm</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nn1</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nn1</span> <span class="o">-</span> <span class="n">mm</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">r_tmp0</span> <span class="o">=</span> <span class="n">xp</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="n">xp</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span> <span class="o">+</span> <span class="n">mm</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># use transpose to realize div: (N, M, K) / (N)</span>
+            <span class="n">r_tmp1</span> <span class="o">=</span> <span class="p">((</span><span class="n">cc</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">dd</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span><span class="p">])</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">r_tmp0</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">cc</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">xp</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">-</span> <span class="n">rr</span><span class="p">)</span> <span class="o">*</span>
+                                 <span class="n">r_tmp1</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">dd</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="n">xp</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">ii</span> <span class="o">+</span> <span class="n">mm</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">rr</span><span class="p">)</span> <span class="o">*</span>
+                                 <span class="n">r_tmp1</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">icl</span> <span class="o">&lt;</span> <span class="n">nn1</span> <span class="o">-</span> <span class="n">mm</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">_mask</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">icl</span> <span class="o">&lt;</span> <span class="n">nn1</span> <span class="o">-</span> <span class="n">mm</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">yy</span><span class="p">[</span><span class="n">_mask</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">yy</span> <span class="o">+</span> <span class="n">cc</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">icl</span><span class="p">])[</span><span class="n">_mask</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_mask</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">icl</span> <span class="o">&gt;=</span> <span class="n">nn1</span> <span class="o">-</span> <span class="n">mm</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">yy</span><span class="p">[</span><span class="n">_mask</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">yy</span> <span class="o">+</span> <span class="n">dd</span><span class="p">[</span><span class="n">index_nn0</span><span class="p">,</span> <span class="n">icl</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])[</span><span class="n">_mask</span><span class="p">]</span>
+            <span class="n">icl</span><span class="p">[</span><span class="n">_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">icl</span><span class="p">[</span><span class="n">_mask</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">yy</span></div>
+
+
+
+<div class="viewcode-block" id="CubicSpline">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.common.maths.interpolation.CubicSpline.html#tbmalt.common.maths.interpolation.CubicSpline">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CubicSpline</span><span class="p">(</span><span class="n">Feed</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cupic spline interpolator.</span>
+
+<span class="sd">    An entity for piecewise interpolation of data via a cupic polynomial</span>
+<span class="sd">    spline which is twice continuously differentiable.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        x: A one dimensional tensor specifying the interpolation grid points,</span>
+<span class="sd">            i.e. the knot locations.</span>
+<span class="sd">        y: Interpolation values, i.e. the knot values, associated with each</span>
+<span class="sd">            grid point. For single series interpolation this should be an array</span>
+<span class="sd">            of length &quot;n&quot;, where &quot;n&quot; is the number of grid points present in</span>
+<span class="sd">            ``x``. For batch interpolation this should be an &quot;m&quot; by &quot;n&quot;</span>
+<span class="sd">            tensor. Note that this must be a `Parameter` rather than `Tensor`</span>
+<span class="sd">            instance.</span>
+<span class="sd">        tail: Distance over which to smooth the tail.</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        coefficients: 0th, 1st, 2nd and 3rd order parameters in cubic spline.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.common.maths.interpolation import CubicSpline</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; from torch.nn import Parameter</span>
+<span class="sd">        &gt;&gt;&gt; x = torch.linspace(1, 10, 10)</span>
+<span class="sd">        &gt;&gt;&gt; y = Parameter(torch.sin(x), requires_grad=False)</span>
+<span class="sd">        &gt;&gt;&gt; spline = CubicSpline(x, y)</span>
+<span class="sd">        &gt;&gt;&gt; spline(torch.tensor([3.5]))</span>
+<span class="sd">        tensor([-0.3526])</span>
+<span class="sd">        &gt;&gt;&gt; torch.sin(torch.tensor([3.5]))</span>
+<span class="sd">        tensor([-0.3508])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">,</span> <span class="n">tail</span><span class="p">:</span> <span class="n">Real</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># X-knot values must be of an anticipated type</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The x-knot values must be a `torch.Tensor`&quot;</span>
+                            <span class="s2">&quot; instance.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Same for the y-knot values</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;The y-knot values must be a `torch.nn.Parameter` instance.&quot;</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">y</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;&quot;CubicSpline&quot; only support 1D or 2D interpolation&#39;</span>
+
+        <span class="c1"># Ensure that there is not a mismatch between the number of x and y</span>
+        <span class="c1"># points supplied: one-dimensional case only.</span>
+        <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Mismatch detected in the number of supplied `x` &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">) and `y` (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">) values.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># This is just a repeat of the above check but for the two-dimensional</span>
+        <span class="c1"># case.</span>
+        <span class="k">elif</span> <span class="n">y</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Array shape mismatch detected, anticipated a `y` array of &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;the shape (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">, n), encountered </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2"> instead.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Prevent users from unintentionally optimizing the knot locations.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">)</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s2">&quot;Setting the knot positions &#39;x&#39; as a freely tunable parameter&quot;</span>
+                <span class="s2">&quot; is strongly advised against as it may lead to instability or&quot;</span>
+                <span class="s2">&quot; incorrect behavior of the spline during optimisation.&quot;</span>
+                <span class="s2">&quot; Please ensure that the `x` argument is a `torch.tensor`&quot;</span>
+                <span class="s2">&quot; type rather than a `torch.nn.Parameter` and that its&quot;</span>
+                <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">requires_grad</span><span class="se">\&quot;</span><span class="s2"> attribute set to `False`.&quot;</span><span class="p">,</span>
+                <span class="ne">UserWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">xp</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y</span> <span class="o">=</span> <span class="n">y</span>
+
+        <span class="c1"># Coefficients will be built when the `coefficients` property is</span>
+        <span class="c1"># first invoked.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coefficients</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tail</span> <span class="o">=</span> <span class="n">tail</span>
+
+        <span class="c1"># Device type of the tensor in this class</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">device</span>
+
+        <span class="c1"># Store the version tracking information for the y-knot values so that</span>
+        <span class="c1"># the coefficients can be updated as and when needed.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_version</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">y</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Parameter</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Value of the spline at each grid point.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span>
+
+    <span class="nd">@y</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">y</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Parameter</span><span class="p">):</span>
+        <span class="c1"># Y-knot values must be of an anticipated type</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;y-knot values must be a `torch.nn.Parameter` instance.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Finally, set new y-knot value tensor.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The spline coefficients.&quot;&quot;&quot;</span>
+
+        <span class="c1"># If the spline&#39;s y-knot values were modified by something or someone</span>
+        <span class="c1"># external to the `CubicSpline` class, then the coefficients will no</span>
+        <span class="c1"># longer accurately reflect the current state of the spline. Thus, the</span>
+        <span class="c1"># coefficients values must now be recalculated so that they are consistent</span>
+        <span class="c1"># with the updated y-knot values.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_knots_were_changed</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coefficients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="n">ypt</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">)</span>
+
+            <span class="c1"># get the first dim of x</span>
+            <span class="n">nx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">device</span>
+            <span class="k">assert</span> <span class="n">nx</span> <span class="o">&gt;</span> <span class="mi">3</span>  <span class="c1"># the length of x variable must &gt; 3</span>
+
+            <span class="c1"># get the difference between grid points</span>
+            <span class="n">dxp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">dyp</span> <span class="o">=</span> <span class="n">ypt</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">ypt</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># get b, c, d from reference website: step 3~9, first calculate c</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">A</span><span class="o">.</span><span class="n">diagonal</span><span class="p">()[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">dxp</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">dxp</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>  <span class="c1"># diag</span>
+            <span class="n">A</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">dxp</span>  <span class="c1"># off-diag</span>
+            <span class="n">A</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="n">dxp</span>
+            <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">A</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span>
+            <span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">A</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>  <span class="c1"># natural condition</span>
+            <span class="n">A</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">],</span> <span class="n">A</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span>
+
+            <span class="n">B</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="o">*</span><span class="n">ypt</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">B</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="p">(</span><span class="n">dyp</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">/</span> <span class="n">dxp</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">dyp</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">dxp</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">B</span> <span class="o">=</span> <span class="n">B</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">B</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">B</span>
+
+            <span class="n">cc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">cc</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">cc</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">cc</span>
+            <span class="n">bb</span> <span class="o">=</span> <span class="n">dyp</span> <span class="o">/</span> <span class="n">dxp</span> <span class="o">-</span> <span class="n">dxp</span> <span class="o">*</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">cc</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">3</span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="p">(</span><span class="n">cc</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">cc</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">dxp</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_coefficients</span> <span class="o">=</span> <span class="n">pack</span><span class="p">([</span><span class="n">ypt</span><span class="p">,</span> <span class="n">bb</span><span class="p">,</span> <span class="n">cc</span><span class="p">,</span> <span class="n">dd</span><span class="p">])</span>
+
+            <span class="c1"># The version tracking data must now be updated. The y-knot version</span>
+            <span class="c1"># is updated otherwise the coefficients will keep being regenerated</span>
+            <span class="c1"># over and over again. The coefficients version must also be updated</span>
+            <span class="c1"># to prevent an infinite recursion.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_knot_version_tracking_data</span><span class="p">()</span>
+
+        <span class="c1"># Finally return the coefficients</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coefficients</span>
+
+<div class="viewcode-block" id="CubicSpline.forward">
+<a class="viewcode-back" href="../../../../_autosummary/tbmalt.common.maths.interpolation.CubicSpline.html#tbmalt.common.maths.interpolation.CubicSpline.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xnew</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the polynomial linear or cubic spline.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            xnew: Points to be interpolated.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ynew: Interpolation values with given points.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># boundary condition of xnew</span>
+        <span class="k">assert</span> <span class="n">xnew</span><span class="o">.</span><span class="n">ge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">(),</span> \
+            <span class="sa">f</span><span class="s1">&#39;input should not be less than </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Note that this deviates from the DFTB+ implementation in that</span>
+        <span class="c1"># the there is no special treatment for the region between the</span>
+        <span class="c1"># penultimate and final grid points. Furthermore, distances</span>
+        <span class="c1"># less than the first grid point will trigger an error.</span>
+
+        <span class="c1"># Note here that the tail actually ends one grid point earlier</span>
+        <span class="n">r_max</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tail</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span><span class="p">)</span>
+
+        <span class="n">interpolate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">xnew</span><span class="p">,</span> <span class="n">xnew</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">extrapolate</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">xnew</span><span class="p">,</span> <span class="n">xnew</span> <span class="o">&lt;=</span> <span class="n">r_max</span><span class="p">)</span>
+        <span class="n">ypt</span> <span class="o">=</span> <span class="n">bT</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">xnew</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ypt</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">xnew</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ypt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                             <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># interpolation of xx which not in the tail</span>
+        <span class="k">if</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="c1"># get the nearest grid point index of distance in grid points</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span>
+                <span class="p">((</span><span class="n">xnew</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span><span class="p">))</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">ind</span><span class="p">[</span><span class="n">interpolate</span><span class="p">]</span>
+            <span class="n">dx</span> <span class="o">=</span> <span class="n">xnew</span><span class="p">[</span><span class="n">interpolate</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+            <span class="n">aa</span><span class="p">,</span> <span class="n">bb</span><span class="p">,</span> <span class="n">cc</span><span class="p">,</span> <span class="n">dd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">ind</span><span class="p">]</span>
+            <span class="n">interp</span> <span class="o">=</span> <span class="n">aa</span> <span class="o">+</span> <span class="n">bb</span> <span class="o">*</span> <span class="n">dx</span> <span class="o">+</span> <span class="n">cc</span> <span class="o">*</span> <span class="n">dx</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">dd</span> <span class="o">*</span> <span class="n">dx</span><span class="o">**</span><span class="mi">3</span>
+            <span class="n">interp</span> <span class="o">=</span> <span class="n">interp</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">interp</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">interp</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">interpolate</span><span class="p">]</span> <span class="o">=</span> <span class="n">interp</span>
+
+        <span class="k">if</span> <span class="n">extrapolate</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">dr</span> <span class="o">=</span> <span class="n">xnew</span><span class="p">[</span><span class="n">extrapolate</span><span class="p">]</span> <span class="o">-</span> <span class="n">r_max</span>
+            <span class="n">dr</span> <span class="o">=</span> <span class="n">dr</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">ypt</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">dr</span>
+
+            <span class="n">y0</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span>
+            <span class="n">r1</span> <span class="o">=</span> <span class="p">(</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span><span class="p">)</span>
+            <span class="n">r2</span> <span class="o">=</span> <span class="p">(</span><span class="n">y2</span> <span class="o">+</span> <span class="n">y0</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">y1</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span> <span class="o">**</span> <span class="mi">2</span>
+
+            <span class="n">dx1</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span>
+            <span class="n">dd</span> <span class="o">=</span> <span class="p">(((</span><span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx1</span> <span class="o">-</span> <span class="n">r1</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx1</span> <span class="o">-</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">r2</span><span class="p">)</span> <span class="o">*</span> <span class="n">dx1</span>
+            <span class="n">y1p</span> <span class="o">=</span> <span class="p">(</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">dd</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span> <span class="o">+</span> <span class="n">r2</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span> <span class="o">+</span> <span class="n">r1</span>
+            <span class="n">y1pp</span> <span class="o">=</span> <span class="mf">6.0</span> <span class="o">*</span> <span class="n">dd</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span> <span class="o">+</span> <span class="n">r2</span>
+
+            <span class="n">dx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid_step</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">tail</span>
+
+            <span class="n">result</span><span class="p">[</span><span class="n">extrapolate</span><span class="p">]</span> <span class="o">=</span> <span class="n">poly_to_zero</span><span class="p">(</span>
+                <span class="n">dr</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">dx</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">y1p</span><span class="p">,</span> <span class="n">y1pp</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update_knot_version_tracking_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="o">.</span><span class="n">_version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_id</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_knots_were_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the y-knot values have updated.&quot;&quot;&quot;</span>
+        <span class="n">ver_delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_version</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="o">.</span><span class="n">_version</span>
+        <span class="n">id_delta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_id</span> <span class="o">!=</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ver_delta</span> <span class="ow">or</span> <span class="n">id_delta</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+build\_coulomb\_matrix
+======================
+
+.. currentmodule:: tbmalt.physics.dftb.coulomb
+
+.. autofunction:: tbmalt.physics.dftb.coulomb.build_coulomb_matrix
+
+    .. autosummary::

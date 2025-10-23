@@ -1,0 +1,8 @@
+tetrahedral\_number
+===================
+
+.. currentmodule:: tbmalt.common.maths
+
+.. autofunction:: tbmalt.common.maths.tetrahedral_number
+
+    .. autosummary::

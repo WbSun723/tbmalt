@@ -1,0 +1,1257 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.io.skf &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">tbmalt.io.skf</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.io.skf</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Methods for reading from and writing to skf and associated files.&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">os.path</span><span class="w"> </span><span class="kn">import</span> <span class="n">isfile</span><span class="p">,</span> <span class="n">split</span><span class="p">,</span> <span class="n">splitext</span><span class="p">,</span> <span class="n">basename</span><span class="p">,</span> <span class="n">isdir</span><span class="p">,</span> <span class="n">exists</span><span class="p">,</span> <span class="n">join</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">product</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">glob</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">h5py</span><span class="w"> </span><span class="kn">import</span> <span class="n">Group</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.maths</span><span class="w"> </span><span class="kn">import</span> <span class="n">triangular_root</span><span class="p">,</span> <span class="n">tetrahedral_root</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">atomic_numbers</span><span class="p">,</span> <span class="n">chemical_symbols</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack</span>
+
+<span class="n">OptTens</span> <span class="o">=</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span>
+<span class="n">SkDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="Skf">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Skf</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Slater-Koster file parser.</span>
+
+<span class="sd">    This class handles the parsing of DFTB+ skf formatted Slater-Koster files,</span>
+<span class="sd">    and their binary analogs. Data can be read from and saved to files using</span>
+<span class="sd">    the `read` &amp; `write` methods. Reading a file will return an `Skf` instance</span>
+<span class="sd">    holding all stored data.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">         atom_pair: Atomic numbers of the elements associated with the</span>
+<span class="sd">            interaction.</span>
+<span class="sd">         hamiltonian: Dictionary keyed by azimuthal-number-pairs (ℓ₁, ℓ₂) and</span>
+<span class="sd">            valued by m×d Hamiltonian integral tensors; where m and d iterate</span>
+<span class="sd">            over bond-order (σ, π, etc.) and distances respectively.</span>
+<span class="sd">         overlap: Dictionary storing the overlap integrals in a manner akin to</span>
+<span class="sd">            ``hamiltonian``.</span>
+<span class="sd">         grid: Distances at which the ``hamiltonian`` &amp; ``overlap`` elements</span>
+<span class="sd">            were evaluated.</span>
+<span class="sd">         r_spline: A :class:`.RSpline` object detailing the repulsive</span>
+<span class="sd">            spline. [DEFAULT=None]</span>
+<span class="sd">         r_poly: A :class:`.RPoly` object detailing the repulsive</span>
+<span class="sd">            polynomial. [DEFAULT=None]</span>
+<span class="sd">         on_sites: On site terms, homo-atomic systems only. [DEFAULT=None]</span>
+<span class="sd">         hubbard_us: Hubbard U terms, homo-atomic systems only. [DEFAULT=None]</span>
+<span class="sd">         mass: Atomic mass, homo-atomic systems only. [DEFAULT=None]</span>
+<span class="sd">         occupations: Occupations of the orbitals, homo-atomic systems only.</span>
+<span class="sd">            [DEFAULT=None]</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Examples of reading and writing.</span>
+
+<span class="sd">        &gt;&gt;&gt; import urllib.request, tarfile</span>
+<span class="sd">        &gt;&gt;&gt; from os.path import join</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.io.skf import Skf</span>
+<span class="sd">        &gt;&gt;&gt; link = &#39;https://github.com/dftbparams/auorg/releases/download/v1.1.0/auorg-1-1.tar.xz&#39;</span>
+<span class="sd">        &gt;&gt;&gt; urllib.request.urlretrieve(link, &#39;auorg-1-1.tar.xz&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; tartmp = tarfile.open(&#39;auorg-1-1.tar.xz&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; tartmp.extractall()</span>
+<span class="sd">        &gt;&gt;&gt; cc = Skf.from_skf(join(&#39;auorg-1-1&#39;, &#39;C-C.skf&#39;))</span>
+<span class="sd">        &gt;&gt;&gt; print(cc.hamiltonian.keys())</span>
+<span class="sd">        dict_keys([(0, 0), (0, 1), (1, 1)])</span>
+
+<span class="sd">        use auorg-1-1 to generate binary h5 and read the binary file</span>
+
+<span class="sd">        &gt;&gt;&gt; cc.write(&#39;tmp.h5&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; cch5 = Skf.read(&#39;tmp.h5&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; print(cch5.hamiltonian.keys())</span>
+<span class="sd">        dict_keys([(0, 0), (0, 1), (1, 1)])</span>
+
+<span class="sd">        Note Slater-Koster parameter sets can be downloaded and parsed into</span>
+<span class="sd">        an HDF5 file using the method</span>
+<span class="sd">        `tbmalt.tools.downloaders.download_dftb_parameter_set`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        atomic: True if the system contains atomic data, only relevant to the</span>
+<span class="sd">            homo-atomic cases.</span>
+
+<span class="sd">    .. _Notes:</span>
+<span class="sd">    Notes:</span>
+<span class="sd">        HOMO atomic systems commonly, but not always, include additional</span>
+<span class="sd">        &quot;atomic&quot; data; namely atomic mass, on-site terms, occupations, and</span>
+<span class="sd">        the Hubbard-U values. These can be optionally specified using the</span>
+<span class="sd">        ``mass``, ``on_sites``, ``occupations``, and ``hubbard_us`` attributes</span>
+<span class="sd">        respectively. However, these attributes are mutually inclusive, i.e.</span>
+<span class="sd">        either all are specified or none are. Furthermore, values contained</span>
+<span class="sd">        within such tensors should be ordered from the lowest azimuthal number</span>
+<span class="sd">        to highest, where applicable.</span>
+
+<span class="sd">        Further information regarding the skf file format specification can be</span>
+<span class="sd">        found in the document: &quot;`Format of the v1.0 Slater-Koster Files`_&quot;.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        This may fail to parse files which do not strictly adhere to the skf</span>
+<span class="sd">        file format. Some skf files, such as those from the &quot;pbc&quot; parameter</span>
+<span class="sd">        set, contain non-trivial errors in them, e.g. incorrectly specified</span>
+<span class="sd">        number of grid points. Such files require fixing before they can be</span>
+<span class="sd">        read in.</span>
+
+<span class="sd">        The ``atom_pair`` argument is order sensitive, i.e. [6, 7] ≠ [7, 6].</span>
+<span class="sd">        For example, the p-orbital of the s-p-σ interaction would be located</span>
+<span class="sd">        on N when ``atom_pair`` is [6, 7] but on C when it is [7, 6].</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: if some but not all atomic attributes are specified. See</span>
+<span class="sd">            the :ref:`Notes` section for more details.</span>
+
+<span class="sd">    .. _Format of the v1.0 Slater-Koster Files:</span>
+<span class="sd">        https://dftb.org/_downloads/85b02a0893bd3402438aec77de5bc1df/slakoformat.pdf</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Used to reorder hamiltonian and overlap data read in from skf files.</span>
+    <span class="n">_sorter</span> <span class="o">=</span> <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">_sorter_e</span> <span class="o">=</span> <span class="p">[</span><span class="mi">19</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span>
+                 <span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span>  <span class="mi">9</span><span class="p">,</span>  <span class="mi">4</span><span class="p">,</span>  <span class="mi">5</span><span class="p">,</span>  <span class="mi">6</span><span class="p">,</span>  <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>  <span class="mi">2</span><span class="p">,</span>  <span class="mi">3</span><span class="p">]</span>
+
+    <span class="c1"># Dataclasses for holding the repulsive interaction data.</span>
+<div class="viewcode-block" id="Skf.RPoly">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf.RPoly">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">RPoly</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dataclass container for the repulsive polynomial.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            cutoff: Cutoff radius of the repulsive interaction.</span>
+<span class="sd">            coef: The eight polynomial coefficients (c2-c9).</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+        <span class="n">cutoff</span><span class="p">:</span> <span class="n">Tensor</span>
+        <span class="n">coef</span><span class="p">:</span> <span class="n">Tensor</span></div>
+
+
+<div class="viewcode-block" id="Skf.RSpline">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf.RSpline">[docs]</a>
+    <span class="nd">@dataclass</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">RSpline</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Dataclass container for the repulsive spline.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            grid: Distance for the primary spline segments.</span>
+<span class="sd">            cutoff: Cutoff radius for the tail spline.</span>
+<span class="sd">            spline_coef: The primary spline&#39;s Coefficients (four per segment).</span>
+<span class="sd">            exp_coef: The exponential expression&#39;s coefficients a1, a2 &amp; a3.</span>
+<span class="sd">            tail_coef: The six coefficients of the terminal tail spline.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">grid</span><span class="p">:</span> <span class="n">Tensor</span>
+        <span class="n">cutoff</span><span class="p">:</span> <span class="n">Tensor</span>
+        <span class="n">spline_coef</span><span class="p">:</span> <span class="n">Tensor</span>
+        <span class="n">exp_coef</span><span class="p">:</span> <span class="n">Tensor</span>
+        <span class="n">tail_coef</span><span class="p">:</span> <span class="n">Tensor</span></div>
+
+
+    <span class="c1"># HDF5-SK version number. Updated when introducing a change that would</span>
+    <span class="c1"># break backwards compatibility with previously created HDF5-skf file.</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;0.1&#39;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">atom_pair</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">:</span> <span class="n">SkDict</span><span class="p">,</span> <span class="n">overlap</span><span class="p">:</span> <span class="n">SkDict</span><span class="p">,</span>
+            <span class="n">grid</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">r_spline</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RSpline</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">r_poly</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RPoly</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">hubbard_us</span><span class="p">:</span> <span class="n">OptTens</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">on_sites</span><span class="p">:</span> <span class="n">OptTens</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">occupations</span><span class="p">:</span> <span class="n">OptTens</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">mass</span><span class="p">:</span> <span class="n">OptTens</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">atom_pair</span> <span class="o">=</span> <span class="n">atom_pair</span>
+
+        <span class="c1"># SkDict attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">hamiltonian</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">overlap</span> <span class="o">=</span> <span class="n">overlap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grid</span> <span class="o">=</span> <span class="n">grid</span>
+
+        <span class="c1"># Ensure grid is uniformly spaced</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">diff</span><span class="p">()</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">1E-5</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Electronic integral grid spacing is not uniform&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Repulsive attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_spline</span> <span class="o">=</span> <span class="n">r_spline</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_poly</span> <span class="o">=</span> <span class="n">r_poly</span>
+
+        <span class="c1"># Either the system contains atomic information or it does not; it is</span>
+        <span class="c1"># illogical to have some atomic attributes but not others.</span>
+        <span class="n">check</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="n">on_sites</span><span class="p">,</span> <span class="n">hubbard_us</span><span class="p">,</span>
+                                         <span class="n">occupations</span><span class="p">,</span> <span class="n">mass</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">check</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">any</span><span class="p">(</span><span class="n">check</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Either all or no atomic attributes must be supplied:&#39;</span>
+                <span class="s1">&#39;</span><span class="se">\n\t</span><span class="s1">- on_sites</span><span class="se">\n\t</span><span class="s1">- hubbard_us</span><span class="se">\n\t</span><span class="s1">- mass</span><span class="se">\n\t</span><span class="s1">- occupations&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Atomic attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atomic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">check</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">on_sites</span> <span class="o">=</span> <span class="n">on_sites</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hubbard_us</span> <span class="o">=</span> <span class="n">hubbard_us</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="n">mass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occupations</span> <span class="o">=</span> <span class="n">occupations</span>
+
+<div class="viewcode-block" id="Skf.read">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf.read">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">atom_pair</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Skf&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse Slater-Koster data from skf files and their binary analogs.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            path: Path to the file that is to be read (.skf or .hdf5).</span>
+<span class="sd">            atom_pair: Atomic numbers of the element pair. This is only used</span>
+<span class="sd">                when reading from an HDF5 file with more than one SK entry.</span>
+<span class="sd">                [DEFAULT=None]</span>
+
+<span class="sd">        Keyword Arguments:</span>
+<span class="sd">            device: Device on which to place tensors. [DEFAULT=None]</span>
+<span class="sd">            dtype: dtype to be used for floating point tensors. [DEFAULT=None]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            skf: `Skf` object containing all data parsed from the specified</span>
+<span class="sd">                file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>  <span class="c1"># Verify the target file exists</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Could not find: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;sk&#39;</span> <span class="ow">in</span> <span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>  <span class="c1"># If path points to an skf file</span>
+            <span class="c1"># Issue a waring if the user specifies `atom_pair` for an skf file</span>
+            <span class="k">if</span> <span class="n">atom_pair</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;&quot;atom_pair&quot; argument is only used when reading&#39;</span>
+                              <span class="s1">&#39;from HDF5 files with multiple SK entries.&#39;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_skf</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>  <span class="c1"># Otherwise must be a hdf5 database</span>
+            <span class="c1"># If atom_pair is specified use this to identify the target</span>
+            <span class="k">if</span> <span class="n">atom_pair</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atom_pair</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Otherwise scan for valid entries: if only 1 SK entry exists</span>
+                <span class="c1"># then assume it&#39;s the target; if multiple entries exist then</span>
+                <span class="c1"># it&#39;s impossible to know which the user wanted.</span>
+                <span class="n">e</span> <span class="o">=</span> <span class="s1">&#39;[A-Z][a-z]*&#39;</span>
+                <span class="n">entries</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">db</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Use atom_pair when database have &#39;</span>
+                                     <span class="sa">f</span><span class="s1">&#39;more than one entry: </span><span class="si">{</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_hdf5</span><span class="p">(</span><span class="n">db</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Skf.from_skf">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf.from_skf">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_skf</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Skf&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse and skf file into an `Skf` instance.</span>
+
+<span class="sd">        File names should follow the naming convention X-Y.skf where X &amp; Y are</span>
+<span class="sd">        the chemical symbols of the associated elements. However, any file</span>
+<span class="sd">        which **ends** in X.Y will be successfully parsed (where &quot;.&quot; is any</span>
+<span class="sd">        character (including no character)).</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            path: Path to the target skf file.</span>
+<span class="sd">            device: Device on which to place tensors. [DEFAULT=None]</span>
+<span class="sd">            dtype: dtype to be used for floating point tensors. [DEFAULT=None]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            skf: Return the arguments in `Skf` object.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">dtype</span><span class="p">,</span> <span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="n">device</span><span class="p">}</span>
+        <span class="n">kwargs_in</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Identify the elements involved according to the file name</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="s1">&#39;[A-Z][a-z]?&#39;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">atom_pair</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">atomic_numbers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span>
+                <span class="n">e</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">rf</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">.?</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">(?=.)&#39;</span><span class="p">,</span> <span class="n">split</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">))])</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Could not parse element names form file.&#39;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+
+        <span class="n">lines</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+        <span class="c1"># Remove the comment line if present</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">lines</span>
+
+        <span class="c1"># 0th line, grid distance and grid points number</span>
+        <span class="n">g_step</span><span class="p">,</span> <span class="n">n_grids</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">g_step</span><span class="p">,</span> <span class="n">n_grids</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">g_step</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_grids</span><span class="p">)</span>
+
+        <span class="c1"># In line with file specification only &quot;nGridPoints - 1&quot; points are</span>
+        <span class="c1"># guaranteed to be present. This is because the grid point at r=0 is</span>
+        <span class="c1"># implicit rather than explicit. It is worth remarking that some skf</span>
+        <span class="c1"># files will actually provide nGridPoints rows; in these cases the</span>
+        <span class="c1"># last row is ignored.</span>
+        <span class="n">n_grids</span> <span class="o">=</span> <span class="n">n_grids</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_grids</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span> <span class="o">*</span> <span class="n">g_step</span>
+
+        <span class="c1"># Determine if this is the homo/atomic case (from the file&#39;s contents)</span>
+        <span class="n">atomic</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_ln</span> <span class="o">:=</span> <span class="n">_s2t</span><span class="p">(</span><span class="n">_esr</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="o">**</span><span class="n">dd</span><span class="p">))</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">13</span><span class="p">]</span>
+
+        <span class="c1"># Read in the mass and polynomial repulsion coefficients</span>
+        <span class="n">mass</span><span class="p">,</span> <span class="n">r_poly</span><span class="p">,</span> <span class="n">r_cut</span> <span class="o">=</span> <span class="n">_s2t</span><span class="p">(</span><span class="n">_esr</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="mi">1</span> <span class="o">+</span> <span class="n">atomic</span><span class="p">]),</span>
+                                   <span class="o">**</span><span class="n">dd</span><span class="p">)[:</span><span class="mi">10</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># If polynomial coefficients are valid, create an r_poly object</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">r_poly</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">kwargs_in</span><span class="p">[</span><span class="s1">&#39;r_poly&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RPoly</span><span class="p">(</span><span class="n">r_cut</span><span class="p">,</span> <span class="n">r_poly</span><span class="p">)</span>
+
+        <span class="c1"># Parse hamiltonian/overlap integrals.</span>
+        <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span> <span class="o">=</span> <span class="n">_s2t</span><span class="p">(</span><span class="n">_esr</span><span class="p">(</span><span class="s1">&#39;  &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">lines</span><span class="p">[</span><span class="mi">2</span> <span class="o">+</span> <span class="n">atomic</span><span class="p">:</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">atomic</span> <span class="o">+</span> <span class="n">n_grids</span><span class="p">])),</span>
+            <span class="o">**</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">n_grids</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># H/S tables are reordered so the lowest l comes first, broken up</span>
+        <span class="c1"># into shell-pair chunks, e.g. ss, sp, sd, pp, etc, before finally</span>
+        <span class="c1"># being placed into dictionaries.</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">h_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">sort</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_sorter</span> <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="mi">10</span> <span class="k">else</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_sorter_e</span>  <span class="c1"># ◂──────┐</span>
+        <span class="n">max_l</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">tetrahedral_root</span><span class="p">(</span><span class="n">count</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># ◂─f-orbital catch┘</span>
+
+        <span class="c1"># Sort, segmentation and parse the tables into a pair of dictionaries</span>
+        <span class="n">l_pairs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">max_l</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_l</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span> <span class="o">=</span> <span class="p">[{</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">l_pair</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span> <span class="n">integral</span> <span class="k">for</span> <span class="n">l_pair</span><span class="p">,</span> <span class="n">integral</span> <span class="ow">in</span>
+            <span class="c1">#            |   ↓ Sorting ↓   |    ↓ Segmentation by ℓ pair ↓    |</span>
+            <span class="nb">zip</span><span class="p">(</span><span class="n">l_pairs</span><span class="p">,</span> <span class="n">integrals</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">sort</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">((</span><span class="n">l_pairs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">((</span><span class="n">integral</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>  <span class="c1"># ← Ignore any dummy interactions</span>
+            <span class="ow">or</span> <span class="p">(</span><span class="n">integral</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>  <span class="c1"># Case for siband overlap</span>
+            <span class="ow">or</span> <span class="p">((</span><span class="n">n_grids</span> <span class="o">&gt;</span> <span class="mi">21</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">integral</span><span class="p">[:,</span> <span class="mi">20</span><span class="p">:]</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()))}</span>  <span class="c1"># pbc case</span>
+            <span class="k">for</span> <span class="n">integrals</span> <span class="ow">in</span> <span class="p">[</span><span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span><span class="p">]]</span>
+
+        <span class="k">if</span> <span class="n">atomic</span><span class="p">:</span>  <span class="c1"># Parse homo data; on-site/Hubbard-U/occupations. (skip spe)</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">atom_ln</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>  <span class="c1"># -&gt; Number of shells specified</span>
+            <span class="n">occs</span><span class="p">,</span> <span class="n">hubb_u</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">on_site</span> <span class="o">=</span> <span class="n">atom_ln</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
+            <span class="c1"># If integrals were culled; atomic data must be too.</span>
+            <span class="n">max_l</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">triangular_root</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">h_data</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">kwargs_in</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s1">&#39;mass&#39;</span><span class="p">:</span> <span class="n">mass</span><span class="p">,</span> <span class="s1">&#39;occupations&#39;</span><span class="p">:</span> <span class="n">occs</span><span class="p">[:</span><span class="n">max_l</span><span class="p">],</span>
+                <span class="s1">&#39;on_sites&#39;</span><span class="p">:</span> <span class="n">on_site</span><span class="p">[:</span><span class="n">max_l</span><span class="p">],</span> <span class="s1">&#39;hubbard_us&#39;</span><span class="p">:</span> <span class="n">hubb_u</span><span class="p">[:</span><span class="n">max_l</span><span class="p">]})</span>
+
+        <span class="c1"># Parse repulsive spline (if present)</span>
+        <span class="k">if</span> <span class="s1">&#39;Spline</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="n">ln</span> <span class="o">=</span> <span class="n">lines</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;Spline</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+            <span class="n">n_int</span><span class="p">,</span> <span class="n">r_cutoff</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="n">ln</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">r_tab</span> <span class="o">=</span> <span class="n">_s2t</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">ln</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span> <span class="n">ln</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_int</span><span class="p">)],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+            <span class="n">r_grid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">r_tab</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">r_tab</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+            <span class="n">kwargs_in</span><span class="p">[</span><span class="s1">&#39;r_spline&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RSpline</span><span class="p">(</span>
+                <span class="c1"># Repulsive grid, cutoff &amp; repulsive spline coefficients.</span>
+                <span class="n">r_grid</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">r_cutoff</span><span class="p">),</span> <span class="o">**</span><span class="n">dd</span><span class="p">),</span> <span class="n">r_tab</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:],</span>
+                <span class="c1"># The exponential and tail spline&#39;s coefficients.</span>
+                <span class="n">_s2t</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">ln</span><span class="p">],</span> <span class="o">**</span><span class="n">dd</span><span class="p">),</span> <span class="n">_s2t</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">ln</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_int</span><span class="p">)],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)[</span><span class="mi">2</span><span class="p">:])</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">atom_pair</span><span class="p">,</span> <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs_in</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Skf.from_hdf5">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf.from_hdf5">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_hdf5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">Group</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Skf&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Instantiate a `Skf` instances from an HDF5 group.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            source: An HDF5 group containing Slater-Koster data.</span>
+<span class="sd">            device: Device on which to place tensors. [DEFAULT=None]</span>
+<span class="sd">            dtype: dtype to be used for floating point tensors. [DEFAULT=None]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            skf: The resulting `Skf` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Make a call to the proxy helper function</span>
+        <span class="n">atom_pair</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_hdf5_helper</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">atom_pair</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Skf.write">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf.write">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the Slater-Koster data to a file.</span>
+
+<span class="sd">        The target file can be either a skf file or a hdf5 database. Desired</span>
+<span class="sd">        file format will be inferred from the file&#39;s name.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            path: path to the file in which the data is to be saved.</span>
+<span class="sd">            overwrite: Existing skf-files/HDF5-groups can only be overwritten</span>
+<span class="sd">                when ``overwrite`` is True. [DEFAULT=False]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;sk&#39;</span> <span class="ow">in</span> <span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>  <span class="c1"># If path points to an skf file</span>
+            <span class="k">if</span> <span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span>
+                    <span class="s1">&#39;File already exists; use &quot;overwrite&quot; to permit &#39;</span>
+                    <span class="s1">&#39;overwriting.&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_skf</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Otherwise it must be an HDF5 file</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>  <span class="c1"># Create/open the HDF5 file</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+                                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_pair</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">db</span><span class="p">:</span>  <span class="c1"># If an entry already exists in this database</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>  <span class="c1"># Then raise an exception</span>
+                        <span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s1">&#39;Entry </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> already exists; use &quot;overwrite&quot; &#39;</span>
+                            <span class="s1">&#39;to permit overwriting.&#39;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Unless told to overwrite it</span>
+                        <span class="k">del</span> <span class="n">db</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="c1"># Create the HDF5 entry &amp; fill it with data via `to_hdf5`.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Skf.to_skf">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf.to_skf">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_skf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Writes data to a skf formatted file.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            path: path specifying the location of the skf file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">t2a</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Converts a torch tensor to numpy array.&quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">a2s</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Converts a numpy array into a formatted string.&quot;&quot;&quot;</span>
+            <span class="c1"># Slow but easy way to convert array to string</span>
+            <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">j</span><span class="si">:{</span><span class="n">f</span><span class="si">}}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">a</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">a2s</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">a</span><span class="p">])</span>
+
+        <span class="c1"># Used for working out array lengths later on</span>
+        <span class="n">max_l</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Build the first line defining the integral data&#39;s grid.</span>
+        <span class="c1"># Format: {grid step size} {number of grid points}</span>
+        <span class="n">grid_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">)</span>
+        <span class="n">grid_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">diff</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># Note that nGridPoints is always one more than the actual number</span>
+        <span class="c1"># of integral rows provided as the zeroth point is implicit.</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">grid_step</span><span class="si">:</span><span class="s1">&lt;12.8f</span><span class="si">}{</span><span class="n">grid_n</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">:</span><span class="s1">&gt;5</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="c1"># Parse the atomic data into a string.</span>
+        <span class="c1"># Format: {on site terms} {SPE} {hubbard u values} {occupancies}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic</span><span class="p">:</span>
+            <span class="c1"># Care must be taken when parsing atomic data ase some elements of</span>
+            <span class="c1"># these arrays may have been culled at read time.</span>
+            <span class="n">homo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">max_l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">)</span>  <span class="c1"># Parse in standard atomic data</span>
+            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">occupations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubbard_us</span><span class="p">,</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">on_sites</span><span class="p">]):</span>
+                <span class="n">homo</span><span class="p">[(</span><span class="n">start</span> <span class="o">:=</span> <span class="p">(</span><span class="n">max_l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">n</span><span class="p">):</span><span class="n">start</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">t2a</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="c1"># Add dummy SPE value and reverse the array&#39;s order</span>
+            <span class="n">homo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">homo</span><span class="p">,</span> <span class="p">(</span><span class="n">max_l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">0.</span><span class="p">))</span>
+            <span class="c1"># Finally append the homo data to the output string</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">a2s</span><span class="p">(</span><span class="n">homo</span><span class="p">,</span> <span class="s1">&#39;&gt;21.12E&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Generate the repulsive polynomial line.</span>
+        <span class="c1"># Format {mass} {coefficients} {cutoff} {ZEROS}</span>
+        <span class="n">coef</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_poly</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t2a</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_poly</span><span class="o">.</span><span class="n">coef</span><span class="p">)</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_poly</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">t2a</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r_poly</span><span class="o">.</span><span class="n">cutoff</span><span class="p">)</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="n">t2a</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">r_poly_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="n">mass</span><span class="p">,</span> <span class="n">coef</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span>
+
+        <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">a2s</span><span class="p">(</span><span class="n">r_poly_data</span><span class="p">,</span> <span class="s1">&#39;&gt;21.12E&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Build HS data</span>
+        <span class="n">ls</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_l</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">lps</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="n">ls</span><span class="p">,</span> <span class="n">ls</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+        <span class="n">hs_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span>  <span class="c1"># Concatenate H &amp; S matrices.</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>  <span class="c1"># Collate each integral, adding dummy data as needed.</span>
+                <span class="p">[</span><span class="n">t2a</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">grid_n</span><span class="p">))))</span><span class="o">.</span><span class="n">T</span>
+                 <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lps</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap</span><span class="p">]])</span>
+        <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">a2s</span><span class="p">(</span><span class="n">hs_data</span><span class="p">,</span> <span class="s1">&#39;&gt;21.12E&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Append the repulsive spline data, is present.</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">rs_data</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_spline</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">grid</span> <span class="o">=</span> <span class="n">rs_data</span><span class="o">.</span><span class="n">grid</span>
+            <span class="c1"># Header</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Spline&#39;</span>
+            <span class="c1"># Grid data: {number of grid points} {cutoff}</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">)</span><span class="si">:</span><span class="s1">&lt;5</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">rs_data</span><span class="o">.</span><span class="n">cutoff</span><span class="si">:</span><span class="s1">&gt;12.8f</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="c1"># Exponential: {coefficients}</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">a2s</span><span class="p">(</span><span class="n">rs_data</span><span class="o">.</span><span class="n">exp_coef</span><span class="p">,</span> <span class="s1">&#39;&gt;21.12E&#39;</span><span class="p">)</span>
+            <span class="c1"># Primary spline: {from} {to} {coefficients}</span>
+            <span class="n">s_data</span> <span class="o">=</span> <span class="n">t2a</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">grid</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                                    <span class="n">grid</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                                    <span class="n">rs_data</span><span class="o">.</span><span class="n">spline_coef</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">a2s</span><span class="p">(</span><span class="n">s_data</span><span class="p">,</span> <span class="s1">&#39;&gt;21.12E&#39;</span><span class="p">)</span>
+            <span class="c1"># Spline tail: {from} {to} {coefficients}</span>
+            <span class="n">tail</span> <span class="o">=</span> <span class="n">t2a</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">grid</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:],</span> <span class="n">rs_data</span><span class="o">.</span><span class="n">cutoff</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span>
+                                  <span class="n">rs_data</span><span class="o">.</span><span class="n">tail_coef</span><span class="p">)))</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">a2s</span><span class="p">(</span><span class="n">tail</span><span class="p">,</span> <span class="s1">&#39;&gt;21.12E&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Write the results to the target file</span>
+        <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">output</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Skf.to_hdf5">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.Skf.html#tbmalt.io.skf.Skf.to_hdf5">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Group</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Saves the `Skf` instance into a target HDF5 Group.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            target: The hdf5 group to which the skf data should be saved.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            This function does not create its own group as it expects that</span>
+<span class="sd">            ``target`` is the group into which data should be writen.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">t2n</span><span class="p">(</span><span class="n">t</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Convert torch tensor to a numpy array.&quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">add_data</span><span class="p">(</span><span class="n">entities</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">to</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Create a new group and add multiple datasets to it.&quot;&quot;&quot;</span>
+            <span class="n">to</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">to</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">entities</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># Convert any torch tensor into numpy arrays.</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">t2n</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">data</span>
+                <span class="n">to</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># Attributes</span>
+        <span class="n">target</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+            <span class="p">{</span><span class="s1">&#39;atoms&#39;</span><span class="p">:</span> <span class="n">t2n</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atom_pair</span><span class="p">),</span> <span class="s1">&#39;version&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+             <span class="s1">&#39;has_r_poly&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_poly</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;is_atomic&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic</span><span class="p">,</span>
+             <span class="s1">&#39;has_r_spline&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_spline</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">})</span>
+
+        <span class="c1"># Convert electronic integral matrices into structured numpy arrays.</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">k</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+                          <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">t2n</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">j</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">dtype</span><span class="p">)</span>
+                          <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap</span><span class="p">]]</span>
+
+        <span class="c1"># SkDict component</span>
+        <span class="n">add_data</span><span class="p">({</span><span class="s1">&#39;H&#39;</span><span class="p">:</span> <span class="n">h_data</span><span class="p">,</span> <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="p">),</span> <span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="n">s_data</span><span class="p">,</span>
+                  <span class="s1">&#39;step&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">diff</span><span class="p">()[</span><span class="mi">0</span><span class="p">]},</span> <span class="s1">&#39;integrals&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_poly</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Repulsive polynomial</span>
+            <span class="n">add_data</span><span class="p">({</span><span class="s1">&#39;coef&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">coef</span><span class="p">,</span> <span class="s1">&#39;cutoff&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">cutoff</span><span class="p">},</span> <span class="s1">&#39;r_poly&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">s</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_spline</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Repulsive spline</span>
+            <span class="n">add_data</span><span class="p">(</span>
+                <span class="p">{</span><span class="s1">&#39;grid&#39;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">grid</span><span class="p">,</span> <span class="s1">&#39;cutoff&#39;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">cutoff</span><span class="p">,</span> <span class="s1">&#39;exp_coef&#39;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">exp_coef</span><span class="p">,</span>
+                 <span class="s1">&#39;step&#39;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">grid</span><span class="o">.</span><span class="n">diff</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;tail_coef&#39;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">tail_coef</span><span class="p">,</span>
+                 <span class="s1">&#39;spline_coef&#39;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">spline_coef</span><span class="p">,</span> <span class="p">},</span> <span class="s1">&#39;r_spline&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic</span><span class="p">:</span>  <span class="c1"># Atomic</span>
+            <span class="n">add_data</span><span class="p">(</span>
+                <span class="p">{</span><span class="s1">&#39;on_sites&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_sites</span><span class="p">,</span> <span class="s1">&#39;hubbard_us&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">hubbard_us</span><span class="p">,</span>
+                 <span class="s1">&#39;occupations&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">occupations</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">},</span> <span class="s1">&#39;atomic&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Metadata</span>
+        <span class="n">add_data</span><span class="p">({</span><span class="s1">&#39;time_created&#39;</span><span class="p">:</span> <span class="n">time</span><span class="p">()},</span> <span class="s1">&#39;metadata&#39;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a string representing the `Skf` object.&quot;&quot;&quot;</span>
+        <span class="n">cls_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_pair</span><span class="p">])</span>
+        <span class="n">r_spline</span> <span class="o">=</span> <span class="s1">&#39;No&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_spline</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;Yes&#39;</span>
+        <span class="n">r_poly</span> <span class="o">=</span> <span class="s1">&#39;No&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_poly</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;Yes&#39;</span>
+        <span class="n">atomic</span> <span class="o">=</span> <span class="s1">&#39;No&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;Yes&#39;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">cls_name</span><span class="si">}</span><span class="s1">(</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">, r-spline: </span><span class="si">{</span><span class="n">r_spline</span><span class="si">}</span><span class="s1">, r-poly: </span><span class="si">{</span><span class="n">r_poly</span><span class="si">}</span><span class="s1">, &#39;</span> \
+               <span class="sa">f</span><span class="s1">&#39;atomic-data: </span><span class="si">{</span><span class="n">atomic</span><span class="si">}</span><span class="s1">)&#39;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a simple string representation of the `Skf` object.&quot;&quot;&quot;</span>
+        <span class="n">cls_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_pair</span><span class="p">])</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">cls_name</span><span class="si">}</span><span class="s1">(</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">)&#39;</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_from_hdf5_helper</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">Group</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;This abstracts the contents of the `from_hdf5` function.</span>
+
+<span class="sd">        This function acts as any other `from_hdf5` would be expected to with</span>
+<span class="sd">        the exception that it returns the contents of the hdf5 group rather</span>
+<span class="sd">        than a class instance representing them.</span>
+
+<span class="sd">        This abstraction prevents having to duplicate the entire `from_hdf5`</span>
+<span class="sd">        function in the `VCRSkf` class just to add a single line to allow</span>
+<span class="sd">        for the compression radii to be extracted.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">tt</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Convenience function to convert to data into tensors&quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="n">name</span><span class="p">][()],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span>
+
+        <span class="n">dd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dtype&#39;</span><span class="p">:</span> <span class="n">dtype</span><span class="p">,</span> <span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="n">device</span><span class="p">}</span>
+
+        <span class="c1"># Check that the version is compatible</span>
+        <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;version&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="nb">float</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">version</span><span class="p">):</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;HDF5-skf file Version exceeds local code version.&#39;</span><span class="p">)</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">atom_pair</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">source</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;atoms&#39;</span><span class="p">])</span>
+
+        <span class="c1"># Retrieve integral data</span>
+        <span class="n">ints</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s1">&#39;integrals&#39;</span><span class="p">]</span>
+        <span class="c1"># Convert structured numpy arrays into a dictionary of tensors</span>
+        <span class="n">H</span><span class="p">,</span> <span class="n">S</span> <span class="o">=</span> <span class="p">({</span>
+            <span class="c1"># Convert name-string &gt; Tuple[int, int] &amp; np.array &gt; torch.tensor</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">n</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">))):</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">i</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span>
+            <span class="c1"># Loop over field names (strings like &quot;ℓ₁-ℓ₂&quot;) &amp; their numpy arrays</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">i</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="n">ints</span><span class="p">[</span><span class="s1">&#39;H&#39;</span><span class="p">],</span> <span class="n">ints</span><span class="p">[</span><span class="s1">&#39;S&#39;</span><span class="p">]])</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ints</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">][()],</span> <span class="o">**</span><span class="n">dd</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">ints</span><span class="p">[</span><span class="s1">&#39;step&#39;</span><span class="p">][()]</span>
+
+        <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;has_r_spline&#39;</span><span class="p">]:</span>  <span class="c1"># Repulsive spline data</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s1">&#39;r_spline&#39;</span><span class="p">]</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;r_spline&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RSpline</span><span class="p">(</span>
+                <span class="n">tt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;grid&#39;</span><span class="p">),</span> <span class="n">tt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;cutoff&#39;</span><span class="p">),</span> <span class="n">tt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;spline_coef&#39;</span><span class="p">),</span>
+                <span class="n">tt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;exp_coef&#39;</span><span class="p">),</span> <span class="n">tt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;tail_coef&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;has_r_poly&#39;</span><span class="p">]:</span>  <span class="c1"># Repulsive polynomial</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s1">&#39;r_poly&#39;</span><span class="p">]</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;r_poly&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RPoly</span><span class="p">(</span><span class="n">tt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;cutoff&#39;</span><span class="p">),</span> <span class="n">tt</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="s1">&#39;coef&#39;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;is_atomic&#39;</span><span class="p">]:</span>  <span class="c1"># Atomic data</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s1">&#39;atomic&#39;</span><span class="p">]</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;on_sites&#39;</span><span class="p">:</span> <span class="n">tt</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;on_sites&#39;</span><span class="p">),</span>
+                           <span class="s1">&#39;hubbard_us&#39;</span><span class="p">:</span> <span class="n">tt</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;hubbard_us&#39;</span><span class="p">),</span>
+                           <span class="s1">&#39;mass&#39;</span><span class="p">:</span> <span class="n">tt</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;mass&#39;</span><span class="p">),</span>
+                           <span class="s1">&#39;occupations&#39;</span><span class="p">:</span> <span class="n">tt</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s1">&#39;occupations&#39;</span><span class="p">)})</span>
+
+        <span class="k">return</span> <span class="n">atom_pair</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">kwargs</span></div>
+
+
+
+<div class="viewcode-block" id="VCRSkf">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.VCRSkf.html#tbmalt.io.skf.VCRSkf">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VCRSkf</span><span class="p">(</span><span class="n">Skf</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Variable compression radius Slater-Koster file.</span>
+
+<span class="sd">    This class handles the parsing of variable compression radius Slater-Koster</span>
+<span class="sd">    binary files. These are similar to standard `Skf` files but differ in that</span>
+<span class="sd">    their electronic integral tables iterate over the compression radii of the</span>
+<span class="sd">    two species, not just over distance.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        atom_pair: Atomic numbers of the elements associated with the</span>
+<span class="sd">            interaction.</span>
+<span class="sd">        hamiltonian: Dictionary keyed by azimuthal-number-pairs (ℓ₁, ℓ₂) and</span>
+<span class="sd">            valued by m×r1×r2×d Hamiltonian integral tensors; where r1/r2 are</span>
+<span class="sd">            the compression radii of atoms one/two and m &amp; d iterate over the</span>
+<span class="sd">            bond-order (σ, π, etc.) and distances respectively.</span>
+<span class="sd">        overlap: Dictionary storing the overlap integrals in a manner akin to</span>
+<span class="sd">            ``hamiltonian``.</span>
+<span class="sd">        grid: Distances at which the ``hamiltonian`` &amp; ``overlap`` elements</span>
+<span class="sd">            were evaluated.</span>
+<span class="sd">        compression_radii: Mesh-grid tensor specifying the compression radii.</span>
+<span class="sd">        r_spline: A :class:`.RSpline` object detailing the repulsive</span>
+<span class="sd">            spline. [DEFAULT=None]</span>
+<span class="sd">        r_poly: A :class:`.RPoly` object detailing the repulsive</span>
+<span class="sd">            polynomial. [DEFAULT=None]</span>
+<span class="sd">        on_sites: On site terms, homo-atomic systems only. [DEFAULT=None]</span>
+<span class="sd">        hubbard_us: Hubbard U terms, homo-atomic systems only. [DEFAULT=None]</span>
+<span class="sd">        mass: Atomic mass, homo-atomic systems only. [DEFAULT=None]</span>
+<span class="sd">        occupations: Occupations of the orbitals, homo-atomic systems only.</span>
+<span class="sd">            [DEFAULT=None]</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Examples of reading the h5 file with VCR. Generation data set with VCR</span>
+<span class="sd">        can be seen in `examples/example_01/example_02_setup.py`.</span>
+
+<span class="sd">        &gt;&gt;&gt; import urllib.request, torch</span>
+<span class="sd">        &gt;&gt;&gt; from os.path import join</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt.io.skf import VCRSkf</span>
+<span class="sd">        &gt;&gt;&gt; link = &#39;https://zenodo.org/record/8109578/files/example_dftb_vcr.h5?download=1&#39;</span>
+<span class="sd">        &gt;&gt;&gt; h5file = urllib.request.urlretrieve(link, &#39;example_dftb_vcr.h5&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; skfh5 = VCRSkf.read(&#39;example_dftb_vcr.h5&#39;, torch.tensor([6, 6]))</span>
+<span class="sd">        &gt;&gt;&gt; print(skfh5.hamiltonian.keys())</span>
+<span class="sd">        dict_keys([(0, 0), (0, 1), (1, 1)])</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        Unlike their `Skf` parent class `VCRSkf` files cannot be stored as text</span>
+<span class="sd">        files, only as HDF5 binaries.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;1.0&#39;</span>
+
+    <span class="n">from_sfk</span> <span class="o">=</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not applicable&#39;</span><span class="p">)</span>
+    <span class="n">to_sfk</span> <span class="o">=</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Not applicable&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom_pair</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">:</span> <span class="n">SkDict</span><span class="p">,</span> <span class="n">overlap</span><span class="p">:</span> <span class="n">SkDict</span><span class="p">,</span>
+                 <span class="n">grid</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">compression_radii</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">atom_pair</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">overlap</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compression_radii</span> <span class="o">=</span> <span class="n">compression_radii</span>
+
+<div class="viewcode-block" id="VCRSkf.read">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.VCRSkf.html#tbmalt.io.skf.VCRSkf.read">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">atom_pair</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;VCRSkf&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load variable compression radii Slater-Koster data from a hdf5 file.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            path: Path to the hdf5 database file that is to be read.</span>
+<span class="sd">            atom_pair: Atomic numbers of the element pair whose interactions</span>
+<span class="sd">                are to be loaded. This argument is mandatory when there is</span>
+<span class="sd">                more than one element pair present in the database.</span>
+<span class="sd">                [DEFAULT=None]</span>
+
+<span class="sd">        Keyword Arguments:</span>
+<span class="sd">            device: Device on which to place tensors. [DEFAULT=None]</span>
+<span class="sd">            dtype: dtype to be used for floating point tensors. [DEFAULT=None]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            vcrskf: `VCRSkf` object containing the requested data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+            <span class="c1"># If atom_pair is specified use this to identify the target</span>
+            <span class="k">if</span> <span class="n">atom_pair</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atom_pair</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Otherwise scan for valid entries: if only 1 SK entry exists</span>
+                <span class="c1"># then assume it&#39;s the target; if multiple entries exist then</span>
+                <span class="c1"># it&#39;s impossible to know which the user wanted.</span>
+                <span class="n">e</span> <span class="o">=</span> <span class="s1">&#39;[A-Z][a-z]*&#39;</span>
+                <span class="n">entries</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">db</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s1">&#39;atom_pair must be specified when a database has more&#39;</span>
+                        <span class="sa">f</span><span class="s1">&#39; than one entry: </span><span class="si">{</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_hdf5</span><span class="p">(</span><span class="n">db</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VCRSkf.from_hdf5">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.VCRSkf.html#tbmalt.io.skf.VCRSkf.from_hdf5">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_hdf5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">Group</span><span class="p">,</span> <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;VCRSkf&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Instantiate a `VCRSkf` instances from an HDF5 group.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            source: HDF5 group containing variable compression radius Slater-</span>
+<span class="sd">                Koster data.</span>
+<span class="sd">            device: Device on which to place tensors. [DEFAULT=None]</span>
+<span class="sd">            dtype: dtype to be used for floating point tensors. [DEFAULT=None]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            vcrskf: The resulting `VCRSkf` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Make a call to the proxy helper function to extract most of the data</span>
+        <span class="n">atom_pair</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_from_hdf5_helper</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="c1"># Extract the compression radii manually</span>
+        <span class="n">compression_radii</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="n">source</span><span class="p">[</span><span class="s1">&#39;integrals&#39;</span><span class="p">][</span><span class="s1">&#39;compression_radii&#39;</span><span class="p">][()],</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">atom_pair</span><span class="p">,</span> <span class="n">H</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">compression_radii</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VCRSkf.write">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.VCRSkf.html#tbmalt.io.skf.VCRSkf.write">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the Slater-Koster data to a database.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            path: path to the hdf5 in which the data is to be saved.</span>
+<span class="sd">            overwrite: Existing HDF5-groups can only be overwritten when</span>
+<span class="sd">                ``overwrite`` is True. [DEFAULT=False]</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>  <span class="c1"># Create/open the HDF5 file</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">chemical_symbols</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+                             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atom_pair</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">db</span><span class="p">:</span>  <span class="c1"># If an entry already exists in this database</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>  <span class="c1"># Then raise an exception</span>
+                    <span class="k">raise</span> <span class="ne">FileExistsError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;Entry </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> already exists; use &quot;overwrite&quot; &#39;</span>
+                        <span class="s1">&#39;to permit overwriting.&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>  <span class="c1"># Unless told to overwrite it</span>
+                    <span class="k">del</span> <span class="n">db</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="c1"># Create the HDF5 entry &amp; fill it with data via `to_hdf5`.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="n">name</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="VCRSkf.to_hdf5">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.VCRSkf.html#tbmalt.io.skf.VCRSkf.to_hdf5">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Group</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Saves the `Skf` instance into a target HDF5 Group.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            target: The hdf5 group to which the skf data should be saved.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            This function does not create its own group as it expects that</span>
+<span class="sd">            ``target`` is the group into which data should be writen.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Call the super&#39;s to_hdf5 method &amp; add the compression radii data.</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+        <span class="n">target</span><span class="p">[</span><span class="s1">&#39;integrals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s1">&#39;compression_radii&#39;</span><span class="p">,</span>
+                                           <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">compression_radii</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VCRSkf.from_dir">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.VCRSkf.html#tbmalt.io.skf.VCRSkf.from_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse multiple skf files into a hdf5 `VCRSkf` instance.</span>
+
+<span class="sd">        When run against a `target` directory this method scans for map files</span>
+<span class="sd">        which indicate the presence of data that can be used to build variable</span>
+<span class="sd">        compression radii Slater-Koster files instance (`VCRSkf`). There are</span>
+<span class="sd">        two types of source, the first is &#39;csv&#39; type, the second is &#39;skf&#39; type.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            source: director holding the skf and map files.</span>
+<span class="sd">            target: path to the hdf5 database in which the results should</span>
+<span class="sd">                be stored.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            Directories may contain multiple maps &amp; their associated sk-files.</span>
+<span class="sd">            Map files must be csv formatted &amp; named &quot;skf_map_{X}_{Y}.csv&quot; where</span>
+<span class="sd">            &quot;X&quot; &amp; &quot;Y&quot; are the elemental symbols of the two relevant species.</span>
+<span class="sd">            Each line, &quot;i&quot;, of the map file specifies the compression radii,</span>
+<span class="sd">            for species &quot;X&quot; &amp; &quot;Y&quot; respectively, used when making the sk-file</span>
+<span class="sd">            &quot;{X}_{Y}_{i}.skf&quot;. Note that indexing for &quot;i&quot; starts at one not</span>
+<span class="sd">            zero and that data must be ordered so that it loops over values of</span>
+<span class="sd">            &quot;X&quot; then over values of &quot;Y&quot;, i.e:</span>
+
+<span class="sd">                0.1,1.0</span>
+<span class="sd">                0.1,2.0</span>
+<span class="sd">                0.2,1.0</span>
+<span class="sd">                0.2,2.0</span>
+
+<span class="sd">            This map file example shows that there are two compression radii</span>
+<span class="sd">            used for &quot;X&quot; and two for &quot;Y&quot;, giving a total of four combinations.</span>
+<span class="sd">            It is therefore expected that there are four sk-files.</span>
+<span class="sd">            If the source is &#39;skf&#39; type, the code will loop over files like:</span>
+
+<span class="sd">                &quot;{X}-{Y}-{i}-{j}.skf&quot;</span>
+<span class="sd">                &quot;H-H-02.00-04.50.skf&quot;</span>
+<span class="sd">                &quot;H-C-02.00-04.50.skf&quot;</span>
+
+<span class="sd">            For homo files, you also need one homo files, such as &quot;H-H.skf&quot; to</span>
+<span class="sd">            offer homo properties, such as mass, on_sites or hubbard_us.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">e</span> <span class="o">=</span> <span class="s1">&#39;[A-Z][a-z]&#39;</span>
+
+        <span class="c1"># Validate the path to the source directory</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">isdir</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotADirectoryError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;`source` must be a valid directory: (</span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+        <span class="c1"># If the database exists; open it &amp; identify what systems are present.</span>
+        <span class="c1"># This avoids trying to parse systems that have already been parsed.</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">exists</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+                <span class="n">current</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">db</span>
+                            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">fr</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">*-</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">*&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">)]</span>
+
+        <span class="c1"># Locate any map files present the directory</span>
+        <span class="n">all_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">is_csv</span> <span class="o">:=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;csv$&#39;</span><span class="p">,</span> <span class="n">all_files</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">re_s1</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">fr</span><span class="s1">&#39;(?&lt;=skf_map_)</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">?_</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">?(?=.csv)&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span>
+            <span class="n">map_files</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ele</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">all_files</span>
+                         <span class="k">if</span> <span class="p">(</span><span class="n">ele</span> <span class="o">:=</span> <span class="n">re_s1</span><span class="p">(</span><span class="n">i</span><span class="p">))}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">re_s1</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">fr</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">?-</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">?-\d+.\d+-\d+.\d+&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span>
+            <span class="n">map_files</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ele</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">all_files</span>
+                         <span class="k">if</span> <span class="p">(</span><span class="n">ele</span> <span class="o">:=</span> <span class="n">re_s1</span><span class="p">(</span><span class="n">basename</span><span class="p">(</span><span class="n">i</span><span class="p">)))}</span>
+            <span class="n">map_keys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">map_files</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="n">atom_pair_names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">map_keys</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">re_ho</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">fr</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">?-</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">?.skf&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span>
+            <span class="n">homo_files</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ele</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)):</span>
+                              <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">all_files</span> <span class="k">if</span> <span class="p">(</span>
+                <span class="n">ele</span> <span class="o">:=</span> <span class="n">re_ho</span><span class="p">(</span><span class="n">basename</span><span class="p">(</span><span class="n">i</span><span class="p">)))}</span>
+
+        <span class="c1"># Report systems found to the user [print header]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Map files found for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">map_files</span><span class="p">)</span><span class="si">}</span><span class="s1"> system(s):</span><span class="se">\n</span><span class="s1">&#39;</span>
+              <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">Atom 1</span><span class="se">\t</span><span class="s1">Atom 2</span><span class="se">\t</span><span class="s1">Action&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Loop over each system</span>
+        <span class="k">if</span> <span class="n">is_csv</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">pair</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">map_files</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="se">\t</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s1">6</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s1">6</span><span class="si">}</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">current</span><span class="p">:</span>  <span class="c1"># Skip it if it has been parsed before</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;SKIPPING (previously parsed)&#39;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;PARSING&#39;</span><span class="p">)</span>
+
+                <span class="n">VCRSkf</span><span class="o">.</span><span class="n">single_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">pair</span><span class="p">,</span> <span class="n">all_files</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">atom_pair_names</span><span class="p">:</span>
+
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="se">\t</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s1">6</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s1">6</span><span class="si">}</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">current</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;SKIPPING (previously parsed)&#39;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;PARSING&#39;</span><span class="p">)</span>
+
+                <span class="n">this_mask</span> <span class="o">=</span> <span class="p">(</span><span class="n">map_keys</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">pair</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">this_file_keys</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">map_keys</span><span class="p">[</span><span class="n">this_mask</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+                <span class="n">this_list</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">atom_pair</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">atomic_numbers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pair</span><span class="p">])</span>
+                <span class="n">n_r</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">this_file_keys</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:]))</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">this_file_keys</span><span class="p">)</span> <span class="o">==</span> <span class="n">n_r</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span>\
+                    <span class="s1">&#39;square of compression r number should be equal to file number&#39;</span>
+
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_file_keys</span><span class="p">:</span>
+
+                    <span class="n">this_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Skf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">map_files</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">key</span><span class="p">)]))</span>
+
+                <span class="n">h_data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">pack</span><span class="p">([</span><span class="n">isk</span><span class="o">.</span><span class="n">hamiltonian</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">isk</span> <span class="ow">in</span> <span class="n">this_list</span><span class="p">])</span>
+                          <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">hamiltonian</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+                <span class="n">h_data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">val</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_r</span><span class="p">,</span> <span class="n">n_r</span><span class="p">,</span> <span class="o">*</span><span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span>
+                    <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">h_data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+                <span class="n">s_data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">pack</span><span class="p">([</span><span class="n">isk</span><span class="o">.</span><span class="n">overlap</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">isk</span> <span class="ow">in</span> <span class="n">this_list</span><span class="p">])</span>
+                          <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">overlap</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+                <span class="n">s_data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">val</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_r</span><span class="p">,</span> <span class="n">n_r</span><span class="p">,</span> <span class="o">*</span><span class="n">val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span>
+                    <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">s_data</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+                <span class="c1"># Grid points for distances and compression radii</span>
+                <span class="n">grid</span> <span class="o">=</span> <span class="n">this_list</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span>
+                <span class="n">cr_grid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span>
+                    <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">this_file_keys</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)))</span>
+
+                <span class="k">if</span> <span class="n">atom_pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">atom_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="c1"># Load the file into a Skf instance to extract the data from</span>
+                    <span class="n">skf_homo</span> <span class="o">=</span> <span class="n">Skf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">homo_files</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">tolist</span><span class="p">())])</span>
+                    <span class="n">vcrskf</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+                        <span class="n">atom_pair</span><span class="p">,</span> <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">cr_grid</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="n">skf_homo</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span>
+                        <span class="n">on_sites</span><span class="o">=</span><span class="n">skf_homo</span><span class="o">.</span><span class="n">on_sites</span><span class="p">,</span> <span class="n">hubbard_us</span><span class="o">=</span><span class="n">skf_homo</span><span class="o">.</span><span class="n">hubbard_us</span><span class="p">,</span>
+                        <span class="n">occupations</span><span class="o">=</span><span class="n">skf_homo</span><span class="o">.</span><span class="n">occupations</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">vcrskf</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">atom_pair</span><span class="p">,</span> <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">cr_grid</span><span class="p">)</span>
+
+                <span class="c1"># Store data into the target database.</span>
+                <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+                    <span class="n">group</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="n">vcrskf</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">group</span><span class="p">)</span></div>
+
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">single_csv</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">pair</span><span class="p">,</span> <span class="n">all_files</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+        <span class="c1"># Open the map file and extract the compression radii pair list</span>
+        <span class="n">radii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Number of unique radii for species 1 &amp; 2</span>
+        <span class="n">n_r1</span><span class="p">,</span> <span class="n">n_r2</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">radii</span><span class="o">.</span><span class="n">T</span><span class="p">]</span>
+
+        <span class="c1"># Locate the skf files and order them correctly</span>
+        <span class="n">re_s2</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">rf</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">.*</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">.*\d+.skf&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span>
+        <span class="n">re_s3</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\d+(?=.skf)&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span>
+        <span class="n">sk_files</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">*</span><span class="nb">filter</span><span class="p">(</span><span class="n">re_s2</span><span class="p">,</span> <span class="n">all_files</span><span class="p">)])</span>
+        <span class="n">sk_numbers</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">re_s3</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">sk_files</span><span class="p">])</span>
+
+        <span class="n">sorter</span> <span class="o">=</span> <span class="n">sk_numbers</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+        <span class="n">sk_files</span> <span class="o">=</span> <span class="n">sk_files</span><span class="p">[</span><span class="n">sorter</span><span class="p">]</span>
+        <span class="n">sk_numbers</span> <span class="o">=</span> <span class="n">sk_numbers</span><span class="p">[</span><span class="n">sorter</span><span class="p">]</span>
+
+        <span class="c1"># Ensure the expected number of files are found and are sequential</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">:=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sk_files</span><span class="p">))</span> <span class="o">!=</span> <span class="p">(</span><span class="n">m</span> <span class="o">:=</span> <span class="nb">len</span><span class="p">(</span><span class="n">radii</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Read </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s1"> values from </span><span class="si">{</span><span class="n">splitext</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s1"> &#39;</span>
+                             <span class="sa">f</span><span class="s1">&#39;but found only </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1"> skf files.&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">sk_numbers</span><span class="p">),</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s1">&#39;Non-sequential skf files found.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Work out which lines store the electronic integrals.</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">sk_files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+        <span class="n">o</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">))</span>  <span class="c1"># offset for comment if present</span>
+        <span class="n">n_grid</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">o</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># Number of lines to get</span>
+        <span class="n">g_dist</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">o</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Electronic integrals will always start at line &quot;2 + o&quot; &amp; &quot;3 + o&quot;</span>
+        <span class="c1"># for triatomic and homoatomic systems respectively.</span>
+        <span class="n">s_hetro</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">2</span> <span class="o">+</span> <span class="n">o</span><span class="p">,</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">o</span> <span class="o">+</span> <span class="n">n_grid</span><span class="p">)</span>
+        <span class="n">s_homo</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="mi">3</span> <span class="o">+</span> <span class="n">o</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">o</span> <span class="o">+</span> <span class="n">n_grid</span><span class="p">)</span>
+
+        <span class="c1"># When dealing with homoatomic systems only the files where the</span>
+        <span class="c1"># two atoms have the same compression radii will actually contain</span>
+        <span class="c1"># homoatomic data. Thus, a list of slicers is created to take this</span>
+        <span class="c1"># into account when reading.</span>
+        <span class="n">slicers</span> <span class="o">=</span> <span class="p">[</span><span class="n">s_homo</span> <span class="k">if</span> <span class="p">(</span><span class="n">r1</span> <span class="o">==</span> <span class="n">r2</span> <span class="ow">and</span> <span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                   <span class="k">else</span> <span class="n">s_hetro</span> <span class="k">for</span> <span class="n">r1</span><span class="p">,</span> <span class="n">r2</span> <span class="ow">in</span>
+                   <span class="nb">zip</span><span class="p">(</span><span class="n">radii</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">radii</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])]</span>
+
+        <span class="c1"># Read the electronic integrals from all files and place into a</span>
+        <span class="c1"># dictionary; method similar to that used in `Skf.from_skf`.</span>
+        <span class="n">cat</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span>
+        <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span>
+                <span class="n">cat</span><span class="p">([</span><span class="n">cat</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">()[</span><span class="n">s</span><span class="p">])</span>
+                     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">sk_files</span><span class="p">,</span> <span class="n">slicers</span><span class="p">)]),</span>
+                <span class="n">sep</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sk_files</span><span class="p">),</span> <span class="n">n_grid</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
+            <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">l_max</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tetrahedral_root</span><span class="p">(</span><span class="n">h_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">l_pairs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="n">l_max</span><span class="p">))</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">sort</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_sorter</span> <span class="k">if</span> <span class="n">l_max</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_sorter_e</span>
+        <span class="n">splitter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">l_pairs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_r1</span><span class="p">,</span> <span class="n">n_r2</span><span class="p">,</span> <span class="n">n_grid</span><span class="p">)</span>  <span class="c1"># Reshapes integrals to grid</span>
+        <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span> <span class="o">=</span> <span class="p">[{</span>
+            <span class="nb">tuple</span><span class="p">(</span><span class="n">l_pair</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">l_pair</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span>
+            <span class="nb">zip</span><span class="p">(</span><span class="n">l_pairs</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">transpose</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))[</span><span class="n">sort</span><span class="p">],</span> <span class="n">splitter</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="mf">0.</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()}</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span><span class="p">]]</span>
+
+        <span class="c1"># Parse the data into a VCRSkf instance</span>
+        <span class="n">atom_pair</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">atomic_numbers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pair</span><span class="p">])</span>
+        <span class="n">grid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_grid</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">g_dist</span>
+        <span class="n">cr_grid</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">i</span><span class="p">))))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">radii</span><span class="o">.</span><span class="n">T</span><span class="p">]))</span>
+
+        <span class="k">if</span> <span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>  <span class="c1"># Load homoatomic data if appropriate</span>
+            <span class="c1"># Load the file into an Skf instance to extract the data from</span>
+            <span class="n">skf</span> <span class="o">=</span> <span class="n">Skf</span><span class="o">.</span><span class="n">from_skf</span><span class="p">(</span><span class="n">sk_files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">vcrskf</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span>
+                <span class="n">atom_pair</span><span class="p">,</span> <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">cr_grid</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="n">skf</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span>
+                <span class="n">on_sites</span><span class="o">=</span><span class="n">skf</span><span class="o">.</span><span class="n">on_sites</span><span class="p">,</span> <span class="n">hubbard_us</span><span class="o">=</span><span class="n">skf</span><span class="o">.</span><span class="n">hubbard_us</span><span class="p">,</span>
+                <span class="n">occupations</span><span class="o">=</span><span class="n">skf</span><span class="o">.</span><span class="n">occupations</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vcrskf</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">atom_pair</span><span class="p">,</span> <span class="n">h_data</span><span class="p">,</span> <span class="n">s_data</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">cr_grid</span><span class="p">)</span>
+
+        <span class="c1"># Store data into the target database.</span>
+        <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+            <span class="n">group</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">vcrskf</span><span class="o">.</span><span class="n">to_hdf5</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+
+<div class="viewcode-block" id="VCRSkf.from_dir_raw">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.io.skf.VCRSkf.html#tbmalt.io.skf.VCRSkf.from_dir_raw">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dir_raw</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse multiple skf files into a hdf5 `VCRSkf` instance.</span>
+
+<span class="sd">        When run against a `target` directory this method scans for map files</span>
+<span class="sd">        which indicate the presence of data that can be used to build variable</span>
+<span class="sd">        compression radii Slater-Koster files instance (`VCRSkf`).</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            source: director holding the skf and map files.</span>
+<span class="sd">            target: path to the hdf5 database in which the results should</span>
+<span class="sd">                be stored.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            Directories may contain multiple maps &amp; their associated sk-files.</span>
+<span class="sd">            Map files must be skf formatted &amp; named &quot;{X}-{Y}-{Rx}-{Ry}.skf&quot;</span>
+<span class="sd">            where &quot;X&quot; &amp; &quot;Y&quot; are the elemental symbols of the two relevant</span>
+<span class="sd">            species. &quot;Rx&quot; and &quot;Ry&quot; are the corresponding compression radii.</span>
+<span class="sd">            An example file format: &quot;H-H-03.00-03.00.skf&quot;.</span>
+
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="s1">&#39;[A-Z][a-z]&#39;</span>
+
+        <span class="c1"># Validate the path to the source directory</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">isdir</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotADirectoryError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;`source` must be a valid directory: (</span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">)</span>
+
+        <span class="c1"># If the database exists; open it &amp; identify what systems are present.</span>
+        <span class="c1"># This avoids trying to parse systems that have already been parsed.</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">exists</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+                <span class="n">current</span> <span class="o">+=</span> <span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">db</span>
+                            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">fr</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">*-</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">*&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">)]</span>
+
+        <span class="c1"># Locate any map files present the directory</span>
+        <span class="n">all_files</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">))</span>
+        <span class="n">re_s1</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">fr</span><span class="s1">&#39;(?&lt;=\/)</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">?-</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s1">?-[0-9]?.[0-9]?-[0-9].[0-9].skf&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span>
+        <span class="n">map_files</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">ele</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">all_files</span>
+                     <span class="k">if</span> <span class="p">(</span><span class="n">ele</span> <span class="o">:=</span> <span class="n">re_s1</span><span class="p">(</span><span class="n">i</span><span class="p">))}</span>
+
+        <span class="c1"># Report systems found to the user [print header]</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Map files found for </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">map_files</span><span class="p">)</span><span class="si">}</span><span class="s1"> system(s):</span><span class="se">\n</span><span class="s1">&#39;</span>
+              <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">Atom 1</span><span class="se">\t</span><span class="s1">Atom 2</span><span class="se">\t</span><span class="s1">Action&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Loop over each system</span>
+        <span class="k">for</span> <span class="n">pair</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">map_files</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="se">\t</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">:</span><span class="s1">6</span><span class="si">}</span><span class="se">\t</span><span class="si">{</span><span class="n">pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">:</span><span class="s1">6</span><span class="si">}</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">current</span><span class="p">:</span>  <span class="c1"># Skip it if it has been parsed before</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;SKIPPING (previously parsed)&#39;</span><span class="p">)</span>
+                <span class="k">continue</span></div>
+</div>
+
+
+
+<span class="c1">#########################</span>
+<span class="c1"># Convenience Functions #</span>
+<span class="c1">#########################</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_s2t</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">sep</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39; </span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts string to tensor.</span>
+
+<span class="sd">    This uses the `np.fromstring` method to quickly convert blocks of text</span>
+<span class="sd">    into arrays, which are then converted into tensors.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        text: string to extract the tensor from. If a list of strings is</span>
+<span class="sd">            supplied then they will be joined prior to tensor extraction.</span>
+<span class="sd">        sep: possible delimiters. [DEFAULT=&#39; \t&#39;]</span>
+
+<span class="sd">    Keyword Arguments:</span>
+<span class="sd">        kwargs: these will be passed into the `torch.tensor` call.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">text</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+                        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_esr</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Expand stared number representations.</span>
+
+<span class="sd">    This is primarily used to resolve the skf file specification violations</span>
+<span class="sd">    which are found in some early skf files. Specifically the user of</span>
+<span class="sd">    started notations like `10*1.0` to represent a value of one repeated ten</span>
+<span class="sd">    times, or the mixed use of spaces, tabs and commas.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        text: string to be rectified.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        r_text: rectified string.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        This finds strings like `3*.0` &amp; `10*1` and replaces them with</span>
+<span class="sd">        `.0 .0 .0` &amp; `1 1 1 1 1 1 1 1 1 1` respectively.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Strip out unnecessary commas</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;*&#39;</span> <span class="ow">in</span> <span class="n">text</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[0-9]+\*[0-9|.]+&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)):</span>
+            <span class="n">n</span><span class="p">,</span> <span class="n">val</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;*&#39;</span><span class="p">)</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">val</span><span class="p">]</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">text</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

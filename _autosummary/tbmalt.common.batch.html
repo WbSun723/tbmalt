@@ -1,0 +1,172 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.1.4. batch &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.1.4.1. bT" href="tbmalt.common.batch.bT.html" />
+    <link rel="prev" title="2.1.1.3. unique" href="tbmalt.common.unique.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.cached_property.html">2.1.1.1. cached_property</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.split_by_size.html">2.1.1.2. split_by_size</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.unique.html">2.1.1.3. unique</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">2.1.1.4. batch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.exceptions.html">2.1.1.5. exceptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.maths.html">2.1.1.6. maths</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.common.html"><span class="section-number">2.1.1. </span>common</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.1.4. </span>batch</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.common.batch.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-tbmalt.common.batch">
+<span id="batch"></span><h1><span class="section-number">2.1.1.4. </span>batch<a class="headerlink" href="#module-tbmalt.common.batch" title="Link to this heading"></a></h1>
+<p>Helper functions for batch operations.</p>
+<p>This module contains classes and helper functions associated with batch
+construction, handling and maintenance.</p>
+<p class="rubric">Functions</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="tbmalt.common.batch.bT.html#tbmalt.common.batch.bT" title="tbmalt.common.batch.bT"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bT</span></code></a></p></td>
+<td><p>Dimensionally agnostic &quot;transpose&quot;.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="tbmalt.common.batch.bT2.html#tbmalt.common.batch.bT2" title="tbmalt.common.batch.bT2"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bT2</span></code></a></p></td>
+<td><p>Transposes a tensor and expands it to two dimensions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="tbmalt.common.batch.deflate.html#tbmalt.common.batch.deflate" title="tbmalt.common.batch.deflate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">deflate</span></code></a></p></td>
+<td><p>Shrinks <code class="docutils literal notranslate"><span class="pre">tensor</span></code> to remove extraneous trailing padding values.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="tbmalt.common.batch.merge.html#tbmalt.common.batch.merge" title="tbmalt.common.batch.merge"><code class="xref py py-obj docutils literal notranslate"><span class="pre">merge</span></code></a></p></td>
+<td><p>Merge two or more packed tensors into a single packed tensor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="tbmalt.common.batch.pack.html#tbmalt.common.batch.pack" title="tbmalt.common.batch.pack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pack</span></code></a></p></td>
+<td><p>Pad and pack a sequence of tensors together.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="tbmalt.common.batch.pargsort.html#tbmalt.common.batch.pargsort" title="tbmalt.common.batch.pargsort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pargsort</span></code></a></p></td>
+<td><p>Returns indices that sort packed tensors while ignoring padding values.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="tbmalt.common.batch.prepeat_interleave.html#tbmalt.common.batch.prepeat_interleave" title="tbmalt.common.batch.prepeat_interleave"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prepeat_interleave</span></code></a></p></td>
+<td><p>Batch operable implementation of <cite>torch.repeat_interleave</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="tbmalt.common.batch.psort.html#tbmalt.common.batch.psort" title="tbmalt.common.batch.psort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">psort</span></code></a></p></td>
+<td><p>Sort a packed <code class="docutils literal notranslate"><span class="pre">tensor</span></code> while ignoring any padding values.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="tbmalt.common.batch.unpack.html#tbmalt.common.batch.unpack" title="tbmalt.common.batch.unpack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpack</span></code></a></p></td>
+<td><p>Unpacks packed tensors into their constituents and removes padding.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.common.unique.html" class="btn btn-neutral float-left" title="2.1.1.3. unique" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.common.batch.bT.html" class="btn btn-neutral float-right" title="2.1.1.4.1. bT" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

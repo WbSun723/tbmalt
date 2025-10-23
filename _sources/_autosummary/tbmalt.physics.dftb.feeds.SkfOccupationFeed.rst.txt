@@ -1,0 +1,28 @@
+SkfOccupationFeed
+=================
+
+.. currentmodule:: tbmalt.physics.dftb.feeds
+
+.. autoclass:: SkfOccupationFeed
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, dtype
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~SkfOccupationFeed.device
+   
+      ~SkfOccupationFeed.dtype
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

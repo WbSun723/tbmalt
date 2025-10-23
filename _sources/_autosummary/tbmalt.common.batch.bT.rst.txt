@@ -1,0 +1,8 @@
+bT
+==
+
+.. currentmodule:: tbmalt.common.batch
+
+.. autofunction:: tbmalt.common.batch.bT
+
+    .. autosummary::

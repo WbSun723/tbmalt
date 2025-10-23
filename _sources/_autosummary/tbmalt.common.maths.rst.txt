@@ -1,0 +1,50 @@
+maths
+=====
+
+.. automodule:: tbmalt.common.maths
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      eighb
+      estimate_minmax
+      gaussian
+      hellinger
+      sym
+      tetrahedral_number
+      tetrahedral_root
+      triangular_number
+      triangular_root
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: module.rst
+   :recursive:
+
+   interpolation
+   mixers
+

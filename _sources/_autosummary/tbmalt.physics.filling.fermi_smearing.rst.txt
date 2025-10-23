@@ -1,0 +1,8 @@
+fermi\_smearing
+===============
+
+.. currentmodule:: tbmalt.physics.filling
+
+.. autofunction:: tbmalt.physics.filling.fermi_smearing
+
+    .. autosummary::

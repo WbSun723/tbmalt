@@ -1,0 +1,8 @@
+dos
+===
+
+.. currentmodule:: tbmalt.physics.dftb.properties
+
+.. autofunction:: tbmalt.physics.dftb.properties.dos
+
+    .. autosummary::

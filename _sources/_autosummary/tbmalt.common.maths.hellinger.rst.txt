@@ -1,0 +1,8 @@
+hellinger
+=========
+
+.. currentmodule:: tbmalt.common.maths
+
+.. autofunction:: tbmalt.common.maths.hellinger
+
+    .. autosummary::

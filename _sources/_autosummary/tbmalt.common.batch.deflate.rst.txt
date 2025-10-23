@@ -1,0 +1,8 @@
+deflate
+=======
+
+.. currentmodule:: tbmalt.common.batch
+
+.. autofunction:: tbmalt.common.batch.deflate
+
+    .. autosummary::

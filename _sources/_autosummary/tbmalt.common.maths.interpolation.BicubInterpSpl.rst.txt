@@ -1,0 +1,18 @@
+BicubInterpSpl
+==============
+
+.. currentmodule:: tbmalt.common.maths.interpolation
+
+.. autoclass:: BicubInterpSpl
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: 
+
+   
+
+   
+   .. rubric:: Methods
+
+   

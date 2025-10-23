@@ -1,0 +1,23 @@
+constant
+========
+
+.. automodule:: tbmalt.data.constant
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

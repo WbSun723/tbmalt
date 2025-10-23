@@ -1,0 +1,18 @@
+Loss
+====
+
+.. currentmodule:: tbmalt.ml.loss_function
+
+.. autoclass:: Loss
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: 
+
+   
+
+   
+   .. rubric:: Methods
+
+   

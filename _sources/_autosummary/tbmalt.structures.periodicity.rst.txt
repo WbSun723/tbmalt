@@ -1,0 +1,33 @@
+periodicity
+===========
+
+.. automodule:: tbmalt.structures.periodicity
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      Periodicity
+      Triclinic
+   
+   
+
+   
+   
+   
+
+
+

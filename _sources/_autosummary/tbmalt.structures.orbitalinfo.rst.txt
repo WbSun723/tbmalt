@@ -1,0 +1,32 @@
+orbitalinfo
+===========
+
+.. automodule:: tbmalt.structures.orbitalinfo
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      OrbitalInfo
+   
+   
+
+   
+   
+   
+
+
+

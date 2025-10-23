@@ -1,0 +1,8 @@
+split\_by\_size
+===============
+
+.. currentmodule:: tbmalt.common
+
+.. autofunction:: tbmalt.common.split_by_size
+
+    .. autosummary::

@@ -1,0 +1,389 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.4.4.2. IntegralFeed &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.4.5. loss_function" href="tbmalt.ml.loss_function.html" />
+    <link rel="prev" title="2.1.4.4.1. indices" href="tbmalt.ml.integralfeeds.indices.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.ml.Feed.html">2.1.4.1. Feed</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.ml.acsf.html">2.1.4.2. acsf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.ml.calculator.html">2.1.4.3. calculator</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.ml.integralfeeds.html">2.1.4.4. integralfeeds</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.ml.loss_function.html">2.1.4.5. loss_function</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.ml.html"><span class="section-number">2.1.4. </span>ml</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.ml.integralfeeds.html"><span class="section-number">2.1.4.4. </span>integralfeeds</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.4.4.2. </span>IntegralFeed</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.ml.integralfeeds.IntegralFeed.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="integralfeed">
+<h1><span class="section-number">2.1.4.4.2. </span>IntegralFeed<a class="headerlink" href="#integralfeed" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">IntegralFeed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="tbmalt.ml.Feed.html#tbmalt.ml.Feed" title="tbmalt.ml.Feed"><code class="xref py py-class docutils literal notranslate"><span class="pre">Feed</span></code></a>, <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>ABC for Hamiltonian and overlap matrix constructors.</p>
+<p>Subclasses of this abstract base class are responsible for constructing
+the Hamiltonian and overlap matrices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>device</strong> – Device on which the feed object and its contents resides.</p></li>
+<li><p><strong>dtype</strong> – Floating point dtype used by feed object.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Attributes and Properties</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">device</span></code></p></td>
+<td><p>The device on which the feed object resides.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype</span></code></p></td>
+<td><p>Floating point dtype used by feed object.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed.load">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed.load" title="Link to this definition"></a></dt>
+<dd><p>Load a stored integral feed object.</p>
+<p>This is only for loading preexisting <code class="docutils literal notranslate"><span class="pre">IntegralFeed</span></code> objects, from
+HDF5 databases, not instantiating new ones.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code>]</span>) – Name of a file to load the integral feed from or an HDF5
+group from which it can be extracted.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.ml.integralfeeds.IntegralFeed" title="tbmalt.ml.integralfeeds.IntegralFeed"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntegralFeed</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ski_feed</em> – A <code class="docutils literal notranslate"><span class="pre">IntegralFeed</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed.partition_blocks">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">partition_blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomic_idx_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_idx_2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed.partition_blocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed.partition_blocks" title="Link to this definition"></a></dt>
+<dd><p>Mask identifying on-site interaction pairs.</p>
+<p>This helper function constructs a mask which is True wherever the
+associated atom index pair corresponds to an on-site interaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomic_idx_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 1’st atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>atomic_idx_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 2’nd atom associated with each
+desired interaction block.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>on_site_mask</em> – A tensor that is truthy wherever the atom index
+pair corresponds to an on-site interaction.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed.atomic_block_indices">
+<span class="sig-name descname"><span class="pre">atomic_block_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomic_idx_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_idx_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed.atomic_block_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed.atomic_block_indices" title="Link to this definition"></a></dt>
+<dd><p>Returns the indices of the specified blocks.</p>
+<p>This method identifies the blocks associated with the specified atom
+pairs and returns the indexing arrays that can be used to retrieve
+said blocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomic_idx_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 1’st atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>atomic_idx_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 2’nd atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>orbs</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo" title="tbmalt.structures.orbitalinfo.OrbitalInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">OrbitalInfo</span></code></a></span>) – Orbital information associated with said systems.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>block_indices</em> – the indices of the specified blocks.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed.blocks">
+<span class="sig-name descname"><span class="pre">blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomic_idx_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_idx_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed.blocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed.blocks" title="Link to this definition"></a></dt>
+<dd><p>Compute atomic interaction blocks.</p>
+<p>Returns the atomic blocks associated with the atoms in <code class="docutils literal notranslate"><span class="pre">atomic_idx_1</span></code>
+interacting with those in <code class="docutils literal notranslate"><span class="pre">atomic_idx_2</span></code>. The № of interaction blocks
+returned will be equal to the length of the two index lists; i.e. <em>not</em>
+one for every combination.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomic_idx_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 1’st atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>atomic_idx_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 2’nd atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>geometry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span>) – The systems to which the atomic indices relate.</p></li>
+<li><p><strong>orbs</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo" title="tbmalt.structures.orbitalinfo.OrbitalInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">OrbitalInfo</span></code></a></span>) – Orbital information associated with said systems.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>blocks</em> – Requested atomic interaction sub-blocks.</p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>All requested blocks must have the same shape &amp; size.</p>
+</div>
+<p class="rubric">Notes</p>
+<p>If both indices of an index pair refer to the same atom then the
+block will represent an on-site interaction, otherwise it will be
+an off-site interaction.</p>
+<p>The index tensor has been split in two; while this increases
+verbosity it decreases the complexity needed to ensure batch
+agnosticism.</p>
+<p>If operating on a batch of systems; index tensors will be 2xN where
+the 1’st &amp; 2’nd rows specify the batch &amp; atom indices respectively.
+Otherwise, they will be one dimensional tensors of length N where N
+is the number of interactions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed.matrix">
+<span class="sig-name descname"><span class="pre">matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed.matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed.matrix" title="Link to this definition"></a></dt>
+<dd><p>Construct the hermitian matrix associated with this feed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>geometry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span>) – Systems whose matrices are to be constructed.</p></li>
+<li><p><strong>orbs</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo" title="tbmalt.structures.orbitalinfo.OrbitalInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">OrbitalInfo</span></code></a></span>) – Orbital information associated with said systems.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>kwargs</strong> – Any keyword arguments provided are passed during calls to
+the <cite>blocks</cite> method.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>matrix</em> – The resulting matrices.</p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This method is in rapid development and is thus subject to change
+and or abstraction.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed.matrix_from_calculator">
+<span class="sig-name descname"><span class="pre">matrix_from_calculator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed.matrix_from_calculator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed.matrix_from_calculator" title="Link to this definition"></a></dt>
+<dd><p>Construct the hermitian matrix associated with this feed.</p>
+<p>This method extracts the required arguments from the supplied
+<code class="docutils literal notranslate"><span class="pre">calculator</span></code> argument &amp; redirects to the <cite>matrix</cite> method. This allows
+for a <cite>Calculator</cite> to call a feeds <cite>matrix</cite> method in a call signature
+agnostic manner.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>calculator</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.ml.calculator.Calculator.html#tbmalt.ml.calculator.Calculator" title="tbmalt.ml.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Calculator</span></code></a></span>) – a calculator object from which the necessary data can
+be extracted.</p>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>kwargs</strong> – Any keyword arguments provided are passed during calls to
+the <cite>blocks</cite> method.</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>matrix</em> – The resulting matrices.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Each <cite>IntegralFeed</cite> object’s <cite>matrix</cite> method may require any
+number of arbitrary arguments. Consequently, it is unreasonable
+to expect a <cite>Calculator</cite> instance to know how to correctly
+invoke the <cite>matrix</cite> method for any given feed, particularly
+without resorting to introspection and reflection, which would
+introduce an unnecessary degree of complexity. Therefore, this
+pseudo-overload method is established, enabling <cite>Calculator`s
+to simply pass themselves in as the sole argument. This
+approach allows the feed to extract the necessary data
+independently and make the call to `matrix</cite> itself. While this
+is potentially more prone to errors, the errors that may arise
+are expected to be clearer and easier to resolve, thus
+enhancing the overall maintainability and debuggability.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed.save" title="Link to this definition"></a></dt>
+<dd><p>Save the integral feed to an HDF5 database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code>]</span>) – Name of a file to save the integral feed to or an HDF5
+group in which it can be saved.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If <cite>target</cite> is a string then a new HDF5 database will be created
+at the path specified by the string. If an HDF5 entity was given
+then a new HDF5 group will be created and added to it.</p>
+<p>Under no circumstances should this just pickle an object. Doing so
+is unstable, unsafe and inflexible.</p>
+<p>It is good practice to save the name of the class so that the code
+automatically knows how to unpack it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.ml.integralfeeds.IntegralFeed.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/ml/integralfeeds.html#IntegralFeed.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.ml.integralfeeds.IntegralFeed.to" title="Link to this definition"></a></dt>
+<dd><p>Returns a copy of the <cite>SkFeed</cite> instance on the specified device.</p>
+<p>This method creates and returns a new copy of the <cite>SkFeed</cite> instance
+on the specified device “<code class="docutils literal notranslate"><span class="pre">device</span></code>”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code></span>) – Device on which the clone should be placed.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.ml.integralfeeds.IntegralFeed" title="tbmalt.ml.integralfeeds.IntegralFeed"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntegralFeed</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>sk_feed</em> – A copy of the <cite>SkFeed</cite> instance placed on the specified
+device.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If the <cite>SkFeed</cite> instance is already on the desired device then
+<cite>self</cite> will be returned.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.ml.integralfeeds.indices.html" class="btn btn-neutral float-left" title="2.1.4.4.1. indices" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.ml.loss_function.html" class="btn btn-neutral float-right" title="2.1.4.5. loss_function" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

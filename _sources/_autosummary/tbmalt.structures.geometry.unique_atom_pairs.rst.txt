@@ -1,0 +1,8 @@
+unique\_atom\_pairs
+===================
+
+.. currentmodule:: tbmalt.structures.geometry
+
+.. autofunction:: tbmalt.structures.geometry.unique_atom_pairs
+
+    .. autosummary::

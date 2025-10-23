@@ -1,0 +1,8 @@
+entropy\_term
+=============
+
+.. currentmodule:: tbmalt.physics.filling
+
+.. autofunction:: tbmalt.physics.filling.entropy_term
+
+    .. autosummary::

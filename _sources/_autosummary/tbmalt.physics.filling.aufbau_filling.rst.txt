@@ -1,0 +1,8 @@
+aufbau\_filling
+===============
+
+.. currentmodule:: tbmalt.physics.filling
+
+.. autofunction:: tbmalt.physics.filling.aufbau_filling
+
+    .. autosummary::

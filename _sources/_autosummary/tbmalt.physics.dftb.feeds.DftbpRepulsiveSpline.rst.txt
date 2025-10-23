@@ -1,0 +1,28 @@
+DftbpRepulsiveSpline
+====================
+
+.. currentmodule:: tbmalt.physics.dftb.feeds
+
+.. autoclass:: DftbpRepulsiveSpline
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: exponential_cutoff, spline_cutoff
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~DftbpRepulsiveSpline.exponential_cutoff
+   
+      ~DftbpRepulsiveSpline.spline_cutoff
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

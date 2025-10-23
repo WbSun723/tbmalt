@@ -1,0 +1,8 @@
+triangular\_number
+==================
+
+.. currentmodule:: tbmalt.common.maths
+
+.. autofunction:: tbmalt.common.maths.triangular_number
+
+    .. autosummary::

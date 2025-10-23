@@ -1,0 +1,8 @@
+poly\_to\_zero
+==============
+
+.. currentmodule:: tbmalt.common.maths.interpolation
+
+.. autofunction:: tbmalt.common.maths.interpolation.poly_to_zero
+
+    .. autosummary::

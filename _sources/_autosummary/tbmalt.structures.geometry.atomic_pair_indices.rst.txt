@@ -1,0 +1,8 @@
+atomic\_pair\_indices
+=====================
+
+.. currentmodule:: tbmalt.structures.geometry
+
+.. autofunction:: tbmalt.structures.geometry.atomic_pair_indices
+
+    .. autosummary::

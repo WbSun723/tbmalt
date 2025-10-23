@@ -1,0 +1,8 @@
+fermi\_search
+=============
+
+.. currentmodule:: tbmalt.physics.filling
+
+.. autofunction:: tbmalt.physics.filling.fermi_search
+
+    .. autosummary::

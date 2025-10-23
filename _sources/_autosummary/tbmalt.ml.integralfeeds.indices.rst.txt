@@ -1,0 +1,8 @@
+indices
+=======
+
+.. currentmodule:: tbmalt.ml.integralfeeds
+
+.. autofunction:: tbmalt.ml.integralfeeds.indices
+
+    .. autosummary::

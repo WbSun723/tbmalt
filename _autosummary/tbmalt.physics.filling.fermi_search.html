@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.5.2.4. fermi_search &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.5.2.5. fermi_smearing" href="tbmalt.physics.filling.fermi_smearing.html" />
+    <link rel="prev" title="2.1.5.2.3. fermi_entropy" href="tbmalt.physics.filling.fermi_entropy.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.physics.dftb.html">2.1.5.1. dftb</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.physics.filling.html">2.1.5.2. filling</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.html"><span class="section-number">2.1.5. </span>physics</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.filling.html"><span class="section-number">2.1.5.2. </span>filling</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.5.2.4. </span>fermi_search</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.physics.filling.fermi_search.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fermi-search">
+<h1><span class="section-number">2.1.5.2.4. </span>fermi_search<a class="headerlink" href="#fermi-search" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="tbmalt.physics.filling.fermi_search">
+<span class="sig-name descname"><span class="pre">fermi_search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eigenvalues</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_electrons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kT=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme=&lt;function</span> <span class="pre">fermi_smearing&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_iter=200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e_mask=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_weights=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">degeneracy_tolerance=0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/filling.html#fermi_search"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.filling.fermi_search" title="Link to this definition"></a></dt>
+<dd><p>Determines the Fermi-energy of a system or batch thereof.</p>
+<p>Calculates the Fermi-energy with or without finite temperature. Finite
+temperature can be enabled by specifying a <code class="docutils literal notranslate"><span class="pre">kT</span></code> value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eigenvalues</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Eigen-energies, i.e. orbital-energies. This may have up to
+4 dimensions, 3 of which are optional, so long as the following
+order is satisfied [batch, spin, k-points, eigenvalues].</p></li>
+<li><p><strong>n_electrons</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]</span>) – Total number of (valence) electrons.</p></li>
+<li><p><strong>kT</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Electronic temperature. By default, finite temperature is not
+active, i.e. <code class="docutils literal notranslate"><span class="pre">kT</span></code> = None. [DEFAULT=None]</p></li>
+<li><p><strong>scheme</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.physics.filling.Scheme.html#tbmalt.physics.filling.Scheme" title="tbmalt.physics.filling.Scheme"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scheme</span></code></a></span>) – <p>Finite temperature broadening function to be used, TBMaLT
+natively supports two broadening methods:</p>
+<blockquote>
+<div><ul>
+<li><p>Fermi-Dirac broadening <a class="reference internal" href="tbmalt.physics.filling.fermi_smearing.html#tbmalt.physics.filling.fermi_smearing" title="tbmalt.physics.filling.fermi_smearing"><code class="xref py py-func docutils literal notranslate"><span class="pre">fermi_smearing()</span></code></a></p></li>
+<li><p>Gaussian broadening <a class="reference internal" href="tbmalt.physics.filling.gaussian_smearing.html#tbmalt.physics.filling.gaussian_smearing" title="tbmalt.physics.filling.gaussian_smearing"><code class="xref py py-func docutils literal notranslate"><span class="pre">gaussian_smearing()</span></code></a></p></li>
+</ul>
+</div></blockquote>
+<p>Only used when <code class="docutils literal notranslate"><span class="pre">kT</span></code> is not None. [DEFAULT=`fermi_smearing`]</p>
+</p></li>
+<li><p><strong>tolerance</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Real</span></code>]</span>) – Tolerance to which e⁻ count is converged during the search;
+defaults to 1E-10/5/2 for 64/32/16 bit floats respectively. Not
+used when finite temperature is disabled. [DEFAULT=None]</p></li>
+<li><p><strong>max_iter</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span>) – Maximum permitted number of fermi search cycles; ignored
+when finite temperature is disabled. [DEFAULT=200]</p></li>
+<li><p><strong>e_mask</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <a class="reference internal" href="tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo" title="tbmalt.structures.orbitalinfo.OrbitalInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">OrbitalInfo</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Provides info required to distinguish “real” <code class="docutils literal notranslate"><span class="pre">eigenvalues</span></code>
+from “fake” ones. This is Mandatory when using smearing on batched
+systems. This may be a <cite>Tensor</cite> that is <cite>True</cite> for real states or
+a <cite>OrbitalInfo</cite> object. [DEFAULT=None]</p></li>
+<li><p><strong>k_weights</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – If periodic systems are supplied then k-point wights can be
+given via this argument.</p></li>
+<li><p><strong>degeneracy_tolerance</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Specifies an absolute energy tolerance used to
+identify degenerate frontier states when the Fermi level is
+determined via the middle-gap approximation. Degeneracies at the
+HOMO or LUMO may lead to numerical inconsistencies in the computed
+gradients, as the exact selection of a single state is not well
+defined. When a non-zero tolerance is given, all occupied states
+within this energy window of the HOMO or LUMO edge are treated as
+degenerate and contribute equally (or in proportion to their
+weights) to the derivative of the Fermi level. This option may be
+employed when systems containing near-degenerate frontier states
+are studied, in order to ensure stable and physically meaningful
+gradients. [DEFAULT=0.0]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>fermi_energy</em> – Fermi energy value(s).</p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is imperative to ensure that <code class="docutils literal notranslate"><span class="pre">e_mask</span></code> is specified when, and only
+when, a batch of systems is provided. Failing to satisfy this condition
+will cause <strong>spurious and hard to diagnose errors</strong>.</p>
+</div>
+<p class="rubric">Notes</p>
+<p>The eigenvalues should be ordered from lowest to highest, with padding
+values located at the end.</p>
+<p>Smearing is disabled if <code class="docutils literal notranslate"><span class="pre">kT</span></code> = <cite>None</cite>, causing Fermi energy to resolve
+to the HOMO &amp; LUMO midpoint. Whereas a value of 0 carries out smearing
+with a temperature of 0. Values can be specified on a system by system
+basis or a single value can be provided which is used by all. However,
+smearing cannot be applied selectively; i.e. finite temperature can be
+enabled for some systems but not others during a single call.</p>
+<p>This code is based on the DFTB+ etemp module. <a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> However, unlike the
+DFTB+ implementation, no final Newton-Raphson step is performed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ConvergenceFailure</strong> – If the fermi level search fails to converge
+    within the permitted number of iterations.</p></li>
+<li><p><strong>ValueError</strong> – If the tolerance value is too tight for the specified
+    dtype, a negative <code class="docutils literal notranslate"><span class="pre">kT</span></code> value is encountered, the number of
+    electrons is to zero or exceeds the number of available states.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>Hourahine, B., Aradi, B., Blum, V., Frauenheim, T. et al.,
+(2020). DFTB+, a software package for efficient approximate
+density functional theory based atomistic simulations. The
+Journal of Chemical Physics, 152(12), 124101.</p>
+</aside>
+</aside>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.physics.filling</span><span class="w"> </span><span class="kn">import</span> <span class="n">fermi_search</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># An example H2 system</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e_vals</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="o">-</span><span class="mf">0.3405911944959140</span><span class="p">,</span>
+<span class="gp">... </span>                       <span class="mf">0.2311892808528265</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">kt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0036749324000000</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n_elec</span> <span class="o">=</span> <span class="mf">2.0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Fermi search</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e_fermi</span> <span class="o">=</span> <span class="n">fermi_search</span><span class="p">(</span><span class="n">e_vals</span><span class="p">,</span> <span class="n">n_elec</span><span class="p">,</span> <span class="n">kt</span><span class="p">,</span> <span class="n">scheme</span><span class="o">=</span><span class="n">fermi_smearing</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">e_fermi</span><span class="p">)</span>
+<span class="go">tensor(-0.0547)</span>
+</pre></div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+</tbody>
+</table>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.physics.filling.fermi_entropy.html" class="btn btn-neutral float-left" title="2.1.5.2.3. fermi_entropy" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.physics.filling.fermi_smearing.html" class="btn btn-neutral float-right" title="2.1.5.2.5. fermi_smearing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

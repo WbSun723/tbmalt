@@ -1,0 +1,446 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.ml.loss_function &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../ml.html">tbmalt.ml</a></li>
+      <li class="breadcrumb-item active">tbmalt.ml.loss_function</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.ml.loss_function</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Loss module.</span>
+
+<span class="sd">The loss module is intended to house all the components necessary to define</span>
+<span class="sd">a loss metric to be used when optimising a model.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.ml.calculator</span><span class="w"> </span><span class="kn">import</span> <span class="n">Calculator</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tbmalt.common.maths</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tb_math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">warnings</span><span class="w"> </span><span class="kn">import</span> <span class="n">warn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+
+
+<span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+<span class="n">LossFunction</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">Tensor</span><span class="p">]</span>
+
+<span class="n">DataDelegate</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Calculator</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]</span>
+
+<span class="n">WeightDelegate</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Calculator</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="l1_loss">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.ml.loss_function.l1_loss.html#tbmalt.ml.loss_function.l1_loss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">l1_loss</span><span class="p">(</span><span class="n">prediction</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">reduction</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the L1 loss (also known as absolute error) between the prediction and the reference.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">    - prediction (torch.Tensor): The predicted values.</span>
+<span class="sd">    - reference (torch.Tensor): The actual values to compare against.</span>
+<span class="sd">    - weights (torch.Tensor): weights for each system [Optional].</span>
+<span class="sd">    - reduction (str): the reduction method applied to the output [Optional].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    - torch.Tensor: The calculated L1 loss.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1.0</span>
+    <span class="n">reduction</span> <span class="o">=</span> <span class="n">reduction</span> <span class="k">if</span> <span class="n">reduction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;mean&#39;</span>
+
+    <span class="k">if</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">prediction</span> <span class="o">-</span> <span class="n">reference</span><span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">:</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">prediction</span> <span class="o">-</span> <span class="n">reference</span><span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">loss</span></div>
+
+
+
+<div class="viewcode-block" id="mse_loss">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.ml.loss_function.mse_loss.html#tbmalt.ml.loss_function.mse_loss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mse_loss</span><span class="p">(</span><span class="n">prediction</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="n">reduction</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the mean squared error (squared L2 norm) between the prediction and the reference.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">    - prediction (torch.Tensor): The predicted values.</span>
+<span class="sd">    - reference (torch.Tensor): The actual values to compare against.</span>
+<span class="sd">    - weights (torch.Tensor): weights for each system [Optional].</span>
+<span class="sd">    - reduction (str): the reduction method applied to the output [Optional].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    - torch.Tensor: The calculated L1 loss.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1.0</span>
+    <span class="n">reduction</span> <span class="o">=</span> <span class="n">reduction</span> <span class="k">if</span> <span class="n">reduction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;mean&#39;</span>
+
+    <span class="k">if</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="p">((</span><span class="n">prediction</span> <span class="o">-</span> <span class="n">reference</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">:</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="p">((</span><span class="n">prediction</span> <span class="o">-</span> <span class="n">reference</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">loss</span></div>
+
+
+
+<div class="viewcode-block" id="hellinger_loss">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.ml.loss_function.hellinger_loss.html#tbmalt.ml.loss_function.hellinger_loss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hellinger_loss</span><span class="p">(</span><span class="n">prediction</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">reference</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">weights</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">reduction</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the hellinger loss between the prediction and the reference.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">    - prediction (torch.Tensor): The predicted values.</span>
+<span class="sd">    - reference (torch.Tensor): The actual values to compare against.</span>
+<span class="sd">    - weights (torch.Tensor): weights for each system [Optional].</span>
+<span class="sd">    - reduction (str): the reduction method applied to the output [Optional].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    - torch.Tensor: The calculated L1 loss.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span> <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">1.0</span>
+    <span class="n">reduction</span> <span class="o">=</span> <span class="n">reduction</span> <span class="k">if</span> <span class="n">reduction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;mean&#39;</span>
+
+    <span class="k">if</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">tb_math</span><span class="o">.</span><span class="n">hellinger</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">reference</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">reduction</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">:</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="p">(</span><span class="n">tb_math</span><span class="o">.</span><span class="n">hellinger</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">reference</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">loss</span></div>
+
+
+
+<div class="viewcode-block" id="Loss">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.ml.loss_function.Loss.html#tbmalt.ml.loss_function.Loss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Loss</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Component for extracting prediction/reference data &amp; computing losses.</span>
+
+<span class="sd">    This class facilitates the evaluation of losses by delegating the</span>
+<span class="sd">    responsibility for fetching prediction data, reference data, and optional</span>
+<span class="sd">    system weights to user-defined functions. The flexibility in defining</span>
+<span class="sd">    custom loss functions for different properties and their respective weights</span>
+<span class="sd">    allows for tailored optimisation strategies.</span>
+
+<span class="sd">    This entity is fairly simple in operation as it contains very little in the</span>
+<span class="sd">    way of active logic. It is primarily intended as a means of clearing up the</span>
+<span class="sd">    main training loop, as it abstracts some of the tedious &amp; repetitive code.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        prediction_data_delegate: A delegate function tasked with fetching</span>
+<span class="sd">            predicted data from a given calculator entity.</span>
+<span class="sd">        reference_data_delegate: A delegate function responsible for obtaining</span>
+<span class="sd">            reference from a dataset.</span>
+<span class="sd">        system_weight_delegate: An optional delegate function that provides</span>
+<span class="sd">            weights for each system present in a batch. This allows for some</span>
+<span class="sd">            molecules to have a greater or lesser influence on the loss. By</span>
+<span class="sd">            default, system specific weighting is disabled.</span>
+<span class="sd">        loss_functions: A single loss function, or a dictionary of such keyed</span>
+<span class="sd">            by property names, used for computing individual losses. This will</span>
+<span class="sd">            default to the L1 loss. If using a dictionary, the key `default`</span>
+<span class="sd">            can be used to specify what loss function should be used for</span>
+<span class="sd">            properties whose loss functions are not explicitly specified.</span>
+<span class="sd">            [DEFAULT=l1_loss]</span>
+<span class="sd">        loss_weights: A dictionary mapping property names to their respective</span>
+<span class="sd">            weights in the final loss calculation. If not provided, a uniform</span>
+<span class="sd">            weighting is assumed.</span>
+<span class="sd">        reduction: The reduction method used to obtain output, which has the</span>
+<span class="sd">            option of &#39;mean&#39; or &#39;sum&#39;. By default, &#39;mean&#39; will be applied.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        It is expected that the prediction &amp; reference data delegate functions</span>
+<span class="sd">        will each accept three parameters: `calculator`, `dataset`, &amp; `**kwargs`.</span>
+<span class="sd">        These functions must return a dictionary containing the properties to</span>
+<span class="sd">        be utilised in the computation of the total loss. Runtime warnings will</span>
+<span class="sd">        be issued if and when key dependencies are encountered. That is to say</span>
+<span class="sd">        if there are keys found in one dictionary that are not in the other.</span>
+
+<span class="sd">        Optionally, a system weight delegate method may be provided through the</span>
+<span class="sd">        ``system_weight_delegate`` argument. This method should return a torch</span>
+<span class="sd">        tensor that specifies a weight for each system within the current batch,</span>
+<span class="sd">        adhering to the same calling convention as the prediction and reference</span>
+<span class="sd">        data delegate functions.</span>
+
+<span class="sd">        The mechanism for computing the component losses tied to each property</span>
+<span class="sd">        can be defined using the ``loss_functions`` argument. This allows for</span>
+<span class="sd">        the assignment of distinct loss functions to different properties by</span>
+<span class="sd">        employing a dictionary. Additionally, property-specific weights may be</span>
+<span class="sd">        designated via the ``loss_weights`` attribute, facilitating the</span>
+<span class="sd">        calculation of the final loss as a weighted sum of all individual</span>
+<span class="sd">        losses rather than a mere aggregation.</span>
+
+
+<span class="sd">    Example:</span>
+<span class="sd">        The class is instantiated with delegate functions for data retrieval &amp;</span>
+<span class="sd">        optionally system weighting, alongside a specification of loss functions</span>
+<span class="sd">        and their weights.</span>
+
+<span class="sd">        &gt;&gt;&gt; def example_prediction_delegate(calculator, dataset, **kwargs):</span>
+<span class="sd">        &gt;&gt;&gt;     predictions = dict()</span>
+<span class="sd">        &gt;&gt;&gt;     predictions[&quot;fermi_energy&quot;] = calculator.fermi_energy</span>
+<span class="sd">        &gt;&gt;&gt;     predictions[&quot;mulliken&quot;] = calculator.q_final</span>
+<span class="sd">        &gt;&gt;&gt;     return predictions</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; def example_reference_delegate(calculator, dataset, **kwargs):</span>
+<span class="sd">        &gt;&gt;&gt;     references = dict()</span>
+<span class="sd">        &gt;&gt;&gt;     references[&quot;fermi_energy&quot;] = dataset.data[&quot;fermi_energy&quot;]</span>
+<span class="sd">        &gt;&gt;&gt;     references[&quot;mulliken&quot;] = dataset.data[&quot;mulliken_population&quot;]</span>
+<span class="sd">        &gt;&gt;&gt;     return references</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; loss_entity = Loss(example_prediction_delegate,</span>
+<span class="sd">        &gt;&gt;&gt;                    example_reference_delegate)</span>
+
+<span class="sd">        It is then called with a calculator &amp; dataset to compute the total and</span>
+<span class="sd">        individual losses, facilitating the optimisation of complex systems</span>
+<span class="sd">        with multiple properties.</span>
+
+<span class="sd">        &gt;&gt;&gt; some_calculator(some_geometry, some_orbitalinfo)</span>
+<span class="sd">        &gt;&gt;&gt; total_loss, raw_losses = loss_entity(some_calculator, some_dataset)</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">prediction_data_delegate</span><span class="p">:</span> <span class="n">DataDelegate</span><span class="p">,</span>
+            <span class="n">reference_data_delegate</span><span class="p">:</span> <span class="n">DataDelegate</span><span class="p">,</span>
+            <span class="n">system_weight_delegate</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">WeightDelegate</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">loss_functions</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">LossFunction</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">LossFunction</span><span class="p">]]</span> <span class="o">=</span> <span class="n">l1_loss</span><span class="p">,</span>
+            <span class="n">loss_weights</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">reduction</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prediction_data_delegate</span> <span class="o">=</span> <span class="n">prediction_data_delegate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_delegate</span> <span class="o">=</span> <span class="n">reference_data_delegate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_weight_delegate</span> <span class="o">=</span> <span class="n">system_weight_delegate</span>
+
+        <span class="c1"># If a loss function dictionary has been provided then ensure that it</span>
+        <span class="c1"># contains a default loss function.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_functions</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss_functions</span> <span class="o">=</span> <span class="n">loss_functions</span>
+            <span class="k">if</span> <span class="s2">&quot;default&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">loss_functions</span><span class="p">:</span>
+                <span class="n">loss_functions</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">l1_loss</span>
+
+        <span class="c1"># If a single function has been provided, then create a loss function</span>
+        <span class="c1"># dictionary with this function as its default loss function.</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_functions</span><span class="p">,</span> <span class="n">Callable</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss_functions</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">loss_functions</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_functions</span>
+
+        <span class="c1"># If something other than a dictionary of function was provided then</span>
+        <span class="c1"># just raise an exception.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span> <span class="s2">&quot;The `loss_functions` argument may only be a &quot;</span>
+                              <span class="s2">&quot;dictionary or a callable&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_weights</span> <span class="o">=</span> <span class="n">loss_weights</span> <span class="k">if</span> <span class="n">loss_weights</span> <span class="k">else</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="c1"># Choose the reduction method</span>
+        <span class="k">if</span> <span class="n">reduction</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">reduction</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;sum&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span> <span class="o">=</span> <span class="n">reduction</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span> <span class="s2">&quot;The `reduction` argument may only be &#39;mean&#39; or &quot;</span>
+                                  <span class="s2">&quot;&#39;sum&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span> <span class="o">=</span> <span class="n">reduction</span>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">calculator</span><span class="p">:</span> <span class="n">Calculator</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+                 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluate the total loss.</span>
+
+<span class="sd">        This method calls out to the class delegate functions to retrieve both</span>
+<span class="sd">        predicted and reference values for a collection of properties. Losses</span>
+<span class="sd">        are then computed for each individual property and a total final</span>
+<span class="sd">        weighted sum is returned.</span>
+
+<span class="sd">        In addition to the total value, the individual unweighted (raw) loss</span>
+<span class="sd">        components are also returned for the sake of completeness.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            calculator: An initialised calculator object that can be</span>
+<span class="sd">                interrogated to populate the predictions dictionary.</span>
+<span class="sd">            dataset: A data-set entity from which reference data can be</span>
+<span class="sd">                extracted to populate the references dictionary.</span>
+<span class="sd">            **kwargs: Keyword arguments are not consumed by this method, but</span>
+<span class="sd">                are instead directly passed through to the delegate functions.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            total_loss: The total loss as a weighted sum of the individual</span>
+<span class="sd">                loss components.</span>
+<span class="sd">            raw_loss: A dictionary of all the individual, unweighted, loss</span>
+<span class="sd">                components.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            It is imperative to ensure that the supplied calculator has already</span>
+<span class="sd">            been initialised prior to calling this method on it. If this is not</span>
+<span class="sd">            the case then the calculator will likely be missing vital pieces of</span>
+<span class="sd">            information. Specifically, it is expected that the user, or another</span>
+<span class="sd">            part of the code, has already supplied the calculator with all of</span>
+<span class="sd">            the necessary components to operate e.g. `Geometry`, `OrbitalInfo`,</span>
+<span class="sd">            etc. This method will never perform the `Calculator(Geometry, ...)`</span>
+<span class="sd">            call itself.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Gather the predicted values by calling the prediction delegate</span>
+        <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prediction_data_delegate</span><span class="p">(</span><span class="n">calculator</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Repeat for the reference values</span>
+        <span class="n">references</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reference_data_delegate</span><span class="p">(</span><span class="n">calculator</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Get system specific weights if a delegate function was provided</span>
+        <span class="n">system_weights</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_weight_delegate</span><span class="p">(</span><span class="n">calculator</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
+                          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_weight_delegate</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="c1"># Get reduction method</span>
+        <span class="n">reduction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction</span>
+
+        <span class="c1"># Identify any keys that present in one data dictionary but not the</span>
+        <span class="c1"># other. This helps to catch typos or truant properties.</span>
+        <span class="n">missing_in_predictions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">references</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">missing_in_references</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">references</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">missing_in_predictions</span> <span class="ow">or</span> <span class="n">missing_in_references</span><span class="p">:</span>
+            <span class="n">message</span> <span class="o">=</span> <span class="s2">&quot;Missmatch detected between prediction &amp; reference &quot;</span> \
+                      <span class="s2">&quot;data key sets:&quot;</span>
+
+            <span class="k">if</span> <span class="n">missing_in_predictions</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> - Keys absent from predictions: &quot;</span> \
+                           <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">missing_in_predictions</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="k">if</span> <span class="n">missing_in_references</span><span class="p">:</span>
+                <span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2"> - Keys absent from predictions: &quot;</span> \
+                           <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">missing_in_references</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">warn</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="n">raw_losses</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="c1"># Loop over each of the predicted properties as returned by the prediction</span>
+        <span class="c1"># delegate function.</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">prediction</span> <span class="ow">in</span> <span class="n">predictions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="c1"># Retrieve the reference value for this property</span>
+            <span class="n">reference</span> <span class="o">=</span> <span class="n">references</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+            <span class="c1"># Check if the tensor size of prediction and reference identical</span>
+            <span class="n">check</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">reference</span><span class="o">.</span><span class="n">shape</span>
+            <span class="k">assert</span> <span class="n">check</span><span class="p">,</span> <span class="s1">&#39;prediction &amp; reference size mismatch found for &#39;</span> <span class="o">+</span> <span class="n">name</span>
+
+            <span class="c1"># Check if a custom loss function has been explicitly defined for</span>
+            <span class="c1"># this property. If not, then fallback to the default function.</span>
+            <span class="n">loss_function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_functions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_functions</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">])</span>
+
+            <span class="c1"># Compute the loss value for this property, taking into account the</span>
+            <span class="c1"># individual system weights if applicable.</span>
+            <span class="n">raw_losses</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_function</span><span class="p">(</span>
+                <span class="n">prediction</span><span class="p">,</span> <span class="n">reference</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">system_weights</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="n">reduction</span><span class="p">)</span>
+
+        <span class="c1"># Compute the total loss as the weighted sum of the raw loss values. A</span>
+        <span class="c1"># weight value of one is used in situations where property specific</span>
+        <span class="c1"># loss values are not explicitly provided.</span>
+        <span class="n">total_loss</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_weights</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                          <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">loss</span> <span class="ow">in</span> <span class="n">raw_losses</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+
+        <span class="c1"># Return both the total and raw loss values</span>
+        <span class="k">return</span> <span class="n">total_loss</span><span class="p">,</span> <span class="n">raw_losses</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

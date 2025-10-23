@@ -1,0 +1,8 @@
+psort
+=====
+
+.. currentmodule:: tbmalt.common.batch
+
+.. autofunction:: tbmalt.common.batch.psort
+
+    .. autosummary::

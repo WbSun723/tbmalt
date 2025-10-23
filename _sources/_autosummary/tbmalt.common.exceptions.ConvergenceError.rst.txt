@@ -1,0 +1,6 @@
+tbmalt.common.exceptions.ConvergenceError
+=========================================
+
+.. currentmodule:: tbmalt.common.exceptions
+
+.. autoexception:: ConvergenceError

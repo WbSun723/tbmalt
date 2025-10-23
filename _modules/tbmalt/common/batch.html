@@ -1,0 +1,621 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.common.batch &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../common.html">tbmalt.common</a></li>
+      <li class="breadcrumb-item active">tbmalt.common.batch</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.common.batch</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;Helper functions for batch operations.</span>
+
+<span class="sd">This module contains classes and helper functions associated with batch</span>
+<span class="sd">construction, handling and maintenance.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">reduce</span><span class="p">,</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">bool_like</span>
+<span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="n">__sort</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;sort&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;values&#39;</span><span class="p">,</span> <span class="s1">&#39;indices&#39;</span><span class="p">))</span>
+<span class="n">Sliceable</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]</span>
+
+
+<div class="viewcode-block" id="bT">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.bT.html#tbmalt.common.batch.bT">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">bT</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Dimensionally agnostic &quot;transpose&quot;.</span>
+
+<span class="sd">    Reverses the dimensions of a tensor like so [m, n, o] -&gt; [o, n, m]. This is</span>
+<span class="sd">    designed to preserve the original functionality of the `torch.T` operator</span>
+<span class="sd">    in an effort to maintain dimensional/batch agnosticism. Recent versions of</span>
+<span class="sd">    PyTorch will only permit the transpose operator to be used on 2D matrices</span>
+<span class="sd">    which makes dimensionally agnostic treatment of tensors difficult in some</span>
+<span class="sd">    situations.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor: the tensor whose dimensions are to be flipped.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        flipped_tensor: the tensor with its dimensions reversed.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tensor</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="o">*</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="bT2">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.bT2.html#tbmalt.common.batch.bT2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">bT2</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Transposes a tensor and expands it to two dimensions.</span>
+
+<span class="sd">    This method performs a transpose on a target tensor via a call to `bT` then</span>
+<span class="sd">    invokes `torch.atleast_2d` to ensure that the tensor is at least two-</span>
+<span class="sd">    dimensional. This helps promote batch agnostic programming.</span>
+
+<span class="sd">    Note that this is the same as calling `torch.atleast_2d(bT(tensor))` or</span>
+<span class="sd">    `torch.atleast_2d(tensor.permute(*torch.arange(tensor.ndim - 1, -1, -1)))`.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor: tensor whose dimensions are to be flipped and expanded.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        modified_tensor: the modified tensor.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">bT</span><span class="p">(</span><span class="n">tensor</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="pack">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.pack.html#tbmalt.common.batch.pack">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pack</span><span class="p">(</span><span class="n">tensors</span><span class="p">:</span> <span class="n">Sliceable</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+         <span class="n">value</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Size</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+         <span class="n">return_mask</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pad and pack a sequence of tensors together.</span>
+
+<span class="sd">    Pad a list of variable length tensors with zeros, or some other value, and</span>
+<span class="sd">    pack them into a single tensor.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensors: List of tensors to be packed, all with identical dtypes.</span>
+<span class="sd">        axis: Axis along which tensors should be packed; 0 for first axis -1</span>
+<span class="sd">            for the last axis, etc. This will be a new dimension. [DEFAULT=0]</span>
+<span class="sd">        value: The value with which the tensor is to be padded. [DEFAULT=0]</span>
+<span class="sd">        size: Size of each dimension to which tensors should be padded. This</span>
+<span class="sd">            defaults to the largest size encountered along each dimension.</span>
+<span class="sd">        return_mask: If True, a mask identifying the padding values is</span>
+<span class="sd">            returned. [DEFAULT=False]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        packed_tensors: Input tensors padded and packed into a single tensor.</span>
+<span class="sd">        mask: A tensor that can mask out the padding values. A False value in</span>
+<span class="sd">            ``mask`` indicates the corresponding entry in ``packed_tensor`` is</span>
+<span class="sd">            a padding value.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        ``packed_tensors`` maintains the same order as ``tensors``. This</span>
+<span class="sd">        is faster &amp; more flexible than the internal pytorch pack &amp; pad</span>
+<span class="sd">        functions (at this particular task).</span>
+
+<span class="sd">        If ``tensors`` is a `torch.tensor` it will be immedatly returned. This</span>
+<span class="sd">        helps with batch agnostic programming.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Multiple tensors can be packed into a single tensor like so:</span>
+
+<span class="sd">        &gt;&gt;&gt; from tbmalt.common.batch import pack</span>
+<span class="sd">        &gt;&gt;&gt; import torch</span>
+<span class="sd">        &gt;&gt;&gt; a, b, c = torch.rand(2,2), torch.rand(3,3), torch.rand(4,4)</span>
+<span class="sd">        &gt;&gt;&gt; abc_packed_a = pack([a, b, c])</span>
+<span class="sd">        &gt;&gt;&gt; print(abc_packed_a.shape)</span>
+<span class="sd">        torch.Size([3, 4, 4])</span>
+<span class="sd">        &gt;&gt;&gt; abc_packed_b = pack([a, b, c], axis=1)</span>
+<span class="sd">        &gt;&gt;&gt; print(abc_packed_b.shape)</span>
+<span class="sd">        torch.Size([4, 3, 4])</span>
+<span class="sd">        &gt;&gt;&gt; abc_packed_c = pack([a, b, c], axis=-1)</span>
+<span class="sd">        &gt;&gt;&gt; print(abc_packed_c.shape)</span>
+<span class="sd">        torch.Size([4, 4, 3])</span>
+
+<span class="sd">        An optional mask identifying the padding values can also be returned:</span>
+
+<span class="sd">        &gt;&gt;&gt; packed, mask = pack([torch.tensor([1.]),</span>
+<span class="sd">        &gt;&gt;&gt;                      torch.tensor([2., 2.]),</span>
+<span class="sd">        &gt;&gt;&gt;                      torch.tensor([3., 3., 3.])],</span>
+<span class="sd">        &gt;&gt;&gt;                     return_mask=True)</span>
+<span class="sd">        &gt;&gt;&gt; print(packed)</span>
+<span class="sd">        tensor([[1., 0., 0.],</span>
+<span class="sd">                [2., 2., 0.],</span>
+<span class="sd">                [3., 3., 3.]])</span>
+<span class="sd">        &gt;&gt;&gt; print(mask)</span>
+<span class="sd">        tensor([[ True, False, False],</span>
+<span class="sd">                [ True,  True, False],</span>
+<span class="sd">                [ True,  True,  True]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If &quot;tensors&quot; is already a Tensor then return it immediately as there is</span>
+    <span class="c1"># nothing more that can be done. This helps with batch agnostic</span>
+    <span class="c1"># programming.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tensors</span>
+
+    <span class="c1"># Gather some general setup info</span>
+    <span class="n">count</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensors</span><span class="p">),</span> <span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
+
+    <span class="c1"># Identify the maximum size, if one was not specified.</span>
+    <span class="k">if</span> <span class="n">size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tensors</span><span class="p">])</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+
+    <span class="c1"># Tensor to pack into, filled with padding value.</span>
+    <span class="n">padded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">count</span><span class="p">,</span> <span class="o">*</span><span class="n">size</span><span class="p">),</span> <span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_mask</span><span class="p">:</span>   <span class="c1"># Generate the mask if requested.</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">count</span><span class="p">,</span> <span class="o">*</span><span class="n">size</span><span class="p">),</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+                          <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># Loop over &amp; pack &quot;tensors&quot; into &quot;padded&quot;. A proxy index &quot;n&quot; must be used</span>
+    <span class="c1"># for assignments rather than a slice to prevent in-place errors.</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tensors</span><span class="p">):</span>
+        <span class="c1"># Slice operations not elegant but they are dimension agnostic &amp; fast.</span>
+        <span class="n">padded</span><span class="p">[(</span><span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">])]</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="k">if</span> <span class="n">return_mask</span><span class="p">:</span>  <span class="c1"># Update the mask if required.</span>
+            <span class="n">mask</span><span class="p">[(</span><span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">shape</span><span class="p">])]</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># If &quot;axis&quot; was anything other than 0, then &quot;padded&quot; must be permuted.</span>
+    <span class="k">if</span> <span class="n">axis</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Resolve relative any axes to their absolute equivalents to maintain</span>
+        <span class="c1"># expected slicing behaviour when using the insert function.</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">padded</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">axis</span> <span class="k">if</span> <span class="n">axis</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">axis</span>
+
+        <span class="c1"># Build a list of axes indices; but omit the axis on which the data</span>
+        <span class="c1"># was concatenated (i.e. 0).</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">padded</span><span class="o">.</span><span class="n">dim</span><span class="p">()))</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>  <span class="c1"># Re-insert the concatenation axis as specified</span>
+
+        <span class="n">padded</span> <span class="o">=</span> <span class="n">padded</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>  <span class="c1"># Perform the permeation</span>
+
+        <span class="k">if</span> <span class="n">return_mask</span><span class="p">:</span>  <span class="c1"># Perform permeation on the mask is present.</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="n">ax</span><span class="p">)</span>
+
+    <span class="c1"># Return the packed tensor, and the mask if requested.</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">padded</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span> <span class="k">if</span> <span class="n">return_mask</span> <span class="k">else</span> <span class="n">padded</span></div>
+
+
+
+<div class="viewcode-block" id="pargsort">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.pargsort.html#tbmalt.common.batch.pargsort">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">pargsort</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">bool_like</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+             <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Returns indices that sort packed tensors while ignoring padding values.</span>
+
+<span class="sd">    Returns the indices that sorts the elements of ``tensor`` along ``dim`` in</span>
+<span class="sd">    ascending order by value while ensuring padding values are shuffled to the</span>
+<span class="sd">    end of the dimension. This is just a batch capable implementation of the</span>
+<span class="sd">    `torch.argsort` function.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor: the input tensor.</span>
+<span class="sd">        mask: a boolean tensor which is True &amp; False for &quot;real&quot; &amp; padding</span>
+<span class="sd">            values restively. [DEFAULT=None]</span>
+<span class="sd">        dim: the dimension to sort along. [DEFAULT=-1]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        out: ``indices`` which along the dimension ``dim``.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        This will redirect to `torch.argsort` if no ``mask`` is supplied.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; # Packed array with a padding value of &quot;99&quot;</span>
+<span class="sd">        &gt;&gt;&gt; array = torch.tensor([</span>
+<span class="sd">        &gt;&gt;&gt;     [1, 99, 99, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [3,  2, 99, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [6,  5,  4, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [10, 9,  8,  7]</span>
+<span class="sd">        &gt;&gt;&gt;     ])</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Create a mask that identifies real and padding values</span>
+<span class="sd">        &gt;&gt;&gt; mask = array != 99</span>
+<span class="sd">        &gt;&gt;&gt; # Get the sort indices</span>
+<span class="sd">        &gt;&gt;&gt; sort_indices = pargsort(array, mask)</span>
+<span class="sd">        &gt;&gt;&gt; print(sort_indices)</span>
+<span class="sd">        tensor([[0, 1, 2, 3],</span>
+<span class="sd">                [1, 0, 2, 3],</span>
+<span class="sd">                [2, 1, 0, 3],</span>
+<span class="sd">                [3, 2, 1, 0]])</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Use them to sort the array</span>
+<span class="sd">        &gt;&gt;&gt; array_sorted = array.gather(-1, sort_indices)</span>
+<span class="sd">        &gt;&gt;&gt; print(array_sorted)</span>
+<span class="sd">        tensor([[ 1, 99, 99, 99],</span>
+<span class="sd">                [ 2,  3, 99, 99],</span>
+<span class="sd">                [ 4,  5,  6, 99],</span>
+<span class="sd">                [ 7,  8,  9, 10]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># A secondary sorter is used to reorder the primary sorter so that padding</span>
+        <span class="c1"># values are moved to the end.</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span>
+        <span class="n">s1</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+        <span class="n">s2</span> <span class="o">=</span> <span class="p">((</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">tensor</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+               <span class="o">+</span> <span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">s1</span><span class="p">)</span> <span class="o">*</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">dim</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">s1</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">s2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="psort">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.psort.html#tbmalt.common.batch.psort">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">psort</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">bool_like</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">__sort</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Sort a packed ``tensor`` while ignoring any padding values.</span>
+
+<span class="sd">    Sorts the elements of ``tensor`` along ``dim`` in ascending order by value</span>
+<span class="sd">    while ensuring padding values are shuffled to the end of the dimension.</span>
+<span class="sd">    This is just a batch compatible implimentaiton of the `torch.sort` method.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor: the input tensor.</span>
+<span class="sd">        mask: a boolean tensor which is True &amp; False for &quot;real&quot; &amp; padding</span>
+<span class="sd">            values respectively. [DEFAULT=None]</span>
+<span class="sd">        dim: the dimension to sort along. [DEFAULT=-1]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        out: A namedtuple of (values, indices) is returned, where the values</span>
+<span class="sd">             are the sorted values and indices are the indices of the elements</span>
+<span class="sd">             in the original input tensor.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        This will redirect to `torch.sort` if no ``mask`` is supplied.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; # Packed array with a padding value of &quot;99&quot;</span>
+<span class="sd">        &gt;&gt;&gt; array = torch.tensor([</span>
+<span class="sd">        &gt;&gt;&gt;     [1, 99, 99, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [3,  2, 99, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [6,  5,  4, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [10, 9,  8,  7]</span>
+<span class="sd">        &gt;&gt;&gt;     ])</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Create a mask that identifies real and padding values</span>
+<span class="sd">        &gt;&gt;&gt; mask = array != 99</span>
+<span class="sd">        &gt;&gt;&gt; # Sort the array</span>
+<span class="sd">        &gt;&gt;&gt; array_sorted = psort(array, mask)</span>
+<span class="sd">        &gt;&gt;&gt; print(array_sorted)</span>
+<span class="sd">        tensor([[ 1, 99, 99, 99],</span>
+<span class="sd">                [ 2,  3, 99, 99],</span>
+<span class="sd">                [ 4,  5,  6, 99],</span>
+<span class="sd">                [ 7,  8,  9, 10]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">pargsort</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">dim</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">__sort</span><span class="p">(</span><span class="n">tensor</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">indices</span><span class="p">),</span> <span class="n">indices</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="merge">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.merge.html#tbmalt.common.batch.merge">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="n">tensors</span><span class="p">:</span> <span class="n">Sliceable</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Merge two or more packed tensors into a single packed tensor.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensors: Packed tensors that are to be merged.</span>
+<span class="sd">        value: Value with which the tensor were/are to be padded. [DEFAULT=0]</span>
+<span class="sd">        axis: Axis along which ``tensors`` are to be stacked. [DEFAULT=0]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        merged: The tensors ``tensors`` merged along the axis ``axis``.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        Care must be taken to ensure the correct padding value is specified as</span>
+<span class="sd">        erroneous behaviour may otherwise ensue. As the correct padding value</span>
+<span class="sd">        cannot be reliably detected in situ it will default to zero.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; # Create a pair of packed tensors</span>
+<span class="sd">        &gt;&gt;&gt; array_1 = torch.tensor([[1, 99], [3, 2]])</span>
+<span class="sd">        &gt;&gt;&gt; array_2 = torch.tensor([[6,  5,  4, 99], [10, 9,  8,  7]])</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Merge them into a single array</span>
+<span class="sd">        &gt;&gt;&gt; merged_array = merge([array_1, array_2], value=99)</span>
+<span class="sd">        &gt;&gt;&gt; print(merged_array)</span>
+<span class="sd">        tensor([[ 1, 99, 99, 99],</span>
+<span class="sd">                [ 3,  2, 99, 99],</span>
+<span class="sd">                [ 6,  5,  4, 99],</span>
+<span class="sd">                [10,  9,  8,  7]])</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Merging is performed along the 0&#39;th axis internally. If a non-zero axis</span>
+    <span class="c1"># is requested then tensors must be reshaped during input and output.</span>
+    <span class="k">if</span> <span class="n">axis</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensors</span><span class="p">]</span>
+
+    <span class="c1"># Tensor to merge into, filled with padding value.</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tensors</span><span class="p">])</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">shapes</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="o">*</span><span class="n">shapes</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span>
+        <span class="n">value</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># &lt;- batch dimension offset</span>
+    <span class="k">for</span> <span class="n">src</span><span class="p">,</span> <span class="n">size</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>  <span class="c1"># Assign values to tensor</span>
+        <span class="n">merged</span><span class="p">[(</span><span class="nb">slice</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">n</span><span class="p">),</span> <span class="o">*</span><span class="p">[</span><span class="nb">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">size</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])]</span> <span class="o">=</span> <span class="n">src</span>
+        <span class="n">n</span> <span class="o">+=</span> <span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Return the merged tensor, transposing back as required</span>
+    <span class="k">return</span> <span class="n">merged</span> <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">merged</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="deflate">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.deflate.html#tbmalt.common.batch.deflate">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">deflate</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Shrinks ``tensor`` to remove extraneous trailing padding values.</span>
+
+<span class="sd">    Returns a narrowed view of ``tensor`` containing no superfluous trailing</span>
+<span class="sd">    padding values. For single systems this is equivalent to removing padding.</span>
+
+<span class="sd">    All axes are deflated by default, however ``axis`` can be used to forbid</span>
+<span class="sd">    the deflation of a specific axis. This permits excess padding to be safely</span>
+<span class="sd">    excised from a batch without inadvertently removing a system from it. This</span>
+<span class="sd">    is normally the value supplied to the `pack` method for ``axis``.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor: Tensor to be deflated.</span>
+<span class="sd">        value: Identity of padding value. [DEFAULT=0]</span>
+<span class="sd">        axis: Specifies which, if any, axis is exempt from deflation.</span>
+<span class="sd">            [DEFAULT=None]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        deflated: ``tensor`` after deflation.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Only trailing padding values will be culled; i.e. columns will only be</span>
+<span class="sd">        removed from the end of a matrix, not the start or the middle.</span>
+
+<span class="sd">        Deflation cannot be performed on one dimensional systems when ``axis``</span>
+<span class="sd">        is not `None`.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        `deflate` can be used to remove unessiary padding from a batch:</span>
+
+<span class="sd">        &gt;&gt;&gt; from tbmalt.common.batch import deflate</span>
+<span class="sd">        &gt;&gt;&gt; over_packed = torch.tensor([</span>
+<span class="sd">        &gt;&gt;&gt;     [0, 1, 2, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;     [3, 4, 5, 6, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt; ])</span>
+
+<span class="sd">        &gt;&gt;&gt; print(deflate(over_packed, value=0, axis=0))</span>
+<span class="sd">        tensor([[0, 1, 2, 0],</span>
+<span class="sd">                [3, 4, 5, 6]])</span>
+
+<span class="sd">        or to remove padding from a system which was once part of a batch:</span>
+
+<span class="sd">        &gt;&gt;&gt; packed = torch.tensor([</span>
+<span class="sd">        &gt;&gt;&gt;     [0, 1, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;     [3, 4, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;     [0, 0, 0, 0],</span>
+<span class="sd">        &gt;&gt;&gt;     [0, 0, 0, 0]])</span>
+
+<span class="sd">        &gt;&gt;&gt; print(deflate(packed, value=0))</span>
+<span class="sd">        tensor([[0, 1],</span>
+<span class="sd">                [3, 4]])</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        Under certain circumstances &quot;real&quot; elements may be misidentified as</span>
+<span class="sd">        padding values if they are equivalent. However, such a complication</span>
+<span class="sd">        can be mitigated though the selection of an appropriate padding value.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">         ValueError: If ``tensor`` is 0 dimensional, or 1 dimensional when</span>
+<span class="sd">            ``axis`` is not None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Check shape is viable.</span>
+    <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tensor</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Tensor must be at least 2D when specifying an ``axis``.&#39;</span><span class="p">)</span>
+
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tensor</span> <span class="o">==</span> <span class="n">value</span>
+    <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="p">)</span>
+
+    <span class="n">slices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">ndim</span> <span class="o">:=</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># When multidimensional `all` is required</span>
+        <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">ndim</span><span class="p">),</span> <span class="n">ndim</span><span class="o">-</span><span class="mi">1</span><span class="p">)):</span>
+            <span class="c1"># Count Nº of trailing padding values. Reduce/partial used here as</span>
+            <span class="c1"># torch.all cannot operate on multiple dimensions like numpy.</span>
+            <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">dim</span><span class="p">,</span> <span class="n">mask</span>
+                          <span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span><span class="o">.</span><span class="n">unique_consecutive</span><span class="p">(</span><span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># Slicer will be None if there are no trailing padding values.</span>
+            <span class="n">slices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="o">-</span><span class="n">c</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
+
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># If mask is one dimensional, then no loop is needed</span>
+        <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">unique_consecutive</span><span class="p">(</span><span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">slices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="o">-</span><span class="n">c</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">axis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">slices</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>  <span class="c1"># &lt;- dummy index for batch-axis</span>
+
+    <span class="k">return</span> <span class="n">tensor</span><span class="p">[</span><span class="n">slices</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="unpack">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.unpack.html#tbmalt.common.batch.unpack">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unpack</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unpacks packed tensors into their constituents and removes padding.</span>
+
+<span class="sd">    This acts as the inverse of the `pack` operation.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor: Tensor to be unpacked.</span>
+<span class="sd">        value: Identity of padding value. [DEFAULT=0]</span>
+<span class="sd">        axis: Axis along which ``tensor`` was packed. [DEFAULT=0]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tensors: Tuple of constituent tensors.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        </span>
+<span class="sd">        &gt;&gt;&gt; # Example packed tensor (padded with &quot;99&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; packed_array = torch.tensor([</span>
+<span class="sd">        &gt;&gt;&gt;     [1, 99, 99, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [3,  2, 99, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [6,  5,  4, 99],</span>
+<span class="sd">        &gt;&gt;&gt;     [10, 9,  8,  7]</span>
+<span class="sd">        &gt;&gt;&gt; ])</span>
+<span class="sd">        &gt;&gt;&gt; # Unpack the array into its component sub-arrays</span>
+<span class="sd">        &gt;&gt;&gt; unpacked_arrays = unpack(packed_array, value=99)</span>
+<span class="sd">        &gt;&gt;&gt; print(unpacked_arrays)</span>
+<span class="sd">        # (tensor([1]), tensor([3, 2]),</span>
+<span class="sd">        #  tensor([6, 5, 4]), tensor([10,  9,  8,  7]))</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">deflate</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tensor</span><span class="o">.</span><span class="n">movedim</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="prepeat_interleave">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.batch.prepeat_interleave.html#tbmalt.common.batch.prepeat_interleave">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prepeat_interleave</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">repeats</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Batch operable implementation of `torch.repeat_interleave`.</span>
+
+<span class="sd">    Repeats elements of a packed tensor.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor: the tensor whose elements are to be repeated.</span>
+<span class="sd">        repeats: integers specifying the number of time each element should be</span>
+<span class="sd">            repeated. This should be the same size as `tensor`.</span>
+<span class="sd">        value: the padding value used when packing the tensor.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; # A packed array</span>
+<span class="sd">        &gt;&gt;&gt; array = torch.tensor([[1.1, 0], [2.2, 3.3]])</span>
+<span class="sd">        &gt;&gt;&gt; # Number of times each element should be repeated</span>
+<span class="sd">        &gt;&gt;&gt; repeats = torch.tensor([[1, 0], [2, 3]])</span>
+<span class="sd">        &gt;&gt;&gt; # Perform the repeat</span>
+<span class="sd">        &gt;&gt;&gt; repeated = prepeat_interleave(array, repeats, 0)</span>
+<span class="sd">        &gt;&gt;&gt; print(repeated)</span>
+<span class="sd">        # tensor([[1.1000, 0.0000, 0.0000, 0.0000, 0.0000],</span>
+<span class="sd">        #         [2.2000, 2.2000, 3.3000, 3.3000, 3.3000]])</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">tensor</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tensor</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">repeats</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">repeats</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">return</span> <span class="n">pack</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span>
+                     <span class="nb">zip</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">repeats</span><span class="p">)],</span> <span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

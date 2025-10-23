@@ -1,0 +1,47 @@
+filling
+=======
+
+.. automodule:: tbmalt.physics.filling
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      aufbau_filling
+      entropy_term
+      fermi_entropy
+      fermi_search
+      fermi_smearing
+      gaussian_entropy
+      gaussian_smearing
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      Scheme
+   
+   
+
+   
+   
+   
+
+
+

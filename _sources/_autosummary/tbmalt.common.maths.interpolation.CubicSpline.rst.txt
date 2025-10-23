@@ -1,0 +1,28 @@
+CubicSpline
+===========
+
+.. currentmodule:: tbmalt.common.maths.interpolation
+
+.. autoclass:: CubicSpline
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: coefficients, y
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~CubicSpline.coefficients
+   
+      ~CubicSpline.y
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

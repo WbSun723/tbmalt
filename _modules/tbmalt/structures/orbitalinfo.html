@@ -1,0 +1,786 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.structures.orbitalinfo &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">tbmalt.structures.orbitalinfo</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.structures.orbitalinfo</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;A container to hold data associated with a chemical system&#39;s bases.</span>
+
+<span class="sd">This module provides the `OrbitalInfo` data structure class and its associated code.</span>
+<span class="sd">The `OrbitalInfo` class is intended to hold data needed to describe the number and</span>
+<span class="sd">identities of a chemical systems bases.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">h5py</span><span class="w"> </span><span class="kn">import</span> <span class="n">Group</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">Size</span><span class="p">,</span> <span class="n">arange</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.batch</span><span class="w"> </span><span class="kn">import</span> <span class="n">pack</span><span class="p">,</span> <span class="n">merge</span><span class="p">,</span> <span class="n">deflate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common</span><span class="w"> </span><span class="kn">import</span> <span class="n">split_by_size</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.data.elements</span><span class="w"> </span><span class="kn">import</span> <span class="n">MAX_ATOMIC_NUMBER</span>
+
+
+<span class="n">Form</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;full&#39;</span><span class="p">,</span> <span class="s1">&#39;shell&#39;</span><span class="p">,</span> <span class="s1">&#39;atomic&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="OrbitalInfo">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OrbitalInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Data container for all information relating to a system&#39;s orbs set.</span>
+
+<span class="sd">    This class collects all information about a system&#39;s orbs set and its</span>
+<span class="sd">    orbitals into one place. This also permits calculations to</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        atomic_numbers: Atomic numbers of the atoms present in the system.</span>
+<span class="sd">        shell_dict: A dictionary that yields the angular momenta of each shell</span>
+<span class="sd">            for a given atomic number e.g. `{1: [0], 2: [0, 0, 0] 6: [0, 1]}`</span>
+<span class="sd">            designates H as having 1s shell, He as having 3s shells and C as</span>
+<span class="sd">            having 1s &amp; 1p shell. Values must be lists of integers, not torch</span>
+<span class="sd">            tensors.</span>
+<span class="sd">        shell_resolved: If True, calculations will be shell-resolved, if False</span>
+<span class="sd">            they will be atom-resolved. This is used to automatically</span>
+<span class="sd">            return the correct resolution information. [DEFAULT=False]</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        n_orbitals (Tensor): orbital count.</span>
+<span class="sd">        n_shells (Tensor): shell count.</span>
+<span class="sd">        n_atoms (Tensor): atoms count.</span>
+<span class="sd">        orbital_matrix_shape (Size): Anticipated orbital matrix shape, e.g.</span>
+<span class="sd">            Hamiltonian or overlap matrices.</span>
+<span class="sd">        shell_matrix_shape (Size): Similar to ``orbital_matrix_shape`` but</span>
+<span class="sd">            with only one matrix-element per shell.</span>
+<span class="sd">        atomic_matrix_shape (Size): Similar to ``shell_matrix_shape`` but</span>
+<span class="sd">            with only one matrix-element per atom.</span>
+<span class="sd">        shell_ls (Tensor): Azimuthal number associated with each shell.</span>
+<span class="sd">        shell_ns (Tensor): The number of each shell, as defined by the order</span>
+<span class="sd">            in which they were specified for relevant species.</span>
+
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from tbmalt import Geometry, OrbitalInfo</span>
+<span class="sd">        &gt;&gt;&gt; from ase.build.molecule import molecule</span>
+<span class="sd">        &gt;&gt;&gt; geometry = Geometry.from_ase_atoms(molecule(&#39;CH4&#39;))</span>
+<span class="sd">        # Shell dictionary informing the `OrbitalInfo` entity that hydrogen</span>
+<span class="sd">        # atoms have a single s shell and carbon atoms an s and p shell.</span>
+<span class="sd">        &gt;&gt;&gt; shell_dict = {1: [0], 6: [0, 1]}</span>
+<span class="sd">        &gt;&gt;&gt; orbs = OrbitalInfo(geometry.atomic_numbers, shell_dict)</span>
+
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        The order that each element&#39;s shell is specified in ``shell_dict`` is</span>
+<span class="sd">        taken as the order in which integrals are yielded by `SkFeed` objects;</span>
+<span class="sd">        i.e. `SkFeed.off_site(..., [atom_1_shell, atom_2_shell], ...)` will</span>
+<span class="sd">        return the integral associated with the atom_1_shell&#39;th shell on atom</span>
+<span class="sd">        1 and the atom_2_shell&#39;th shell on atom 2.</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Developers Notes:</span>
+    <span class="c1"># OrbitalInfo instances only ever yield tensors used for masking or indexing</span>
+    <span class="c1"># operations. As such the device on which they return results is somewhat</span>
+    <span class="c1"># irrelevant. However, results are placed on the anticipated device anyway</span>
+    <span class="c1"># to maintain expected behaviour.</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atomic_numbers</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Tensor</span><span class="p">],</span>
+                 <span class="n">shell_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+                 <span class="n">shell_resolved</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+
+        <span class="c1"># Ensure that shell_dict yields lists with integers in &amp; nothing else</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">shell_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">i</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;&quot;shell_dict&quot; must yield lists of integers.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># __DATA ATTRIBUTES__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span> <span class="o">=</span> <span class="n">shell_resolved</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shell_dict</span> <span class="o">=</span> <span class="n">shell_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span> <span class="o">=</span> <span class="n">deflate</span><span class="p">(</span><span class="n">pack</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">))</span>
+
+        <span class="c1"># __META ATTRIBUTES__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">device</span>  <span class="c1"># &lt;- Don&#39;t change directly</span>
+        <span class="c1"># pylint: disable=C0103</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span>  <span class="c1"># &lt;──┬ Used only during init</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;device&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__device</span><span class="p">}</span>  <span class="c1"># &lt;─────┘</span>
+
+        <span class="c1"># __HELPER ATTRIBUTES__</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">map_to_atom_number</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Helps to build _shells/orbitals_per_species&quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">MAX_ATOMIC_NUMBER</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+                <span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">shell_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())),</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">val</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+
+        <span class="c1"># These allow for the Nº of shells/orbitals on a given species to be</span>
+        <span class="c1"># looked-up in a batch-wise manor without the need for dictionaries.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shells_per_species</span> <span class="o">=</span> <span class="n">map_to_atom_number</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">shell_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_orbitals_per_species</span> <span class="o">=</span> <span class="n">map_to_atom_number</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">sum</span><span class="p">([</span><span class="n">l</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">v</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">shell_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">shell_ns</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="o">!=</span> <span class="mi">0</span>
+             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">shell_dict</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="p">)])],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="k">if</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">batch_reshape</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;Reshape &quot;shell_ns&quot; &amp; &quot;shell_ls&quot; if batched&quot;&quot;&quot;</span>
+                <span class="k">return</span> <span class="n">pack</span><span class="p">(</span><span class="n">split_by_size</span><span class="p">(</span><span class="n">t</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_shells_per_species</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span>
+                    <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">shell_ns</span> <span class="o">=</span> <span class="n">batch_reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shell_ns</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span> <span class="o">=</span> <span class="n">batch_reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span><span class="p">)</span>
+
+        <span class="c1"># __COUNTABLE ATTRIBUTES__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_shells</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_orbitals</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbs_per_atom</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># __SHAPE ATTRIBUTES__</span>
+        <span class="n">m1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">m2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_shells</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">m3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_orbitals</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="c1"># _n adds an extra dimension when in batch mode</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">Size</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)])</span> <span class="k">if</span> <span class="n">batch</span> <span class="k">else</span> <span class="n">Size</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atomic_matrix_shape</span><span class="p">:</span> <span class="n">Size</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="n">Size</span><span class="p">([</span><span class="n">m1</span><span class="p">,</span> <span class="n">m1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shell_matrix_shape</span><span class="p">:</span> <span class="n">Size</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="n">Size</span><span class="p">([</span><span class="n">m2</span><span class="p">,</span> <span class="n">m2</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">orbital_matrix_shape</span><span class="p">:</span> <span class="n">Size</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="n">Size</span><span class="p">([</span><span class="n">m3</span><span class="p">,</span> <span class="n">m3</span><span class="p">])</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">res_matrix_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``shell_matrix_shape`` if shell resolved else ``shell_resolved``&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shell_matrix_shape</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span>
+                <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_matrix_shape</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_res</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;``n_shells`` if shell resolved else ``n_atoms``&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_shells</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span>
+                <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">device</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The device on which the `OrbitalInfo` object resides.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__device</span>
+
+    <span class="nd">@device</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">device</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="c1"># Instruct users to use the &quot;.to&quot; method if wanting to change device.</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;OrbitalInfo object</span><span class="se">\&#39;</span><span class="s1">s dtype can only be modified &#39;</span>
+                             <span class="s1">&#39;via the &quot;.to&quot; method.&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">orbs_per_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of orbitals associated with each atom.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbitals_per_species</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                                          <span class="p">]</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">orbs_per_shell</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of orbitals associated with each shell.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">orbs_per_res</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns `orbs_per_atom` if atom resolved &amp; `orbs_per_shell` if not.&quot;&quot;&quot;</span>
+        <span class="c1"># This property allows for resolution agnostic programming.</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orbs_per_shell</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span>
+                <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbs_per_atom</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Identifies which atom each orbital belongs to.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">opa</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbs_per_atom</span><span class="p">)</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_repeat_range</span><span class="p">(</span><span class="n">opa</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pack</span><span class="p">([</span><span class="n">_repeat_range</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__device</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">opa</span><span class="p">],</span>
+                        <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_shells</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Identifies which shell each orbital belongs to.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">ops</span> <span class="o">:=</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbs_per_shell</span><span class="p">)</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">_repeat_range</span><span class="p">(</span><span class="n">ops</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pack</span><span class="p">([</span><span class="n">_repeat_range</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__device</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">ops</span><span class="p">],</span>
+                        <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_res</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns ``on_atoms`` if atom resolved &amp; ``on_shells`` if not. &quot;&quot;&quot;</span>
+        <span class="c1"># This property allows for resolution agnostic programming.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_shells</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_atoms</span>
+
+<div class="viewcode-block" id="OrbitalInfo.n_orbs_on_species">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.n_orbs_on_species">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_orbs_on_species</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">species</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the number of orbitals on a given species.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_orbitals_per_species</span><span class="p">[</span><span class="n">species</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="OrbitalInfo.n_shells_on_species">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.n_shells_on_species">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">n_shells_on_species</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">species</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the number of shells on a given species.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shells_per_species</span><span class="p">[</span><span class="n">species</span><span class="p">]</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shells_per_atom</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the number of shells associated with each atom.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shells_per_species</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                                        <span class="p">]</span><span class="o">.</span><span class="n">view_as</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OrbitalInfo.to">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OrbitalInfo&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a copy of the `OrbitalInfo` instance on the specified device.</span>
+
+<span class="sd">        This method creates and returns a new copy of the `OrbitalInfo` instance</span>
+<span class="sd">        on the specified device &quot;``device``&quot;.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            device: Device to which all associated tensors should be moved.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            orbs: Copy of the instance placed on the specified device.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            If the `OrbitalInfo` instance is already on the desired device then</span>
+<span class="sd">            `self` will be returned.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">shell_dict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selector</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OrbitalInfo&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Permits batched OrbitalInfo instances to be sliced as needed.&quot;&quot;&quot;</span>
+        <span class="c1"># Block this if the instance has only a single system</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                <span class="s1">&#39;OrbitalInfo slicing is only applicable to batches of systems.&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">deflate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">[</span><span class="n">selector</span><span class="p">,</span> <span class="o">...</span><span class="p">]),</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">shell_dict</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s1">&#39;OrbitalInfo&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if two `OrbitalInfo` objects are equivalent.&quot;&quot;&quot;</span>
+        <span class="c1"># Note that batches with identical systems but a different order will</span>
+        <span class="c1"># return False, not True.</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s1">&quot; ==  &quot;</span><span class="si">{</span><span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s1">&quot; &#39;</span>
+                            <span class="sa">f</span><span class="s1">&#39;evaluation not implemented.&#39;</span><span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">shape_and_value</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">shape</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="nb">all</span><span class="p">([</span>
+            <span class="n">shape_and_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">),</span>
+            <span class="n">shape_and_value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_orbitals</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">n_orbitals</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">shell_resolved</span>
+        <span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s1">&#39;OrbitalInfo&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OrbitalInfo&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Combine two `OrbitalInfo` objects together.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="vm">__class__</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s1">&#39;Addition can only take place between two OrbitalInfo objects.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Ensure that they both have the same resolution</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">shell_resolved</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+                <span class="s1">&#39;Cannot add OrbitalInfo with differing `shell_resolved` values.&#39;</span><span class="p">)</span>
+
+        <span class="n">atomic_numbers</span> <span class="o">=</span> <span class="n">merge</span><span class="p">([</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">),</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)])</span>
+
+        <span class="n">shell_dict</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">shell_dict</span><span class="p">,</span> <span class="o">**</span><span class="n">other</span><span class="o">.</span><span class="n">shell_dict</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">,</span> <span class="n">shell_dict</span><span class="p">,</span>
+                              <span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OrbitalInfo.from_hdf5">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.from_hdf5">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_hdf5</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="n">Group</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+                  <span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;OrbitalInfo&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Instantiate a `OrbitalInfo` instances from an HDF5 group.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            source: An HDF5 group(s) containing `OrbitalInfo` instance.</span>
+<span class="sd">            device: Device on which to place tensors. [DEFAULT=None]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            orbs: The resulting `OrbitalInfo` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shell_dict</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span><span class="p">[()]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span>
+                      <span class="n">source</span><span class="p">[</span><span class="s1">&#39;shell_dict&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">shell_resolved</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;shell_resolved&#39;</span><span class="p">][()])</span>
+        <span class="n">atomic_numbers</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;atomic_numbers&#39;</span><span class="p">][()],</span>
+                                      <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">atomic_numbers</span><span class="p">,</span> <span class="n">shell_dict</span><span class="p">,</span> <span class="n">shell_resolved</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OrbitalInfo.to_hdf5">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.to_hdf5">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Group</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Saves `OrbitalInfo` instance into a target HDF5 Group.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            target: The hdf5 group to which the `OrbitalInfo` should be saved.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            This function does not create its own group as it expects that</span>
+<span class="sd">            ``target`` is the group into which data should be writen.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Store the shell dictionary, atomic numbers &amp; resolution</span>
+        <span class="n">shell_dict</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">create_group</span><span class="p">(</span><span class="s1">&#39;shell_dict&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">shell_dict</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">data</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+        <span class="n">target</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s1">&#39;atomic_numbers&#39;</span><span class="p">,</span>
+                              <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+
+        <span class="n">target</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="s1">&#39;shell_resolved&#39;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shell_resolved</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OrbitalInfo.matrix_shape">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.matrix_shape">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">matrix_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">:</span> <span class="n">Form</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Size</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the expected shape of a matrix based on ``form``.</span>
+
+<span class="sd">        This returns either `orbital_matrix_shape`, `shell_matrix_shape` or</span>
+<span class="sd">        `atomic_matrix_shape` based on the value provided for ``form``.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            form: Specifies the form of the atomic number matrix:</span>
+
+<span class="sd">                - &quot;full&quot;: One matrix-element for each orbital-orbital pair.</span>
+<span class="sd">                - &quot;shell&quot;: One matrix-element for each shell-shell pair.</span>
+<span class="sd">                - &quot;atomic&quot;: One matrix-element for each atom-atom pair.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            shape: A `torch.Size` object specifying the associated shape.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This is mostly a convenience function and to avoid code reception</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;full&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">orbital_matrix_shape</span><span class="p">,</span>
+                     <span class="s1">&#39;shell&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_matrix_shape</span><span class="p">,</span>
+                     <span class="s1">&#39;atomic&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_matrix_shape</span><span class="p">}[</span><span class="n">form</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">shape</span>
+
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># Warn if an unknown &quot;form&quot; option is used</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">form</span><span class="si">}</span><span class="s1">&quot; is not a valid option for &quot;form&quot;.&#39;</span>
+                             <span class="sa">f</span><span class="s1">&#39;valid values are </span><span class="si">{</span><span class="n">Form</span><span class="o">.</span><span class="n">__args__</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OrbitalInfo.azimuthal_matrix">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.azimuthal_matrix">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">azimuthal_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">:</span> <span class="n">Form</span> <span class="o">=</span> <span class="s1">&#39;full&#39;</span><span class="p">,</span> <span class="n">sort</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                         <span class="n">mask_on_site</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">mask_diag</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                         <span class="n">mask_lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Azimuthal quantum numbers for each orbs-orbs interaction.</span>
+
+<span class="sd">        Tensor defining the azimuthal quantum numbers (ℓ) associated with each</span>
+<span class="sd">        orbital-orbital interaction element.  Alternately, a shell form of</span>
+<span class="sd">        the azimuthal matrix can be returned which defines only one element</span>
+<span class="sd">        per shell-shell interaction block. Segments of the matrix can be</span>
+<span class="sd">        masked out with -1 values using the `mask_*` arguments.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            form: Specifies the form of the azimuthal matrix:</span>
+
+<span class="sd">                - &quot;full&quot;: one matrix-element per orbital-orbital interaction.</span>
+<span class="sd">                - &quot;shell&quot;: Causes the ℓ-matrix to be returned in shell form</span>
+<span class="sd">                  where each shell-shell interaction block is represented by a</span>
+<span class="sd">                  single element.</span>
+
+<span class="sd">                See the notes section for more information. [DEFAULT=&quot;full&quot;]</span>
+<span class="sd">            sort: Sort along the last dimension so the lowest ℓ value in each</span>
+<span class="sd">                ℓ-pair comes first. [DEFAULT=False]</span>
+<span class="sd">            mask_on_site: Masks on-site blocks, but leaves diagonals</span>
+<span class="sd">                unaffected.[DEFAULT=False]</span>
+<span class="sd">            mask_diag: Masks diagonal elements in full matrix mode but has no</span>
+<span class="sd">                effect on `shell` form matrices. [DEFAULT=False]</span>
+<span class="sd">            mask_lower: Masks lower triangle of the ℓ-matrix. [DEFAULT=False]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            azimuthal_matrix: Tensor defining the azimuthal quantum numbers</span>
+<span class="sd">                associated with the orbital-orbital interactions.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            For an N-orbital system a NxNx2 matrix will be returned where the</span>
+<span class="sd">            i&#39;th, j&#39;th vector lists the ℓ values of the i&#39;th &amp; j&#39;th orbitals;</span>
+<span class="sd">            these being the orbitals associated with the i&#39;th, j&#39;th element of</span>
+<span class="sd">            the Hamiltonian &amp; overlap matrices.</span>
+
+<span class="sd">            The ``sort`` option can be used to enable all interaction of a</span>
+<span class="sd">            given type to be gathered with a single call, e.g. [0, 1] rather</span>
+<span class="sd">            than two separate calls [0, 1] &amp; [1, 0].</span>
+
+<span class="sd">            For an H4C2Au2 molecule, the full azimuthal matrix with diagonal,</span>
+<span class="sd">            on-site &amp; lower-triangle masking will take the form:</span>
+
+<span class="sd">            .. image:: ../images/Azimuthal_matrix.svg</span>
+<span class="sd">                :width: 400</span>
+<span class="sd">                :align: center</span>
+<span class="sd">                :alt: Azimuthal matrix</span>
+
+<span class="sd">            Where all elements in the ss blocks equal [0, 0], sp: [0, 1],</span>
+<span class="sd">            ps: [1, 0], etc. Note that if ``sort`` is True then the ps</span>
+<span class="sd">            elements will converted from [1, 0] to [0, 1] during sorting.</span>
+<span class="sd">            Black &amp; grey indicate areas of the matrix that have been masked</span>
+<span class="sd">            out by setting their values to -1. A masking value of -1 is</span>
+<span class="sd">            chosen as it is a invalid azimuthal quantum number, &amp; is thus</span>
+<span class="sd">            less likely to result in collision. If ``shell`` is True then</span>
+<span class="sd">            the matrix will be reduced to:</span>
+
+<span class="sd">            .. image:: ../images/Azimuthal_matrix_block.svg</span>
+<span class="sd">                :width: 186</span>
+<span class="sd">                :align: center</span>
+<span class="sd">                :alt: Azimuthal matrix (shell form)</span>
+
+<span class="sd">            As the diagonal elements are contained within the on-site blocks</span>
+<span class="sd">            it is not possible to selectively mask &amp; unmask them. Note that</span>
+<span class="sd">            masking of matrix diagonals are affected only by the ``mask_diag``</span>
+<span class="sd">            option and **not** the ``mask_on_site`` option.</span>
+
+<span class="sd">            A dense matrix implementation is used by this function as the</span>
+<span class="sd">            sparse matrix code in pytorch, as of version-1.7, is not stable</span>
+<span class="sd">            or mature enough to support the types of operations that the</span>
+<span class="sd">            returned tensor is intended to perform.</span>
+
+<span class="sd">            Note that an atomic reduction of the azimuthal matrix is not</span>
+<span class="sd">            possible. Hence there is no &quot;atomic&quot; option like that found in</span>
+<span class="sd">            ``atomic_number_matrix``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an invalid ``form`` option is passed.</span>
+
+<span class="sd">        Warnings:</span>
+<span class="sd">            Azimuthal sorting (``sort``) should be used with care as it will</span>
+<span class="sd">            introduce inconsistencies with the other matrices. Only use this</span>
+<span class="sd">            option if you know what you are doing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;atomic&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Azimuthal matrix can not be in &quot;atomic&quot; form&#39;</span><span class="p">)</span>
+
+        <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix_shape</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>  <span class="c1"># &lt;- shape of the output matrix</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="c1"># Code is full/shell mode agnostic to reduce code duplication. however</span>
+        <span class="c1"># some properties must be set at the start to make this work.</span>
+        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">counts</span><span class="p">[</span><span class="n">counts</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">orbs_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">batch</span><span class="p">:</span>
+                <span class="n">orbs_list</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="n">split_by_size</span><span class="p">(</span><span class="n">orbs_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_orbitals</span><span class="p">),</span>
+                                 <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">orbs_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span>
+
+        <span class="c1"># Repeat and expand the vectors to get the final NxNx2 matrix tensor.</span>
+        <span class="n">l_mat</span> <span class="o">=</span> <span class="n">_rows_to_NxNx2</span><span class="p">(</span><span class="n">orbs_list</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># If masking out parts of the matrix</span>
+        <span class="k">if</span> <span class="n">mask_on_site</span> <span class="o">|</span> <span class="n">mask_lower</span> <span class="o">|</span> <span class="n">mask_diag</span><span class="p">:</span>
+            <span class="c1"># Create a blank mask.</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">l_mat</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask_on_site</span><span class="p">:</span>  <span class="c1"># Mask out on-site blocks if required.</span>
+                <span class="n">idx_mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index_matrix</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">idx_mat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">idx_mat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span> <span class="c1"># Mask/unmask the diagonals as instructed</span>
+                <span class="n">mask</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">dim1</span><span class="o">=-</span><span class="mi">3</span><span class="p">,</span> <span class="n">dim2</span><span class="o">=-</span><span class="mi">2</span><span class="p">)[:]</span> <span class="o">=</span> <span class="n">mask_diag</span>
+
+            <span class="c1"># Add lower triangle of the matrix to the mask, if told to do so</span>
+            <span class="k">if</span> <span class="n">mask_lower</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">batch</span><span class="p">:</span>
+                    <span class="n">mask</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tril_indices</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tril_indices</span><span class="p">(</span><span class="o">*</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="n">mask</span><span class="p">[:,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># ↑ Indexing hack ↑</span>
+
+            <span class="c1"># Apply the mask and set all the masked values to -1</span>
+            <span class="n">l_mat</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="c1"># Sort angular momenta terms if requested &amp; return the matrix</span>
+        <span class="k">return</span> <span class="n">l_mat</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">sort</span> <span class="k">else</span> <span class="n">l_mat</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="OrbitalInfo.shell_number_matrix">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.shell_number_matrix">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shell_number_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">:</span> <span class="n">Form</span> <span class="o">=</span> <span class="s1">&#39;full&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Shell numbers associated with each orbital-orbital pair.</span>
+
+<span class="sd">        This is analogous to the ``azimuthal_matrix`` tensor but with shell</span>
+<span class="sd">        numbers rather than azimuthal quantum numbers. The shell number for</span>
+<span class="sd">        each species are taken from the order in which they are defined in</span>
+<span class="sd">        the `OrbitalInfo.shell_dict`.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            form: Specifies the form of the shell number matrix:</span>
+
+<span class="sd">                - &quot;full&quot;: 1 matrix-element per orbital-orbital interaction.</span>
+<span class="sd">                - &quot;shell&quot;: 1 matrix-element per shell-shell interaction block.</span>
+
+<span class="sd">                A more in-depth description of this argument&#39;s effects is</span>
+<span class="sd">                given in :meth:`.azimuthal_matrix`. [DEFAULT=&quot;full&quot;]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            shell_number_matrix: An NxNx2 tensor specifying the shell numbers</span>
+<span class="sd">                associated with each interaction. N can be the number orbitals</span>
+<span class="sd">                , shells or atoms depending on ``form``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an invalid ``form`` option is passed</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;atomic&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Shell matrix can not be given in &quot;atomic&quot; form&#39;</span><span class="p">)</span>
+
+        <span class="c1"># 1) Make the first row of the NxN matrix</span>
+        <span class="n">s_mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_ns</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span>  <span class="c1"># If the full matrix is required: expand the s_mat</span>
+            <span class="n">s_mat</span> <span class="o">=</span> <span class="n">s_mat</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">shell_ls</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># &quot;if batch&quot;</span>
+                <span class="n">s_mat</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="n">split_by_size</span><span class="p">(</span><span class="n">s_mat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_orbitals</span><span class="p">),</span> <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Convert the rows into a full NxNx2 tensor and return it</span>
+        <span class="k">return</span> <span class="n">_rows_to_NxNx2</span><span class="p">(</span><span class="n">s_mat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix_shape</span><span class="p">(</span><span class="n">form</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OrbitalInfo.atomic_number_matrix">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.atomic_number_matrix">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">atomic_number_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">:</span> <span class="n">Form</span> <span class="o">=</span> <span class="s1">&#39;full&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Atomic numbers associated with each orbital-orbital pair.</span>
+
+<span class="sd">        This is analogous to the ``azimuthal_matrix`` tensor but with atomic</span>
+<span class="sd">        numbers rather than azimuthal quantum numbers. Shell and atomic forms</span>
+<span class="sd">        can also be returned.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            form: Specifies the form of the atomic number matrix:</span>
+
+<span class="sd">                - &quot;full&quot;: 1 matrix-element per orbital-orbital interaction.</span>
+<span class="sd">                - &quot;shell&quot;: 1 matrix-element per shell-shell interaction block.</span>
+<span class="sd">                - &quot;atomic&quot;: 1 matrix-element per atom-atom interaction block.</span>
+
+<span class="sd">                A more in-depth description of this argument&#39;s effects is</span>
+<span class="sd">                given in :meth:`.azimuthal_matrix`. [DEFAULT=&quot;full&quot;]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            atomic_number_matrix: An NxNx2 tensor specifying the atomic</span>
+<span class="sd">                numbers associated with each interaction. N can be the number</span>
+<span class="sd">                of orbitals, shells or atoms depending on ``form``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an invalid ``form`` option is passed.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="c1"># Make the first row of the NxN matrix</span>
+        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_atoms</span>
+            <span class="k">if</span> <span class="n">batch</span><span class="p">:</span>  <span class="c1"># Workaround for issue 55143</span>
+                <span class="n">indices</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">indices</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">an_mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;shell&#39;</span><span class="p">:</span>
+            <span class="n">an</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">an_mat</span> <span class="o">=</span> <span class="n">an</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shells_per_species</span><span class="p">[</span><span class="n">an</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">batch</span><span class="p">:</span>
+                <span class="n">an_mat</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="n">split_by_size</span><span class="p">(</span><span class="n">an_mat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_shells</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># &#39;form&#39; must be &quot;atomic&quot; then</span>
+            <span class="n">an_mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span>
+
+        <span class="c1"># Convert the rows into a full NxNx2 tensor and return it</span>
+        <span class="k">return</span> <span class="n">_rows_to_NxNx2</span><span class="p">(</span><span class="n">an_mat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix_shape</span><span class="p">(</span><span class="n">form</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OrbitalInfo.index_matrix">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo.index_matrix">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">index_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">:</span> <span class="n">Form</span> <span class="o">=</span> <span class="s1">&#39;full&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Indices of the atoms associated with each orbital pair.</span>
+
+<span class="sd">        Produces a tensor specifying the indices of the atoms associate with</span>
+<span class="sd">        each orbital-orbital pair. This is functionality identical to the</span>
+<span class="sd">        ``atomic_number_matrix`` operation; differing only in that it returns</span>
+<span class="sd">        atom indices rather than atomic numbers. See ``atomic_number_matrix``</span>
+<span class="sd">        documentation for more information.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            form: Specifies the form of the index matrix:</span>
+
+<span class="sd">                - &quot;full&quot;: 1 matrix-element per orbital-orbital interaction.</span>
+<span class="sd">                - &quot;shell&quot;: 1 matrix-element per shell-shell interaction block.</span>
+<span class="sd">                - &quot;atomic&quot;: 1 matrix-element per atom-atom interaction block.</span>
+
+<span class="sd">                A more in-depth description of this argument&#39;s effects is</span>
+<span class="sd">                given in :meth:`.azimuthal_matrix`. [DEFAULT=&quot;full&quot;]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            index_matrix : A NxNx2 tensor specifying the indices of the atoms</span>
+<span class="sd">                associated with each interaction. N can be the number of</span>
+<span class="sd">                orbitals, shells or atoms depending on ``form``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If an invalid ``form`` option is passed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matrix_shape</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>  <span class="c1"># &lt;- shape of the output matrix</span>
+        <span class="n">ans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span>
+
+        <span class="c1"># Make the first row of the NxN matrix</span>
+        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;full&#39;</span><span class="p">:</span>
+            <span class="n">i_mat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">on_atoms</span>
+
+        <span class="k">elif</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;shell&#39;</span><span class="p">:</span>
+            <span class="n">i_mat</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__device</span><span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span>
+                <span class="n">ans</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shells_per_species</span><span class="p">[</span><span class="n">ans</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)])</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># &quot;if batch&quot;</span>
+                <span class="n">i_mat</span> <span class="o">=</span> <span class="n">pack</span><span class="p">(</span><span class="n">split_by_size</span><span class="p">(</span><span class="n">i_mat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_shells</span><span class="p">),</span> <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># Must be atomic form otherwise</span>
+            <span class="n">i_mat</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_atoms</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">__device</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span>
+                <span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="n">i_mat</span><span class="p">[</span><span class="n">ans</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>  <span class="c1"># Pre-mask to make masking work later on</span>
+
+        <span class="c1"># Convert the rows into a full NxNx2 tensor and return it</span>
+        <span class="k">return</span> <span class="n">_rows_to_NxNx2</span><span class="p">(</span><span class="n">i_mat</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_rows_to_NxNx2</span><span class="p">(</span><span class="n">vec</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">shape</span><span class="p">:</span> <span class="n">Size</span><span class="p">,</span> <span class="n">pad</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a row &amp; converts it into its final NxNx2 shape.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        vec: The vector that is to be expanded into a tensor.</span>
+<span class="sd">        shape: The final, batch agnostic, shape of the tensor.</span>
+<span class="sd">        pad: Values which are to be padded after expansion.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Expand rows into first NxN slice of the matrix and mask as needed</span>
+    <span class="n">mat</span> <span class="o">=</span> <span class="n">vec</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">mat</span><span class="p">[</span><span class="n">mat</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">==</span> <span class="n">pad</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad</span>  <span class="c1"># Mask down columns</span>
+    <span class="c1"># Form the NxN slice into the full NxNx2 tensor and return it.</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">mat</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">),</span> <span class="n">mat</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_repeat_range</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Combines `torch.arange` and `torch.repeat_interleave` methods.&quot;&quot;&quot;</span>
+    <span class="c1"># Convenience function to abstract repeated verbose calls</span>
+    <span class="k">return</span> <span class="n">arange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

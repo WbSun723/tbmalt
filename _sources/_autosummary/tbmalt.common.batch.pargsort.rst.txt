@@ -1,0 +1,8 @@
+pargsort
+========
+
+.. currentmodule:: tbmalt.common.batch
+
+.. autofunction:: tbmalt.common.batch.pargsort
+
+    .. autosummary::

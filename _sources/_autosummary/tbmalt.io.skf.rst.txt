@@ -1,0 +1,33 @@
+skf
+===
+
+.. automodule:: tbmalt.io.skf
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      Skf
+      VCRSkf
+   
+   
+
+   
+   
+   
+
+
+

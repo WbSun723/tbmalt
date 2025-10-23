@@ -1,0 +1,43 @@
+loss\_function
+==============
+
+.. automodule:: tbmalt.ml.loss_function
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      hellinger_loss
+      l1_loss
+      mse_loss
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      Loss
+   
+   
+
+   
+   
+   
+
+
+

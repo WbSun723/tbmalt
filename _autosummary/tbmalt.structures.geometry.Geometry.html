@@ -1,0 +1,420 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.6.1.5. Geometry &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.6.2. orbitalinfo" href="tbmalt.structures.orbitalinfo.html" />
+    <link rel="prev" title="2.1.6.1.4. unique_atom_pairs" href="tbmalt.structures.geometry.unique_atom_pairs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.structures.geometry.html">2.1.6.1. geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.structures.orbitalinfo.html">2.1.6.2. orbitalinfo</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.structures.periodicity.html">2.1.6.3. periodicity</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.structures.html"><span class="section-number">2.1.6. </span>structures</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.structures.geometry.html"><span class="section-number">2.1.6.1. </span>geometry</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.6.1.5. </span>Geometry</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.structures.geometry.Geometry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="geometry">
+<h1><span class="section-number">2.1.6.1.5. </span>Geometry<a class="headerlink" href="#geometry" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Geometry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomic_numbers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lattice_vector</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frac</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'bohr'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#Geometry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.Geometry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Data structure for storing geometric information on molecular systems.</p>
+<p>The <cite>Geometry</cite> class stores any information that is needed to describe a
+chemical system; atomic numbers, positions, etc. This class also permits
+batch system representation. However, mixing of PBC &amp; non-PBC systems is
+strictly forbidden.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomic_numbers</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]]</span>) – Atomic numbers of the atoms.</p></li>
+<li><p><strong>positions</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]]</span>) – Atomic coordinates are specified via an “Nx3” tensor for
+single system instances, where “N” is the nubmer of atoms. For
+batch instanes either i) a single zero-padded “BxMxN” tensor may
+be specified, where “B” is the number of batches and “M” is the
+number of atoms in the largest system, or ii) a list of “Nx3”
+tensors may be provided.</p></li>
+<li><p><strong>lattice_vector</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Type</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Lattice</span></code>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Lattice vectors of the periodic systems. This is
+argument, commonly a 3x3 tensor, is only relevant for periodic
+systems. This is used by underlying <cite>Periodicity</cite> instances to
+construct periodic dependant properties. [DEFAULT=None]</p></li>
+<li><p><strong>frac</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Whether using fractional coordinates to describe periodic
+systems. [DEFAULT=False]</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Global cutoff for the diatomic interactions in periodic
+systems. Currently, this value is only used by periodic systems
+when computing the number of cell images that must be considered.
+However, this will be used in the future by interaction pair
+generator methods to limit the number of evaulations necessary.
+A default cutoff distance of 11 Bohr has been chosen for
+performance reasons. It is important to note that this falls well
+below cutoffs values typically used in operations like constructing
+gamma matrices in DFTB. This can have a noticeable impact on
+accuracy. For calculations requiring strict convergence, increase
+<code class="docutils literal notranslate"><span class="pre">cutoff</span></code> to a value exceeding the gamma matrix cut-offs listed
+in <a class="reference internal" href="tbmalt.data.elements.html#module-tbmalt.data.elements" title="tbmalt.data.elements"><code class="xref py py-mod docutils literal notranslate"><span class="pre">tbmalt.data.elements</span></code></a>. [DEFAULT=11.0]</p></li>
+<li><p><strong>units</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Unit in which <code class="docutils literal notranslate"><span class="pre">positions</span></code>, <code class="docutils literal notranslate"><span class="pre">lattice_vector</span></code>, &amp; <code class="docutils literal notranslate"><span class="pre">cutoff</span></code>
+were specified. For a list of available units see <a class="reference internal" href="tbmalt.data.units.html#module-tbmalt.data.units" title="tbmalt.data.units"><code class="xref py py-mod docutils literal notranslate"><span class="pre">units</span></code></a>
+[DEFAULT=’bohr’].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.atomic_numbers">
+<span class="sig-name descname"><span class="pre">atomic_numbers</span></span><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.atomic_numbers" title="Link to this definition"></a></dt>
+<dd><p>Atomic numbers of the atoms.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.positions" title="Link to this definition"></a></dt>
+<dd><p>Coordinates of the atoms.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.n_atoms">
+<span class="sig-name descname"><span class="pre">n_atoms</span></span><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.n_atoms" title="Link to this definition"></a></dt>
+<dd><p>Number of atoms in the system.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.periodicity">
+<span class="sig-name descname"><span class="pre">periodicity</span></span><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.periodicity" title="Link to this definition"></a></dt>
+<dd><p><cite>Periodicity</cite> object that offers helper methods for
+periodic systems. Geometric properties like distances should
+be accessed via this entity when working with periodic systems.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.lattice">
+<span class="sig-name descname"><span class="pre">lattice</span></span><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.lattice" title="Link to this definition"></a></dt>
+<dd><p>the lattice vectors.</p>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<p>When representing multiple systems, the <cite>atomic_numbers</cite> &amp; <cite>positions</cite>
+tensors will be padded with zeros. Tensors generated from ase atoms
+objects or HDF5 database entities will not share memory with their
+associated numpy arrays, nor will they inherit their dtype.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>At this time, 1D &amp; 2D &amp; 3D periodic boundary conditions are supported,
+but mixing of different types of periodic boundary conditions is
+forbidden. The mixing of fractional and cartesian coordinates is
+also forbidden. While Helical periodic boundary condition is not
+supported.</p>
+</div>
+<p class="rubric">Examples</p>
+<p>Geometry instances may be created by directly passing in the atomic
+numbers &amp; atom positions</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt</span><span class="w"> </span><span class="kn">import</span> <span class="n">Geometry</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H2</span> <span class="o">=</span> <span class="n">Geometry</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+<span class="gp">&gt;&gt;&gt; </span>              <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.00</span><span class="p">,</span> <span class="mf">0.00</span><span class="p">,</span> <span class="mf">0.00</span><span class="p">],</span>
+<span class="gp">&gt;&gt;&gt; </span>                            <span class="p">[</span><span class="mf">0.00</span><span class="p">,</span> <span class="mf">0.00</span><span class="p">,</span> <span class="mf">0.79</span><span class="p">]]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">H2</span><span class="p">)</span>
+<span class="go">Geometry(H2)</span>
+</pre></div>
+</div>
+<p>Or from an ase.Atoms object</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt</span><span class="w"> </span><span class="kn">import</span> <span class="n">Geometry</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">ase.build</span><span class="w"> </span><span class="kn">import</span> <span class="n">molecule</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CH4_atoms</span> <span class="o">=</span> <span class="n">molecule</span><span class="p">(</span><span class="s1">&#39;CH4&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">CH4_atoms</span><span class="p">)</span>
+<span class="go">Atoms(symbols=&#39;CH4&#39;, pbc=False)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">CH4</span> <span class="o">=</span> <span class="n">Geometry</span><span class="o">.</span><span class="n">from_ase_atoms</span><span class="p">(</span><span class="n">CH4_atoms</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">CH4</span><span class="p">)</span>
+<span class="go">Geometry(CH4)</span>
+</pre></div>
+</div>
+<p>Multiple systems can be represented by a single <code class="docutils literal notranslate"><span class="pre">Geometry</span></code> instance.
+To do this, simply pass in lists or packed tensors where appropriate.</p>
+<p class="rubric">Attributes and Properties</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tbmalt.structures.geometry.Geometry.atomic_numbers" title="tbmalt.structures.geometry.Geometry.atomic_numbers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">atomic_numbers</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#tbmalt.structures.geometry.Geometry.positions" title="tbmalt.structures.geometry.Geometry.positions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">positions</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tbmalt.structures.geometry.Geometry.n_atoms" title="tbmalt.structures.geometry.Geometry.n_atoms"><code class="xref py py-obj docutils literal notranslate"><span class="pre">n_atoms</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#tbmalt.structures.geometry.Geometry.periodicity" title="tbmalt.structures.geometry.Geometry.periodicity"><code class="xref py py-obj docutils literal notranslate"><span class="pre">periodicity</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#tbmalt.structures.geometry.Geometry.lattice" title="tbmalt.structures.geometry.Geometry.lattice"><code class="xref py py-obj docutils literal notranslate"><span class="pre">lattice</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">chemical_symbols</span></code></p></td>
+<td><p>Chemical symbols of the atoms present.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">device</span></code></p></td>
+<td><p>The device on which the <cite>Geometry</cite> object resides.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">distance_vectors</span></code></p></td>
+<td><p>Distance vector matrix between atoms in the system.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">distances</span></code></p></td>
+<td><p>Distance matrix between atoms in the system.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype</span></code></p></td>
+<td><p>Floating point dtype used by geometry object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_periodic</span></code></p></td>
+<td><p>If there is any periodic boundary conditions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pbc</span></code></p></td>
+<td><p>Directions along which the system is deemed to be periodic.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.from_ase_atoms">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_ase_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'angstrom'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#Geometry.from_ase_atoms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.from_ase_atoms" title="Link to this definition"></a></dt>
+<dd><p>Instantiates a Geometry instance from an <cite>ase.Atoms</cite> object.</p>
+<p>Multiple atoms objects can be passed in to generate a batched Geometry
+instance which represents multiple systems.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atoms</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Atoms</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Atoms</span></code>]]</span>) – Atoms object(s) to instantiate a Geometry instance from.</p></li>
+<li><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code>]</span>) – Device on which to create any new tensors. [DEFAULT=None]</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>]</span>) – dtype to be used for floating point tensors. [DEFAULT=None]</p></li>
+<li><p><strong>units</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Length unit used by <cite>Atoms</cite> object. [DEFAULT=’angstrom’]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>geometry</em> – The resulting <code class="docutils literal notranslate"><span class="pre">Geometry</span></code> object.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>NotImplementedError</strong> – If there is a mixing of <cite>ase.Atoms</cite> objects</p></li>
+<li><p><strong>that have both periodic boundary conditions and non-periodic</strong> – </p></li>
+<li><p><strong>boundary conditions.</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.from_hdf5">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'bohr'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#Geometry.from_hdf5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.from_hdf5" title="Link to this definition"></a></dt>
+<dd><p>Instantiate a <cite>Geometry</cite> instances from an HDF5 group.</p>
+<p>Construct a <cite>Geometry</cite> entity using data from an HDF5 group. Passing
+multiple groups, or a single group representing multiple systems, will
+return a batched <cite>Geometry</cite> instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code>]]</span>) – An HDF5 group(s) containing geometry data.</p></li>
+<li><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code>]</span>) – Device on which to place tensors. [DEFAULT=None]</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>]</span>) – dtype to be used for floating point tensors. [DEFAULT=None]</p></li>
+<li><p><strong>units</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Unit of length used by the data. [DEFAULT=’bohr’]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>geometry</em> – The resulting <code class="docutils literal notranslate"><span class="pre">Geometry</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.clone">
+<span class="sig-name descname"><span class="pre">clone</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#Geometry.clone"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.clone" title="Link to this definition"></a></dt>
+<dd><p>Returns a copy of the <cite>Geometry</cite> instance.
+This method creates and returns a new copy of the <cite>Geometry</cite> instance.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span>
+:returns: <em>geometry</em> – A copy of the <cite>Geometry</cite> instance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.detach">
+<span class="sig-name descname"><span class="pre">detach</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#Geometry.detach"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.detach" title="Link to this definition"></a></dt>
+<dd><p>Returns a copy of the <cite>Geometry</cite> instance.
+This method creates and returns a new copy of the <cite>Geometry</cite> instance.
+:rtype: <span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span>
+:returns: <em>geometry</em> – A copy of the <cite>Geometry</cite> instance.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#Geometry.to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.to" title="Link to this definition"></a></dt>
+<dd><p>Returns a copy of the <cite>Geometry</cite> instance on the specified device.</p>
+<p>This method creates and returns a new copy of the <cite>Geometry</cite> instance
+on the specified device “<code class="docutils literal notranslate"><span class="pre">device</span></code>”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code></span>) – Device to which all associated tensors should be moved.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>geometry</em> – A copy of the <cite>Geometry</cite> instance placed on the
+specified device.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If the <cite>Geometry</cite> instance is already on the desired device then
+<cite>self</cite> will be returned.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.to_hdf5">
+<span class="sig-name descname"><span class="pre">to_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#Geometry.to_hdf5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.to_hdf5" title="Link to this definition"></a></dt>
+<dd><p>Saves Geometry instance into a target HDF5 Group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></span>) – The hdf5 group to which the system’s data should be saved.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function does not create its own group as it expects that
+<code class="docutils literal notranslate"><span class="pre">target</span></code> is the group into which data should be writen.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.structures.geometry.Geometry.unique_atomic_numbers">
+<span class="sig-name descname"><span class="pre">unique_atomic_numbers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/structures/geometry.html#Geometry.unique_atomic_numbers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.structures.geometry.Geometry.unique_atomic_numbers" title="Link to this definition"></a></dt>
+<dd><p>Identifies and returns a tensor of unique atomic numbers.</p>
+<p>This method offers a means to identify the types of elements present
+in the system(s) represented by a <cite>Geometry</cite> object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>unique_atomic_numbers</em> – A tensor specifying the unique atomic
+numbers present.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.structures.geometry.unique_atom_pairs.html" class="btn btn-neutral float-left" title="2.1.6.1.4. unique_atom_pairs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.structures.orbitalinfo.html" class="btn btn-neutral float-right" title="2.1.6.2. orbitalinfo" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

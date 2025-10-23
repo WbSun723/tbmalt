@@ -1,0 +1,233 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.1.6.11.3. Simple &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.2. data" href="tbmalt.data.html" />
+    <link rel="prev" title="2.1.1.6.11.2. Mixer" href="tbmalt.common.maths.mixers.Mixer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.cached_property.html">2.1.1.1. cached_property</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.split_by_size.html">2.1.1.2. split_by_size</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.unique.html">2.1.1.3. unique</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.batch.html">2.1.1.4. batch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.exceptions.html">2.1.1.5. exceptions</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.common.maths.html">2.1.1.6. maths</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.common.html"><span class="section-number">2.1.1. </span>common</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.common.maths.html"><span class="section-number">2.1.1.6. </span>maths</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.common.maths.mixers.html"><span class="section-number">2.1.1.6.11. </span>mixers</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.1.6.11.3. </span>Simple</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.common.maths.mixers.Simple.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="simple">
+<h1><span class="section-number">2.1.1.6.11.3. </span>Simple<a class="headerlink" href="#simple" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.common.maths.mixers.Simple">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Simple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">is_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_param</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/common/maths/mixers.html#Simple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.common.maths.mixers.Simple" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="tbmalt.common.maths.mixers.Mixer.html#tbmalt.common.maths.mixers.Mixer" title="tbmalt.common.maths.mixers.Mixer"><code class="xref py py-class docutils literal notranslate"><span class="pre">Mixer</span></code></a></p>
+<p>Simple linear mixer mixing algorithm.</p>
+<p>Iteratively mixes pairs of systems via a simple linear combination:</p>
+<div class="math notranslate nohighlight">
+\[(1-f)x_n + fx_{n-1}\]</div>
+<p>Where <span class="math notranslate nohighlight">\(x_n\)</span>/<span class="math notranslate nohighlight">\(x_{n-1}\)</span> are the new/old systems respectively &amp;
+<span class="math notranslate nohighlight">\(f\)</span> is the mixing parameter, i.e. the fraction of <span class="math notranslate nohighlight">\(x_n\)</span> that
+is to be retained. Given a suitable tolerance, and a small enough mixing
+parameter, the <cite>Simple</cite> mixer is guaranteed to converge, however, it also
+tends to be significantly slower than other, more advanced, methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>is_batch</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Set to true when mixing a batch of systems, False when not.</p></li>
+<li><p><strong>mix_param</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Mixing parameter, ∈(0, 1), controls the extent of mixing.
+Larger values result in more aggressive mixing. [DEFAULT=0.05]</p></li>
+<li><p><strong>tolerance</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – Maximum permitted difference in charge between successive
+iterations for a system to be considered “converged”.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Mixer instances require the user to explicitly specify during
+initialisation whether it is a single system or a batch of systems
+that are to be mixed.</p>
+<p class="rubric">Examples</p>
+<p>More in-depth examples of mixing algorithms can be found in the
+tutorial section of the documentation.</p>
+<p>The attractive fixed point of the function:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">tensor</span><span class="p">,</span> <span class="n">sqrt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">tensor</span><span class="p">([</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+<span class="gp">&gt;&gt;&gt; </span>                   <span class="mf">1.5</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+</pre></div>
+</div>
+<p>can be idenfied using the <code class="docutils literal notranslate"><span class="pre">Simple</span></code> mixer as follows:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.common.maths.mixers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Simple</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">tensor</span><span class="p">([</span><span class="mf">2.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">])</span>  <span class="c1"># Initial guess</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mixer</span> <span class="o">=</span> <span class="n">Simple</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mf">1E-4</span><span class="p">,</span> <span class="n">mix_param</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">x</span> <span class="o">=</span> <span class="n">mixer</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">x</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="go">    &gt;&gt;&gt; # tensor([1., 3.])</span>
+</pre></div>
+</div>
+<p class="rubric">Attributes and Properties</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">converged</span></code></p></td>
+<td><p>Tensor of bools indicating convergence status of the system(s).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">delta</span></code></p></td>
+<td><p>Difference between the current &amp; previous systems</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">step_number</span></code></p></td>
+<td><p>Integer tracking the number of mixing iterations performed.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.common.maths.mixers.Simple.cull">
+<span class="sig-name descname"><span class="pre">cull</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cull_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/common/maths/mixers.html#Simple.cull"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.common.maths.mixers.Simple.cull" title="Link to this definition"></a></dt>
+<dd><p>Purge select systems form the mixer.</p>
+<p>This is useful when a subset of systems that have converged during
+mixing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cull_list</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Tensor with booleans indicating which systems should be
+culled (True) and which should remain (False).</p></li>
+<li><p><strong>new_size</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Size</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – New anticipated size of future inputs excluding the batch
+dimension. This is used to allow superfluous padding values to
+be removed form subsequent inputs.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.common.maths.mixers.Simple.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/common/maths/mixers.html#Simple.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.common.maths.mixers.Simple.reset" title="Link to this definition"></a></dt>
+<dd><p>Resets the mixer to its initial state.</p>
+<p>Calling this function will rest the class &amp; its internal attributes.
+However, any properties set during the initialisation process, e.g.
+<code class="docutils literal notranslate"><span class="pre">mix_param</span></code>, <code class="docutils literal notranslate"><span class="pre">threshold</span></code>, etc. will be retained.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.common.maths.mixers.Mixer.html" class="btn btn-neutral float-left" title="2.1.1.6.11.2. Mixer" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.data.html" class="btn btn-neutral float-right" title="2.1.2. data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

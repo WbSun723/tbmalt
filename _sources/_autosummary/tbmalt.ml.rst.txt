@@ -1,0 +1,44 @@
+ml
+==
+
+.. automodule:: tbmalt.ml
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: class.rst
+   
+      Feed
+   
+   
+
+   
+   
+   
+
+
+
+.. rubric:: Modules
+
+.. autosummary::
+   :toctree:
+   :template: module.rst
+   :recursive:
+
+   acsf
+   calculator
+   integralfeeds
+   loss_function
+

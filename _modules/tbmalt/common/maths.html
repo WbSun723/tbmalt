@@ -1,0 +1,897 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.common.maths &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../common.html">tbmalt.common</a></li>
+      <li class="breadcrumb-item active">tbmalt.common.maths</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.common.maths</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;A collection of common mathematical functions.</span>
+
+<span class="sd">This module contains a collection of batch-operable, back-propagatable</span>
+<span class="sd">mathematical functions.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numbers</span><span class="w"> </span><span class="kn">import</span> <span class="n">Real</span>
+<span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+
+
+<div class="viewcode-block" id="gaussian">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.gaussian.html#tbmalt.common.maths.gaussian">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gaussian</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">mean</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+             <span class="n">std</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Gaussian distribution function.</span>
+
+<span class="sd">    A one dimensional Gaussian function representing the probability density</span>
+<span class="sd">    function of a normal distribution. This Gaussian takes on the form:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        g(x) = \frac{1}{\sigma\sqrt{2\pi}}exp</span>
+<span class="sd">            \left(-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^{2}\right)</span>
+
+<span class="sd">    Where σ (`std`) is the standard deviation, μ (`mean`) is the mean &amp; x is</span>
+<span class="sd">    the point at which the distribution is to be evaluated. Multiple values</span>
+<span class="sd">    can be passed for batch operation, see the `Notes` section for further</span>
+<span class="sd">    information.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        x: Value(s) at which to evaluate the gaussian function.</span>
+<span class="sd">        mean: Expectation value(s), i.e the mean.</span>
+<span class="sd">        std: Standard deviation.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        g: The gaussian function(s) evaluated at the specified `x`, `mean` &amp;</span>
+<span class="sd">            `std` value(s).</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        TypeError: Raised if neither ``x`` or ``mu`` are of type torch.Tensor.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        Multiple `x`, `mean` &amp; `std` values can be specified for batch-wise</span>
+<span class="sd">        evaluation. Note that at least one argument must be a torch.Tensor</span>
+<span class="sd">        entity, specifically `x` or `mean`, else this function will error out.</span>
+<span class="sd">        However, zero dimensional tensors are acceptable.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Evaluating multiple points within a single distribution:</span>
+
+<span class="sd">        &gt;&gt;&gt; import tbmalt.common.maths as tb_maths</span>
+<span class="sd">        &gt;&gt;&gt; import matplotlib.pyplot as plt</span>
+<span class="sd">        &gt;&gt;&gt; x_vals = torch.linspace(0, 1, 100)</span>
+<span class="sd">        &gt;&gt;&gt; y_vals = tb_maths.gaussian(x_vals, 0.5, 0.5)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(x_vals, y_vals, &#39;-k&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">        Evaluating points on a pair of distributions with differing means:</span>
+
+<span class="sd">        &gt;&gt;&gt; x_vals = torch.linspace(0, 1, 100)</span>
+<span class="sd">        &gt;&gt;&gt; y1, y2 = tb_maths.gaussian(x_vals, torch.tensor([[0.25], [0.75]]),</span>
+<span class="sd">                                       0.5)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(x_vals, y1, &#39;-r&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.plot(x_vals, y2, &#39;-b&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Evaluate the gaussian at the specified value(s) and return the result</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+            <span class="o">/</span> <span class="p">(</span><span class="n">std</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)))</span></div>
+
+
+
+<div class="viewcode-block" id="hellinger">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.hellinger.html#tbmalt.common.maths.hellinger">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hellinger</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the Hellinger distance between pairs of 1D distributions.</span>
+
+<span class="sd">    The Hellinger distance can be used to quantify the similarity between a</span>
+<span class="sd">    pair of discrete probability distributions which have been evaluated at</span>
+<span class="sd">    the same sample points.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        p: Values observed in the first distribution.</span>
+<span class="sd">        q: Values observed in the second distribution.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        distance: Hellinger distance between each `p`, `q` distribution pair.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The Hellinger distance is computed as:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">             H(p,q)= \frac{1}{\sqrt{2}}\sqrt{\sum_{i=1}^{k}</span>
+<span class="sd">                \left( \sqrt{p_i} - \sqrt{q_i}  \right)^2}</span>
+
+<span class="sd">        Multiple pairs of distributions can be evaluated simultaneously by</span>
+<span class="sd">        passing in a 2D torch.Tensor in place of a 1D one.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: When elements in `p` or `q` are found to be negative.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        As `p` and `q` ar probability distributions they must be positive. If</span>
+<span class="sd">        not, a terminal error will be encountered during backpropagation.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Calculating the Hellinger distance.</span>
+
+<span class="sd">         &gt;&gt;&gt; import tbmalt.common.maths as tb_maths</span>
+<span class="sd">         &gt;&gt;&gt; x_vals = torch.linspace(0, 1, 100)</span>
+<span class="sd">         &gt;&gt;&gt; y1, y2 = tb_maths.gaussian(x_vals,</span>
+<span class="sd">                                        torch.tensor([[0.45], [0.55]]), 0.5)</span>
+<span class="sd">         &gt;&gt;&gt; hel_dis = tb_maths.hellinger(y1, y2)</span>
+<span class="sd">         &gt;&gt;&gt; print(hel_dis)</span>
+<span class="sd">         tensor(0.3168)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Raise a ValueError if negative values are encountered. Negative values</span>
+    <span class="c1"># will throw an error during backpropagation of the sqrt function.</span>
+    <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;All elements in p &amp; q must be positive.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Calculate &amp; return the Hellinger distance between distribution pair(s)</span>
+    <span class="c1"># Note that despite what the pytorch documentation states torch.sum does</span>
+    <span class="c1"># in-fact take the &quot;axis&quot; argument.</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="estimate_minmax">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.estimate_minmax.html#tbmalt.common.maths.estimate_minmax">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">estimate_minmax</span><span class="p">(</span>
+    <span class="n">amat</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Estimate maximum and minimum eigenvalue of a matrix using the Gershgorin</span>
+<span class="sd">    circle theorem.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        amat : Tensor</span>
+<span class="sd">            Symmetric matrix.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[Tensor, Tensor]</span>
+<span class="sd">            Minimum and maximum eigenvalue.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; amat = torch.tensor([</span>
+<span class="sd">        ...     [[-1.1258, -0.1794,  0.1126],</span>
+<span class="sd">        ...      [-0.1794,  0.5988,  0.1490],</span>
+<span class="sd">        ...      [ 0.1126,  0.1490,  0.4681]],</span>
+<span class="sd">        ...     [[-0.1577,  0.6080, -0.3301],</span>
+<span class="sd">        ...      [ 0.6080,  1.5863,  0.9391],</span>
+<span class="sd">        ...      [-0.3301,  0.9391,  1.2590]],</span>
+<span class="sd">        ... ])</span>
+<span class="sd">        &gt;&gt;&gt; estimate_minmax(amat)</span>
+<span class="sd">        (tensor([-1.4178, -1.0958]), tensor([0.9272, 3.1334]))</span>
+<span class="sd">        &gt;&gt;&gt; evals = torch.linalg.eigh(amat)[0]</span>
+<span class="sd">        &gt;&gt;&gt; evals.min(-1)[0], evals.max(-1)[0]</span>
+<span class="sd">        (tensor([-1.1543, -0.5760]), tensor([0.7007, 2.4032]))</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">center</span> <span class="o">=</span> <span class="n">amat</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">dim1</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim2</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">radius</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">amat</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">center</span> <span class="o">-</span> <span class="n">radius</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">center</span> <span class="o">+</span> <span class="n">radius</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">_SymEigB</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">Function</span><span class="p">):</span>
+    <span class="c1"># State that this can solve for multiple systems and that the first</span>
+    <span class="c1"># dimension should iterate over instance of the batch.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves standard eigenvalue problems for real symmetric matrices.</span>
+
+<span class="sd">    This solves standard eigenvalue problems for real symmetric matrices, and</span>
+<span class="sd">    can apply conditional or Lorentzian broadening to the eigenvalues during</span>
+<span class="sd">    the backwards pass to increase gradient stability.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        Results from backward passes through eigen-decomposition operations</span>
+<span class="sd">        tend to suffer from numerical stability [*]_  issues when operating</span>
+<span class="sd">        on systems with degenerate eigenvalues. Fortunately,  the stability</span>
+<span class="sd">        of such operations can be increased through the application of eigen</span>
+<span class="sd">        value broadening. However, such methods will induce small errors in</span>
+<span class="sd">        the returned gradients as they effectively mutate  the eigen-values</span>
+<span class="sd">        in the backwards pass. Thus, it is important to be aware that while</span>
+<span class="sd">        increasing the extent of  broadening will help to improve stability</span>
+<span class="sd">        it will also increase the error in the gradients.</span>
+
+<span class="sd">        Two different broadening methods have been implemented within this</span>
+<span class="sd">        class. Conditional broadening as described by Seeger [MS2019]_, and</span>
+<span class="sd">        Lorentzian as detailed by Liao [LH2019]_. During the forward pass the</span>
+<span class="sd">        `torch.symeig` function is used to calculate both the eigenvalues &amp;</span>
+<span class="sd">        the eigenvectors (U &amp; :math:`\lambda` respectively). The gradient</span>
+<span class="sd">        is then calculated following:</span>
+
+<span class="sd">        .. math:: \bar{A} = U (\bar{\Lambda} + sym(F \circ (U^t \bar{U}))) U^T</span>
+
+<span class="sd">        Where bar indicates a value&#39;s gradient passed in from the previous</span>
+<span class="sd">        layer, :math:`\Lambda` is the diagonal matrix associated with the</span>
+<span class="sd">        :math:`\bar{\lambda}` values,  :math:`\circ`  is the so called</span>
+<span class="sd">        Hadamard product, sym is the symmetrisation operator and F is:</span>
+
+<span class="sd">        .. math:: F_{i, j} = \frac{I_{i \ne j}}{h(\lambda_i - \lambda_j)}</span>
+
+<span class="sd">        Where, for conditional broadening, h is:</span>
+
+<span class="sd">        .. math:: h(t) = max(|t|, \epsilon)sgn(t)</span>
+
+<span class="sd">        and for, Lorentzian broadening:</span>
+
+<span class="sd">        .. math:: h(t) = \frac{t^2 + \epsilon}{t}</span>
+
+<span class="sd">        The advantage of conditional broadening is that it is only applied</span>
+<span class="sd">        when needed, thus the errors induced in the gradients will be</span>
+<span class="sd">        restricted to systems whose gradients would be nan&#39;s otherwise.</span>
+<span class="sd">        The Lorentzian method, on the other hand, will apply broadening to</span>
+<span class="sd">        all systems, irrespective of whether or not it is necessary. Note</span>
+<span class="sd">        that if the h function is a unity operator then this is identical</span>
+<span class="sd">        to a standard backwards pass through an eigen-solver.</span>
+
+
+<span class="sd">        .. [*] Where stability is defined as the propensity of a function to</span>
+<span class="sd">               return nan values or some raise an error.</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        .. [MS2019] Seeger, M., Hetzel, A., Dai, Z., &amp; Meissner, E. Auto-</span>
+<span class="sd">                    Differentiating Linear Algebra. ArXiv:1710.08717 [Cs,</span>
+<span class="sd">                    Stat], Aug. 2019. arXiv.org,</span>
+<span class="sd">                    http://arxiv.org/abs/1710.08717.</span>
+<span class="sd">        .. [LH2019] Liao, H.-J., Liu, J.-G., Wang, L., &amp; Xiang, T. (2019).</span>
+<span class="sd">                    Differentiable Programming Tensor Networks. Physical</span>
+<span class="sd">                    Review X, 9(3).</span>
+<span class="sd">        .. [Lapack] www.netlib.org/lapack/lug/node54.html (Accessed 21/04/2023)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="c1"># Note that &#39;none&#39; is included only for testing purposes</span>
+    <span class="n">KNOWN_METHODS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;cond&#39;</span><span class="p">,</span> <span class="s1">&#39;lorn&#39;</span><span class="p">,</span> <span class="s1">&#39;none&#39;</span><span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cond&#39;</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1E-12</span>
+                <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate the eigenvalues and eigenvectors of a symmetric matrix.</span>
+
+<span class="sd">        Finds the eigenvalues and eigenvectors of a real symmetric</span>
+<span class="sd">        matrix using the torch.symeig function.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            a: A real symmetric matrix whose eigenvalues &amp; eigenvectors will</span>
+<span class="sd">                be computed.</span>
+<span class="sd">            method: Broadening method to used, available options are:</span>
+
+<span class="sd">                    - &quot;cond&quot; for conditional broadening.</span>
+<span class="sd">                    - &quot;lorn&quot; for Lorentzian broadening.</span>
+
+<span class="sd">                See class doc-string for more info on these methods.</span>
+<span class="sd">                [DEFAULT=&#39;cond&#39;]</span>
+<span class="sd">            factor: Degree of broadening (broadening factor). [Default=1E-12]</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            w: The eigenvalues, in ascending order.</span>
+<span class="sd">            v: The eigenvectors.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            The ctx argument is auto-parsed by PyTorch &amp; is used to pass data</span>
+<span class="sd">            from the .forward() method to the .backward() method. This is not</span>
+<span class="sd">            normally described in the docstring but has been done here to act</span>
+<span class="sd">            as an example.</span>
+
+<span class="sd">        Warnings:</span>
+<span class="sd">            Under no circumstances should `factor` be a torch.tensor entity.</span>
+<span class="sd">            The `method` and `factor` parameters MUST be passed as positional</span>
+<span class="sd">            arguments and NOT keyword arguments.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check that the method is of a known type</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_SymEigB</span><span class="o">.</span><span class="n">KNOWN_METHODS</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown broadening method selected.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Compute eigen-values &amp; vectors using torch.symeig.</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+
+        <span class="c1"># Save tensors that will be needed in the backward pass</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">save_for_backward</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="c1"># Save the broadening factor and the selected broadening method.</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">bf</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">bm</span> <span class="o">=</span> <span class="n">factor</span><span class="p">,</span> <span class="n">method</span>
+
+        <span class="c1"># Store dtype/device to prevent dtype/device mixing</span>
+        <span class="n">ctx</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">ctx</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">device</span>
+
+        <span class="c1"># Return the eigenvalues and eigenvectors</span>
+        <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="n">v</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">backward</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">w_bar</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">v_bar</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Evaluates gradients of the eigen decomposition operation.</span>
+
+<span class="sd">        Evaluates gradients of the matrix from which the eigenvalues</span>
+<span class="sd">        and eigenvectors were taken.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">            w_bar: Gradients associated with the eigenvalues.</span>
+<span class="sd">            v_bar: Gradients associated with the eigenvectors.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            a_bar: Gradients associated with the `a` tensor.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            See class doc-string for a more detailed description of this</span>
+<span class="sd">            method.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Equation to variable legend</span>
+        <span class="c1">#   w &lt;- λ</span>
+        <span class="c1">#   v &lt;- U</span>
+
+        <span class="c1"># __Preamble__</span>
+        <span class="c1"># Retrieve eigenvalues (w) and eigenvectors (v) from ctx</span>
+        <span class="n">w</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">saved_tensors</span>
+
+        <span class="c1"># Retrieve, the broadening factor and convert to a tensor entity</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">bf</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+            <span class="n">bf</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ctx</span><span class="o">.</span><span class="n">bf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bf</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">bf</span>
+
+        <span class="c1"># Retrieve the broadening method</span>
+        <span class="n">bm</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">bm</span>
+
+        <span class="c1"># Form the eigenvalue gradients into diagonal matrix</span>
+        <span class="n">lambda_bar</span> <span class="o">=</span> <span class="n">w_bar</span><span class="o">.</span><span class="n">diag_embed</span><span class="p">()</span>
+
+        <span class="c1"># Identify the indices of the upper triangle of the F matrix</span>
+        <span class="n">tri_u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">triu_indices</span><span class="p">(</span><span class="o">*</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:],</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Construct the deltas</span>
+        <span class="n">deltas</span> <span class="o">=</span> <span class="n">w</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tri_u</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">-</span> <span class="n">w</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tri_u</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="c1"># Apply broadening</span>
+        <span class="k">if</span> <span class="n">bm</span> <span class="o">==</span> <span class="s1">&#39;cond&#39;</span><span class="p">:</span>  <span class="c1"># &lt;- Conditional broadening</span>
+            <span class="n">deltas</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">deltas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">bf</span><span class="p">,</span>
+                                     <span class="n">deltas</span><span class="p">,</span> <span class="n">bf</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">deltas</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">bm</span> <span class="o">==</span> <span class="s1">&#39;lorn&#39;</span><span class="p">:</span>  <span class="c1"># &lt;- Lorentzian broadening</span>
+            <span class="n">deltas</span> <span class="o">=</span> <span class="n">deltas</span> <span class="o">/</span> <span class="p">(</span><span class="n">deltas</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">bf</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">bm</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>  <span class="c1"># &lt;- Debugging only</span>
+            <span class="n">deltas</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">deltas</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># &lt;- Should be impossible to get here</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Unknown broadening method </span><span class="si">{</span><span class="n">bm</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Construct F matrix where F_ij = v_bar_j - v_bar_i; construction is</span>
+        <span class="c1"># done in this manner to avoid 1/0 which can cause intermittent and</span>
+        <span class="c1"># hard-to-diagnose issues.</span>
+        <span class="n">F</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="o">*</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">ctx</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                        <span class="n">device</span><span class="o">=</span><span class="n">w_bar</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="c1"># Upper then lower triangle</span>
+        <span class="n">F</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tri_u</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tri_u</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">deltas</span>
+        <span class="n">F</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tri_u</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tri_u</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">-=</span> <span class="n">F</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tri_u</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tri_u</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+        <span class="c1"># Construct the gradient following the equation in the doc-string.</span>
+        <span class="n">a_bar</span> <span class="o">=</span> <span class="n">v</span> <span class="o">@</span> <span class="p">(</span><span class="n">lambda_bar</span>
+                     <span class="o">+</span> <span class="n">sym</span><span class="p">(</span><span class="n">F</span> <span class="o">*</span> <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">@</span> <span class="n">v_bar</span><span class="p">))</span>
+                     <span class="p">)</span> <span class="o">@</span> <span class="n">v</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Return the gradient. PyTorch expects a gradient for each parameter</span>
+        <span class="c1"># (method, bf) hence two extra Nones are returned</span>
+        <span class="k">return</span> <span class="n">a_bar</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_eig_sort_out</span><span class="p">(</span><span class="n">w</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">ghost</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+                  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Move ghost eigen values/vectors to the end of the array.</span>
+
+<span class="sd">    Discuss the difference between ghosts (w=0) and auxiliaries (w=1)</span>
+
+<span class="sd">    Performing and eigen-decomposition operation on a zero-padded packed</span>
+<span class="sd">    tensor results in the emergence of ghost eigen-values/vectors. This can</span>
+<span class="sd">    cause issues downstream, thus they are moved to the end here which means</span>
+<span class="sd">    they can be easily clipped off should the user wish to do so.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        w: The eigen-values.</span>
+<span class="sd">        v: The eigen-vectors.</span>
+<span class="sd">        ghost: Ghost-eigen-values are assumed to be 0 if True, else assumed to</span>
+<span class="sd">            be 1. If zero padded then this should be True, if zero padding is</span>
+<span class="sd">            turned into identity padding then False should be used. This will</span>
+<span class="sd">            also change the ghost eigenvalues from 1 to zero when appropriate.</span>
+<span class="sd">            [DEFAULT=True]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        w: The eigen-values, with ghosts moved to the end.</span>
+<span class="sd">        v: The eigen-vectors, with ghosts moved to the end.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">ghost</span> <span class="k">else</span> <span class="mi">1</span>
+
+    <span class="c1"># Create a mask that is True when an eigen value is zero/one</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+    <span class="c1"># and its associated eigen vector is a column of a identity matrix:</span>
+    <span class="c1"># i.e. all values are 1 or 0 and there is only a single 1. This will</span>
+    <span class="c1"># just all zeros if columns are not one-hot.</span>
+    <span class="n">is_one</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># &lt;- precompute</span>
+    <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="n">is_one</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">&amp;=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">is_one</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span>  <span class="c1"># &lt;- Only a single &quot;1&quot; at most.</span>
+
+    <span class="c1"># Convert any auxiliary eigenvalues into ghosts</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ghost</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">w</span> <span class="o">-</span> <span class="n">mask</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># Pull out the indices of the true &amp; ghost entries and cat them together</span>
+    <span class="c1"># so that the ghost entries are at the end.</span>
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">)),</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">))),</span>
+        <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># argsort fixes the batch order and stops eigen-values accidentally being</span>
+    <span class="c1"># mixed between different systems. As PyTorch&#39;s argsort is not stable, i.e.</span>
+    <span class="c1"># it dose not respect any order already present in the data, numpy&#39;s argsort</span>
+    <span class="c1"># must be used for now.</span>
+    <span class="n">sorter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;stable&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Apply sorter to indices; use a tuple to make 1D &amp; 2D cases compatible</span>
+    <span class="n">sorted_indices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">indices</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">sorter</span><span class="p">])</span>
+
+    <span class="c1"># Fix the order of the eigen values and eigen vectors.</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">w</span><span class="p">[</span><span class="n">sorted_indices</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="c1"># Reshaping is needed to allow sorted_indices to be used for 2D &amp; 3D</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)[</span><span class="n">sorted_indices</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Return the eigenvalues and eigenvectors</span>
+    <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="n">v</span>
+
+
+<div class="viewcode-block" id="eighb">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.eighb.html#tbmalt.common.maths.eighb">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">eighb</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+          <span class="n">b</span><span class="p">:</span> <span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+          <span class="n">scheme</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;chol&#39;</span><span class="p">,</span> <span class="s1">&#39;lowd&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;chol&#39;</span><span class="p">,</span>
+          <span class="n">broadening_method</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;cond&#39;</span><span class="p">,</span> <span class="s1">&#39;lorn&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="s1">&#39;cond&#39;</span><span class="p">,</span>
+          <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1E-12</span><span class="p">,</span>
+          <span class="n">sort_out</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+          <span class="n">aux</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+          <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Solves general &amp; standard eigen-problems, with optional broadening.</span>
+
+<span class="sd">    Solves standard and generalised eigenvalue problems of the form Az = λBz</span>
+<span class="sd">    for a real symmetric matrix ``a`` and can apply conditional or Lorentzian</span>
+<span class="sd">    broadening to the eigenvalues during the backwards pass to increase</span>
+<span class="sd">    gradient stability. Multiple  matrices may be passed in batch major form,</span>
+<span class="sd">    i.e. the first axis iterates over entries.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        a: Real symmetric matrix whose eigen-values/vectors will be computed.</span>
+<span class="sd">        b: Complementary positive definite real symmetric matrix for the</span>
+<span class="sd">            generalised eigenvalue problem.</span>
+<span class="sd">        scheme: Scheme to covert generalised eigenvalue problems to standard</span>
+<span class="sd">            ones:</span>
+
+<span class="sd">                - &quot;chol&quot;: Cholesky factorisation. [DEFAULT=&#39;chol&#39;]</span>
+<span class="sd">                - &quot;lowd&quot;: Löwdin orthogonalisation.</span>
+
+<span class="sd">            Has no effect on solving standard problems.</span>
+
+<span class="sd">        broadening_method: Broadening method to used:</span>
+
+<span class="sd">                - &quot;cond&quot;: conditional broadening. [DEFAULT=&#39;cond&#39;]</span>
+<span class="sd">                - &quot;lorn&quot;: Lorentzian broadening.</span>
+<span class="sd">                - None: no broadening (uses torch.symeig).</span>
+
+<span class="sd">        factor: The degree of broadening (broadening factor). [Default=1E-12]</span>
+<span class="sd">        sort_out: If True; eigen-vector/value tensors are reordered so that</span>
+<span class="sd">            any &quot;ghost&quot; entries are moved to the end. &quot;Ghost&quot; are values which</span>
+<span class="sd">            emerge as a result of zero-padding. [DEFAULT=True]</span>
+<span class="sd">        aux: Converts zero-padding to identity-padding. This can improve</span>
+<span class="sd">            the stability of backwards propagation. [DEFAULT=True]</span>
+
+<span class="sd">    Keyword Args:</span>
+<span class="sd">        direct_inv (bool): If True then the matrix inversion will be computed</span>
+<span class="sd">            directly rather than via a call to torch.solve. Only relevant to</span>
+<span class="sd">            the cholesky scheme. [DEFAULT=False]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        w: The eigenvalues, in ascending order.</span>
+<span class="sd">        v: The eigenvectors.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        Results from backward passes through eigen-decomposition operations</span>
+<span class="sd">        tend to suffer from numerical stability [*]_  issues when operating</span>
+<span class="sd">        on systems with degenerate eigenvalues. Fortunately,  the stability</span>
+<span class="sd">        of such operations can be increased through the application of eigen</span>
+<span class="sd">        value broadening. However, such methods will induce small errors in</span>
+<span class="sd">        the returned gradients as they effectively mutate  the eigen-values</span>
+<span class="sd">        in the backwards pass. Thus, it is important to be aware that while</span>
+<span class="sd">        increasing the extent of  broadening will help to improve stability</span>
+<span class="sd">        it will also increase the error in the gradients.</span>
+
+<span class="sd">        Two different broadening methods have been implemented within this</span>
+<span class="sd">        class. Conditional broadening as described by Seeger [MS2019]_, and</span>
+<span class="sd">        Lorentzian as detailed by Liao [LH2019]_. During the forward pass the</span>
+<span class="sd">        `torch.symeig` function is used to calculate both the eigenvalues &amp;</span>
+<span class="sd">        the eigenvectors (U &amp; :math:`\lambda` respectively). The gradient</span>
+<span class="sd">        is then calculated following:</span>
+
+<span class="sd">        .. math:: \bar{A} = U (\bar{\Lambda} + sym(F \circ (U^t \bar{U}))) U^T</span>
+
+<span class="sd">        Where bar indicates a value&#39;s gradient, passed in from the previous</span>
+<span class="sd">        layer, :math:`\Lambda` is the diagonal matrix associated with the</span>
+<span class="sd">        :math:`\bar{\lambda}` values, :math:`\circ`  is the so called Hadamard</span>
+<span class="sd">        product, :math:`sym` is the symmetrisation operator and F is:</span>
+
+<span class="sd">        .. math:: F_{i, j} = \frac{I_{i \ne j}}{h(\lambda_i - \lambda_j)}</span>
+
+<span class="sd">        Where, for conditional broadening, h is:</span>
+
+<span class="sd">        .. math:: h(t) = max(|t|, \epsilon)sgn(t)</span>
+
+<span class="sd">        and for, Lorentzian broadening:</span>
+
+<span class="sd">        .. math:: h(t) = \frac{t^2 + \epsilon}{t}</span>
+
+<span class="sd">        The advantage of conditional broadening is that it is only applied</span>
+<span class="sd">        when needed, thus the errors induced in the gradients will be</span>
+<span class="sd">        restricted to systems whose gradients would be nan&#39;s otherwise. The</span>
+<span class="sd">        Lorentzian method, on the other hand, will apply broadening to all</span>
+<span class="sd">        systems, irrespective of whether or not it is necessary. Note that if</span>
+<span class="sd">        the h function is a unity operator then this is identical to a</span>
+<span class="sd">        standard backwards pass through an eigen-solver.</span>
+
+<span class="sd">        Mathematical discussions regarding the Cholesky decomposition are</span>
+<span class="sd">        made with reference to the  &quot;Generalized Symmetric Definite</span>
+<span class="sd">        Eigenproblems&quot; chapter of Lapack. [Lapack]_</span>
+
+<span class="sd">        When operating in batch mode the zero valued padding columns and rows</span>
+<span class="sd">        will result in the generation of &quot;ghost&quot; eigen-values/vectors. These</span>
+<span class="sd">        are mostly harmless, but make it more difficult to extract the actual</span>
+<span class="sd">        eigen-values/vectors. This function will move the &quot;ghost&quot; entities to</span>
+<span class="sd">        the ends of their respective lists, making it easy to clip them out.</span>
+
+<span class="sd">        .. [*] Where stability is defined as the propensity of a function to</span>
+<span class="sd">               return nan values or some raise an error.</span>
+
+<span class="sd">    Warnings:</span>
+<span class="sd">        If operating upon zero-padded packed tensors then degenerate and zero</span>
+<span class="sd">        valued eigen values will be encountered. This will **always** cause an</span>
+<span class="sd">        error during the backwards pass unless broadening is enacted.</span>
+
+<span class="sd">        As ``torch.symeig`` sorts its results prior to returning them, it is</span>
+<span class="sd">        likely that any &quot;ghost&quot; eigen-values/vectors, which result from zero-</span>
+<span class="sd">        padded packing, will be located in the middle of the returned arrays.</span>
+<span class="sd">        This makes down-stream processing more challenging. Thus, the sort_out</span>
+<span class="sd">        option is enabled by default. This results in the &quot;ghost&quot; values being</span>
+<span class="sd">        moved to the end. **However**, this method identifies any entry with a</span>
+<span class="sd">        zero-valued eigenvalue and an eigenvector which can be interpreted as</span>
+<span class="sd">        a column of an identity matrix as a ghost.</span>
+
+<span class="sd">    References:</span>
+<span class="sd">        .. [MS2019] Seeger, M., Hetzel, A., Dai, Z., &amp; Meissner, E. Auto-</span>
+<span class="sd">                    Differentiating Linear Algebra. ArXiv:1710.08717 [Cs,</span>
+<span class="sd">                    Stat], Aug. 2019. arXiv.org,</span>
+<span class="sd">                    http://arxiv.org/abs/1710.08717.</span>
+<span class="sd">        .. [LH2019] Liao, H.-J., Liu, J.-G., Wang, L., &amp; Xiang, T. (2019).</span>
+<span class="sd">                    Differentiable Programming Tensor Networks. Physical</span>
+<span class="sd">                    Review X, 9(3).</span>
+<span class="sd">        .. [Lapack] www.netlib.org/lapack/lug/node54.html (Accessed 21/04/2023)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="c1"># Initial setup to make function calls easier to deal with</span>
+    <span class="c1"># If smearing use _SymEigB otherwise use torch.linalg.eigh</span>
+    <span class="n">func</span> <span class="o">=</span> <span class="n">_SymEigB</span><span class="o">.</span><span class="n">apply</span> <span class="k">if</span> <span class="n">broadening_method</span> <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span>
+    <span class="c1"># Set up for the arguments</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">broadening_method</span><span class="p">,</span> <span class="n">factor</span><span class="p">)</span> <span class="k">if</span> <span class="n">broadening_method</span> <span class="k">else</span> <span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">aux</span><span class="p">:</span>
+        <span class="n">is_zero</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">is_zero</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">is_zero</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># For standard eigenvalue problem</span>
+        <span class="k">if</span> <span class="n">aux</span><span class="p">:</span>
+            <span class="c1"># Convert from zero-padding to padding with largest eigenvalue estimate</span>
+            <span class="n">shift</span> <span class="o">=</span> <span class="n">estimate_minmax</span><span class="p">(</span><span class="n">a</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag_embed</span><span class="p">(</span><span class="n">shift</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span>
+
+        <span class="n">w</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>  <span class="c1"># Call the required eigen-solver</span>
+
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># Otherwise it will be a general eigenvalue problem</span>
+
+        <span class="c1"># Cholesky decomposition can only act on positive definite matrices;</span>
+        <span class="c1"># which is problematic for zero-padded tensors. Similar issues are</span>
+        <span class="c1"># encountered in the Löwdin scheme. To ensure positive definiteness</span>
+        <span class="c1"># the diagonals of padding columns/rows are therefore set to 1.</span>
+
+        <span class="c1"># Create a mask which is True wherever a column/row pair is 0-valued</span>
+        <span class="n">is_zero</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">is_zero</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">is_zero</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Set the diagonals at these locations to 1</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag_embed</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+        <span class="c1"># For Cholesky decomposition scheme</span>
+        <span class="k">if</span> <span class="n">scheme</span> <span class="o">==</span> <span class="s1">&#39;chol&#39;</span><span class="p">:</span>
+
+            <span class="c1"># Perform Cholesky factorization (A = LL^{T}) of B to attain L</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+            <span class="c1"># Compute the inverse of L:</span>
+            <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;direct_inv&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="c1"># Via the direct method if specifically requested</span>
+                <span class="n">l_inv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">inverse</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Otherwise compute via an indirect method (default)</span>
+                <span class="n">identity</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+                <span class="n">identity</span><span class="o">.</span><span class="n">diagonal</span><span class="p">(</span><span class="n">dim1</span><span class="o">=-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim2</span><span class="o">=-</span><span class="mi">1</span><span class="p">)[:]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">l_inv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">identity</span><span class="p">)</span>
+
+            <span class="c1"># Transpose of l_inv: improves speed in batch mode</span>
+            <span class="n">l_inv_t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">l_inv</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="c1"># To obtain C, perform the reduction operation C = L^{-1}AL^{-T}</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">l_inv</span> <span class="o">@</span> <span class="n">a</span> <span class="o">@</span> <span class="n">l_inv_t</span>
+
+            <span class="k">if</span> <span class="n">aux</span><span class="p">:</span>
+                <span class="c1"># Convert from zero-padding to padding with largest eigenvalue estimate</span>
+                <span class="n">shift</span> <span class="o">=</span> <span class="n">estimate_minmax</span><span class="p">(</span><span class="n">c</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag_embed</span><span class="p">(</span><span class="n">shift</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span>
+
+            <span class="c1"># The eigenvalues of Az = λBz are the same as Cy = λy; hence:</span>
+            <span class="n">w</span><span class="p">,</span> <span class="n">v_</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+            <span class="c1"># Eigenvectors, however, are not, so they must be recovered:</span>
+            <span class="c1">#   z = L^{-T}y</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">l_inv_t</span> <span class="o">@</span> <span class="n">v_</span>
+
+        <span class="k">elif</span> <span class="n">scheme</span> <span class="o">==</span> <span class="s1">&#39;lowd&#39;</span><span class="p">:</span>  <span class="c1"># For Löwdin Orthogonalisation scheme</span>
+
+            <span class="c1"># Perform the BV = WV eigen decomposition.</span>
+            <span class="n">w</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+            <span class="c1"># Embed w to construct &quot;small b&quot;; inverse power is also done here</span>
+            <span class="c1"># to avoid inf values later on.</span>
+            <span class="n">b_small</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag_embed</span><span class="p">(</span><span class="n">w</span> <span class="o">**</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">)</span>
+
+            <span class="c1"># Construct symmetric orthogonalisation matrix via:</span>
+            <span class="c1">#   B^{-1/2} = V b^{-1/2} V^{T}</span>
+            <span class="n">b_so</span> <span class="o">=</span> <span class="n">v</span> <span class="o">@</span> <span class="n">b_small</span> <span class="o">@</span> <span class="n">v</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+
+            <span class="c1"># A&#39; (a_prime) can then be constructed as: A&#39; = B^{-1/2} A B^{-1/2}</span>
+            <span class="n">a_prime</span> <span class="o">=</span> <span class="n">b_so</span> <span class="o">@</span> <span class="n">a</span> <span class="o">@</span> <span class="n">b_so</span>
+
+            <span class="k">if</span> <span class="n">aux</span><span class="p">:</span>
+                <span class="c1"># Convert from zero-padding to padding with largest eigenvalue estimate</span>
+                <span class="n">shift</span> <span class="o">=</span> <span class="n">estimate_minmax</span><span class="p">(</span><span class="n">a_prime</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">a_prime</span> <span class="o">=</span> <span class="n">a_prime</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag_embed</span><span class="p">(</span><span class="n">shift</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span>
+
+            <span class="c1"># Decompose the now orthogonalised A&#39; matrix</span>
+            <span class="n">w</span><span class="p">,</span> <span class="n">v_prime</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">a_prime</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+            <span class="c1"># the correct eigenvector is then recovered via</span>
+            <span class="c1">#   V = B^{-1/2} V&#39;</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">b_so</span> <span class="o">@</span> <span class="n">v_prime</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># If an unknown scheme was specified</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown scheme selected.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># If sort_out is enabled, nullify the &quot;ghost&quot; eigen-values</span>
+    <span class="k">if</span> <span class="n">sort_out</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">aux</span><span class="p">:</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">mask</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">w</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">_eig_sort_out</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="ow">not</span> <span class="n">aux</span><span class="p">)</span>
+
+    <span class="c1"># Return the eigenvalues and eigenvectors</span>
+    <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="n">v</span></div>
+
+
+
+<div class="viewcode-block" id="sym">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.sym.html#tbmalt.common.maths.sym">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sym</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">dim0</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim1</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Symmetries the specified tensor.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        x: The tensor to be symmetrised.</span>
+<span class="sd">        dim0: First dimension to be transposed. [DEFAULT=-1]</span>
+<span class="sd">        dim1: Second dimension to be transposed [DEFAULT=-2]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        x_sym: The symmetrised tensor.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">dim0</span><span class="p">,</span> <span class="n">dim1</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span></div>
+
+
+
+<div class="viewcode-block" id="triangular_number">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.triangular_number.html#tbmalt.common.maths.triangular_number">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">triangular_number</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Real</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Real</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Triangular number of ``n``.</span>
+
+<span class="sd">    Calculates the triangular number of a given input:</span>
+
+<span class="sd">    .. math:: T_{n} = \frac{n (n + 1)}{2}</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        n: Value whose triangular number is to be calculated.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        t: Triangular number of ``n``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="mi">2</span></div>
+
+
+
+<div class="viewcode-block" id="tetrahedral_number">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.tetrahedral_number.html#tbmalt.common.maths.tetrahedral_number">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">tetrahedral_number</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Real</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Real</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Tetrahedral number of ``n``.</span>
+
+<span class="sd">    Calculates the tetrahedral number of a given input:</span>
+
+<span class="sd">    .. math:: Te_{n} = \frac{n (n + 1)(n + 2)}{6}</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        n: Value whose tetrahedral number is to be calculated.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        te: Tetrahedral number of ``n``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">2</span><span class="p">))</span> <span class="o">/</span> <span class="mi">6</span></div>
+
+
+
+<div class="viewcode-block" id="triangular_root">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.triangular_root.html#tbmalt.common.maths.triangular_root">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">triangular_root</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Real</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Real</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Triangular root of ``x``.</span>
+
+<span class="sd">    Calculates the triangular root of a given input:</span>
+
+<span class="sd">    .. math:: n = \frac{\sqrt{(8x + 1)} - 1)}{2}</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        x: Value whose triangular root is to be calculated.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        n: Triangular root of ``x``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">((</span><span class="mi">8</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span></div>
+
+
+
+<div class="viewcode-block" id="tetrahedral_root">
+<a class="viewcode-back" href="../../../_autosummary/tbmalt.common.maths.tetrahedral_root.html#tbmalt.common.maths.tetrahedral_root">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">tetrahedral_root</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Real</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Real</span><span class="p">]:</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Tetrahedral root of ``x``.</span>
+
+<span class="sd">    Calculates the tetrahedral root of a given input:</span>
+
+<span class="sd">    .. math:: n = \sqrt[3]{3x+\sqrt{9{x^2}-\frac{1}{27}}} + \sqrt[3]{3x-\sqrt{9{x^2}-\frac{1}{27}}} -1</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        x: Value whose tetrahedral root is to be calculated.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        n: Tetrahedral root of ``x``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="p">(</span><span class="mi">9</span> <span class="o">*</span> <span class="n">x</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">27</span><span class="p">))</span> <span class="o">**</span> <span class="mf">0.5</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="n">a</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">x</span> <span class="o">-</span> <span class="n">a</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

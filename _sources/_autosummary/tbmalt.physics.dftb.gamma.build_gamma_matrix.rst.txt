@@ -1,0 +1,8 @@
+build\_gamma\_matrix
+====================
+
+.. currentmodule:: tbmalt.physics.dftb.gamma
+
+.. autofunction:: tbmalt.physics.dftb.gamma.build_gamma_matrix
+
+    .. autosummary::

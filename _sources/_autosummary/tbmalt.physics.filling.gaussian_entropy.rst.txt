@@ -1,0 +1,8 @@
+gaussian\_entropy
+=================
+
+.. currentmodule:: tbmalt.physics.filling
+
+.. autofunction:: tbmalt.physics.filling.gaussian_entropy
+
+    .. autosummary::

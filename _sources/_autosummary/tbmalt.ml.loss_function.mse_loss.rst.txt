@@ -1,0 +1,8 @@
+mse\_loss
+=========
+
+.. currentmodule:: tbmalt.ml.loss_function
+
+.. autofunction:: tbmalt.ml.loss_function.mse_loss
+
+    .. autosummary::

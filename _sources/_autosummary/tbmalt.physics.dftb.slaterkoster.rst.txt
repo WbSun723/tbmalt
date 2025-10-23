@@ -1,0 +1,33 @@
+slaterkoster
+============
+
+.. automodule:: tbmalt.physics.dftb.slaterkoster
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      sub_block_ref
+      sub_block_rot
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

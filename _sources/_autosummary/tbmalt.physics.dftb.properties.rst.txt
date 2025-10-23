@@ -1,0 +1,33 @@
+properties
+==========
+
+.. automodule:: tbmalt.physics.dftb.properties
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+      :template: function.rst
+   
+      band_pass_state_filter
+      dos
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

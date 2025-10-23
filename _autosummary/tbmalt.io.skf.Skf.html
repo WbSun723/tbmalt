@@ -1,0 +1,387 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.3.2.1. Skf &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.3.2.2. VCRSkf" href="tbmalt.io.skf.VCRSkf.html" />
+    <link rel="prev" title="2.1.3.2. skf" href="tbmalt.io.skf.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.io.dataset.html">2.1.3.1. dataset</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.io.skf.html">2.1.3.2. skf</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.io.html"><span class="section-number">2.1.3. </span>io</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.io.skf.html"><span class="section-number">2.1.3.2. </span>skf</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.3.2.1. </span>Skf</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.io.skf.Skf.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="skf">
+<h1><span class="section-number">2.1.3.2.1. </span>Skf<a class="headerlink" href="#skf" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Skf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom_pair</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hamiltonian</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_spline</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_poly</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hubbard_us</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_sites</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Slater-Koster file parser.</p>
+<p>This class handles the parsing of DFTB+ skf formatted Slater-Koster files,
+and their binary analogs. Data can be read from and saved to files using
+the <cite>read</cite> &amp; <cite>write</cite> methods. Reading a file will return an <cite>Skf</cite> instance
+holding all stored data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atom_pair</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic numbers of the elements associated with the
+interaction.</p></li>
+<li><p><strong>hamiltonian</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – Dictionary keyed by azimuthal-number-pairs (ℓ₁, ℓ₂) and
+valued by m×d Hamiltonian integral tensors; where m and d iterate
+over bond-order (σ, π, etc.) and distances respectively.</p></li>
+<li><p><strong>overlap</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dict</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>], <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – Dictionary storing the overlap integrals in a manner akin to
+<code class="docutils literal notranslate"><span class="pre">hamiltonian</span></code>.</p></li>
+<li><p><strong>grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Distances at which the <code class="docutils literal notranslate"><span class="pre">hamiltonian</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">overlap</span></code> elements
+were evaluated.</p></li>
+<li><p><strong>r_spline</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="#tbmalt.io.skf.Skf.RSpline" title="tbmalt.io.skf.Skf.RSpline"><code class="xref py py-class docutils literal notranslate"><span class="pre">RSpline</span></code></a>]</span>) – A <a class="reference internal" href="#tbmalt.io.skf.Skf.RSpline" title="tbmalt.io.skf.Skf.RSpline"><code class="xref py py-class docutils literal notranslate"><span class="pre">RSpline</span></code></a> object detailing the repulsive
+spline. [DEFAULT=None]</p></li>
+<li><p><strong>r_poly</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference internal" href="#tbmalt.io.skf.Skf.RPoly" title="tbmalt.io.skf.Skf.RPoly"><code class="xref py py-class docutils literal notranslate"><span class="pre">RPoly</span></code></a>]</span>) – A <a class="reference internal" href="#tbmalt.io.skf.Skf.RPoly" title="tbmalt.io.skf.Skf.RPoly"><code class="xref py py-class docutils literal notranslate"><span class="pre">RPoly</span></code></a> object detailing the repulsive
+polynomial. [DEFAULT=None]</p></li>
+<li><p><strong>on_sites</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – On site terms, homo-atomic systems only. [DEFAULT=None]</p></li>
+<li><p><strong>hubbard_us</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – Hubbard U terms, homo-atomic systems only. [DEFAULT=None]</p></li>
+<li><p><strong>mass</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – Atomic mass, homo-atomic systems only. [DEFAULT=None]</p></li>
+<li><p><strong>occupations</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – Occupations of the orbitals, homo-atomic systems only.
+[DEFAULT=None]</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>Examples of reading and writing.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span><span class="o">,</span><span class="w"> </span><span class="nn">tarfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">os.path</span><span class="w"> </span><span class="kn">import</span> <span class="n">join</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.io.skf</span><span class="w"> </span><span class="kn">import</span> <span class="n">Skf</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">link</span> <span class="o">=</span> <span class="s1">&#39;https://github.com/dftbparams/auorg/releases/download/v1.1.0/auorg-1-1.tar.xz&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">link</span><span class="p">,</span> <span class="s1">&#39;auorg-1-1.tar.xz&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tartmp</span> <span class="o">=</span> <span class="n">tarfile</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s1">&#39;auorg-1-1.tar.xz&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tartmp</span><span class="o">.</span><span class="n">extractall</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cc</span> <span class="o">=</span> <span class="n">Skf</span><span class="o">.</span><span class="n">from_skf</span><span class="p">(</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;auorg-1-1&#39;</span><span class="p">,</span> <span class="s1">&#39;C-C.skf&#39;</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">cc</span><span class="o">.</span><span class="n">hamiltonian</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="go">dict_keys([(0, 0), (0, 1), (1, 1)])</span>
+</pre></div>
+</div>
+<p>use auorg-1-1 to generate binary h5 and read the binary file</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;tmp.h5&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cch5</span> <span class="o">=</span> <span class="n">Skf</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s1">&#39;tmp.h5&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">cch5</span><span class="o">.</span><span class="n">hamiltonian</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="go">dict_keys([(0, 0), (0, 1), (1, 1)])</span>
+</pre></div>
+</div>
+<p>Note Slater-Koster parameter sets can be downloaded and parsed into
+an HDF5 file using the method
+<cite>tbmalt.tools.downloaders.download_dftb_parameter_set</cite>.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.atomic">
+<span class="sig-name descname"><span class="pre">atomic</span></span><a class="headerlink" href="#tbmalt.io.skf.Skf.atomic" title="Link to this definition"></a></dt>
+<dd><p>True if the system contains atomic data, only relevant to the
+homo-atomic cases.</p>
+</dd></dl>
+
+<p class="rubric" id="notes">Notes</p>
+<p>HOMO atomic systems commonly, but not always, include additional
+“atomic” data; namely atomic mass, on-site terms, occupations, and
+the Hubbard-U values. These can be optionally specified using the
+<code class="docutils literal notranslate"><span class="pre">mass</span></code>, <code class="docutils literal notranslate"><span class="pre">on_sites</span></code>, <code class="docutils literal notranslate"><span class="pre">occupations</span></code>, and <code class="docutils literal notranslate"><span class="pre">hubbard_us</span></code> attributes
+respectively. However, these attributes are mutually inclusive, i.e.
+either all are specified or none are. Furthermore, values contained
+within such tensors should be ordered from the lowest azimuthal number
+to highest, where applicable.</p>
+<p>Further information regarding the skf file format specification can be
+found in the document: “<a class="reference external" href="https://dftb.org/_downloads/85b02a0893bd3402438aec77de5bc1df/slakoformat.pdf">Format of the v1.0 Slater-Koster Files</a>”.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This may fail to parse files which do not strictly adhere to the skf
+file format. Some skf files, such as those from the “pbc” parameter
+set, contain non-trivial errors in them, e.g. incorrectly specified
+number of grid points. Such files require fixing before they can be
+read in.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">atom_pair</span></code> argument is order sensitive, i.e. [6, 7] ≠ [7, 6].
+For example, the p-orbital of the s-p-σ interaction would be located
+on N when <code class="docutils literal notranslate"><span class="pre">atom_pair</span></code> is [6, 7] but on C when it is [7, 6].</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – if some but not all atomic attributes are specified. See
+    the <a class="reference internal" href="#notes"><span class="std std-ref">Notes</span></a> section for more details.</p>
+</dd>
+</dl>
+<p class="rubric">Attributes and Properties</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">version</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.RPoly">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RPoly</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coef</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf.RPoly"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf.RPoly" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Dataclass container for the repulsive polynomial.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Cutoff radius of the repulsive interaction.</p></li>
+<li><p><strong>coef</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – The eight polynomial coefficients (c2-c9).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.RSpline">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">RSpline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spline_coef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exp_coef</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tail_coef</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf.RSpline"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf.RSpline" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Dataclass container for the repulsive spline.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grid</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Distance for the primary spline segments.</p></li>
+<li><p><strong>cutoff</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Cutoff radius for the tail spline.</p></li>
+<li><p><strong>spline_coef</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – The primary spline’s Coefficients (four per segment).</p></li>
+<li><p><strong>exp_coef</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – The exponential expression’s coefficients a1, a2 &amp; a3.</p></li>
+<li><p><strong>tail_coef</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – The six coefficients of the terminal tail spline.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.from_hdf5">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf.from_hdf5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf.from_hdf5" title="Link to this definition"></a></dt>
+<dd><p>Instantiate a <cite>Skf</cite> instances from an HDF5 group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></span>) – An HDF5 group containing Slater-Koster data.</p></li>
+<li><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code>]</span>) – Device on which to place tensors. [DEFAULT=None]</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>]</span>) – dtype to be used for floating point tensors. [DEFAULT=None]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.io.skf.Skf" title="tbmalt.io.skf.Skf"><code class="xref py py-class docutils literal notranslate"><span class="pre">Skf</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>skf</em> – The resulting <cite>Skf</cite> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.from_skf">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_skf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf.from_skf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf.from_skf" title="Link to this definition"></a></dt>
+<dd><p>Parse and skf file into an <cite>Skf</cite> instance.</p>
+<p>File names should follow the naming convention X-Y.skf where X &amp; Y are
+the chemical symbols of the associated elements. However, any file
+which <strong>ends</strong> in X.Y will be successfully parsed (where “.” is any
+character (including no character)).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to the target skf file.</p></li>
+<li><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code>]</span>) – Device on which to place tensors. [DEFAULT=None]</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>]</span>) – dtype to be used for floating point tensors. [DEFAULT=None]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.io.skf.Skf" title="tbmalt.io.skf.Skf"><code class="xref py py-class docutils literal notranslate"><span class="pre">Skf</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>skf</em> – Return the arguments in <cite>Skf</cite> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.read">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_pair</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf.read"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf.read" title="Link to this definition"></a></dt>
+<dd><p>Parse Slater-Koster data from skf files and their binary analogs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to the file that is to be read (.skf or .hdf5).</p></li>
+<li><p><strong>atom_pair</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]]</span>) – Atomic numbers of the element pair. This is only used
+when reading from an HDF5 file with more than one SK entry.
+[DEFAULT=None]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>device</strong> – Device on which to place tensors. [DEFAULT=None]</p></li>
+<li><p><strong>dtype</strong> – dtype to be used for floating point tensors. [DEFAULT=None]</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.io.skf.Skf" title="tbmalt.io.skf.Skf"><code class="xref py py-class docutils literal notranslate"><span class="pre">Skf</span></code></a></span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>skf</em> – <cite>Skf</cite> object containing all data parsed from the specified
+file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.to_hdf5">
+<span class="sig-name descname"><span class="pre">to_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf.to_hdf5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf.to_hdf5" title="Link to this definition"></a></dt>
+<dd><p>Saves the <cite>Skf</cite> instance into a target HDF5 Group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code></span>) – The hdf5 group to which the skf data should be saved.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function does not create its own group as it expects that
+<code class="docutils literal notranslate"><span class="pre">target</span></code> is the group into which data should be writen.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.to_skf">
+<span class="sig-name descname"><span class="pre">to_skf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf.to_skf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf.to_skf" title="Link to this definition"></a></dt>
+<dd><p>Writes data to a skf formatted file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – path specifying the location of the skf file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.io.skf.Skf.write">
+<span class="sig-name descname"><span class="pre">write</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/io/skf.html#Skf.write"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.io.skf.Skf.write" title="Link to this definition"></a></dt>
+<dd><p>Save the Slater-Koster data to a file.</p>
+<p>The target file can be either a skf file or a hdf5 database. Desired
+file format will be inferred from the file’s name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – path to the file in which the data is to be saved.</p></li>
+<li><p><strong>overwrite</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code>]</span>) – Existing skf-files/HDF5-groups can only be overwritten
+when <code class="docutils literal notranslate"><span class="pre">overwrite</span></code> is True. [DEFAULT=False]</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.io.skf.html" class="btn btn-neutral float-left" title="2.1.3.2. skf" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.io.skf.VCRSkf.html" class="btn btn-neutral float-right" title="2.1.3.2.2. VCRSkf" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

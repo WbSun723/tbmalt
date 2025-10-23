@@ -1,0 +1,32 @@
+VcrSkFeed
+=========
+
+.. currentmodule:: tbmalt.physics.dftb.feeds
+
+.. autoclass:: VcrSkFeed
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, dtype, off_sites, on_sites
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~VcrSkFeed.device
+   
+      ~VcrSkFeed.dtype
+   
+      ~VcrSkFeed.off_sites
+   
+      ~VcrSkFeed.on_sites
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

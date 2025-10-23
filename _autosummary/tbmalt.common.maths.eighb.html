@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.1.6.1. eighb &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.1.6.2. estimate_minmax" href="tbmalt.common.maths.estimate_minmax.html" />
+    <link rel="prev" title="2.1.1.6. maths" href="tbmalt.common.maths.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.cached_property.html">2.1.1.1. cached_property</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.split_by_size.html">2.1.1.2. split_by_size</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.unique.html">2.1.1.3. unique</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.batch.html">2.1.1.4. batch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.common.exceptions.html">2.1.1.5. exceptions</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.common.maths.html">2.1.1.6. maths</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.common.html"><span class="section-number">2.1.1. </span>common</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.common.maths.html"><span class="section-number">2.1.1.6. </span>maths</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.1.6.1. </span>eighb</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.common.maths.eighb.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="eighb">
+<h1><span class="section-number">2.1.1.6.1. </span>eighb<a class="headerlink" href="#eighb" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="tbmalt.common.maths.eighb">
+<span class="sig-name descname"><span class="pre">eighb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'chol'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broadening_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cond'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aux</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/common/maths.html#eighb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.common.maths.eighb" title="Link to this definition"></a></dt>
+<dd><p>Solves general &amp; standard eigen-problems, with optional broadening.</p>
+<p>Solves standard and generalised eigenvalue problems of the form Az = λBz
+for a real symmetric matrix <code class="docutils literal notranslate"><span class="pre">a</span></code> and can apply conditional or Lorentzian
+broadening to the eigenvalues during the backwards pass to increase
+gradient stability. Multiple  matrices may be passed in batch major form,
+i.e. the first axis iterates over entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Real symmetric matrix whose eigen-values/vectors will be computed.</p></li>
+<li><p><strong>b</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Complementary positive definite real symmetric matrix for the
+generalised eigenvalue problem.</p></li>
+<li><p><strong>scheme</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'chol'</span></code>, <code class="docutils literal notranslate"><span class="pre">'lowd'</span></code>]</span>) – <p>Scheme to covert generalised eigenvalue problems to standard
+ones:</p>
+<blockquote>
+<div><ul>
+<li><p>”chol”: Cholesky factorisation. [DEFAULT=’chol’]</p></li>
+<li><p>”lowd”: Löwdin orthogonalisation.</p></li>
+</ul>
+</div></blockquote>
+<p>Has no effect on solving standard problems.</p>
+</p></li>
+<li><p><strong>broadening_method</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'cond'</span></code>, <code class="docutils literal notranslate"><span class="pre">'lorn'</span></code>]]</span>) – <p>Broadening method to used:</p>
+<ul>
+<li><p>”cond”: conditional broadening. [DEFAULT=’cond’]</p></li>
+<li><p>”lorn”: Lorentzian broadening.</p></li>
+<li><p>None: no broadening (uses torch.symeig).</p></li>
+</ul>
+</p></li>
+<li><p><strong>factor</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></span>) – The degree of broadening (broadening factor). [Default=1E-12]</p></li>
+<li><p><strong>sort_out</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – If True; eigen-vector/value tensors are reordered so that
+any “ghost” entries are moved to the end. “Ghost” are values which
+emerge as a result of zero-padding. [DEFAULT=True]</p></li>
+<li><p><strong>aux</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Converts zero-padding to identity-padding. This can improve
+the stability of backwards propagation. [DEFAULT=True]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>direct_inv</strong> (<em>bool</em>) – If True then the matrix inversion will be computed
+directly rather than via a call to torch.solve. Only relevant to
+the cholesky scheme. [DEFAULT=False]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>w</em> – The eigenvalues, in ascending order.</p></li>
+<li><p><em>v</em> – The eigenvectors.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Results from backward passes through eigen-decomposition operations
+tend to suffer from numerical stability <a class="footnote-reference brackets" href="#id5" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>*<span class="fn-bracket">]</span></a>  issues when operating
+on systems with degenerate eigenvalues. Fortunately,  the stability
+of such operations can be increased through the application of eigen
+value broadening. However, such methods will induce small errors in
+the returned gradients as they effectively mutate  the eigen-values
+in the backwards pass. Thus, it is important to be aware that while
+increasing the extent of  broadening will help to improve stability
+it will also increase the error in the gradients.</p>
+<p>Two different broadening methods have been implemented within this
+class. Conditional broadening as described by Seeger <a class="reference internal" href="#ms2019" id="id2"><span>[MS2019]</span></a>, and
+Lorentzian as detailed by Liao <a class="reference internal" href="#lh2019" id="id3"><span>[LH2019]</span></a>. During the forward pass the
+<cite>torch.symeig</cite> function is used to calculate both the eigenvalues &amp;
+the eigenvectors (U &amp; <span class="math notranslate nohighlight">\(\lambda\)</span> respectively). The gradient
+is then calculated following:</p>
+<div class="math notranslate nohighlight">
+\[\bar{A} = U (\bar{\Lambda} + sym(F \circ (U^t \bar{U}))) U^T\]</div>
+<p>Where bar indicates a value’s gradient, passed in from the previous
+layer, <span class="math notranslate nohighlight">\(\Lambda\)</span> is the diagonal matrix associated with the
+<span class="math notranslate nohighlight">\(\bar{\lambda}\)</span> values, <span class="math notranslate nohighlight">\(\circ\)</span>  is the so called Hadamard
+product, <span class="math notranslate nohighlight">\(sym\)</span> is the symmetrisation operator and F is:</p>
+<div class="math notranslate nohighlight">
+\[F_{i, j} = \frac{I_{i \ne j}}{h(\lambda_i - \lambda_j)}\]</div>
+<p>Where, for conditional broadening, h is:</p>
+<div class="math notranslate nohighlight">
+\[h(t) = max(|t|, \epsilon)sgn(t)\]</div>
+<p>and for, Lorentzian broadening:</p>
+<div class="math notranslate nohighlight">
+\[h(t) = \frac{t^2 + \epsilon}{t}\]</div>
+<p>The advantage of conditional broadening is that it is only applied
+when needed, thus the errors induced in the gradients will be
+restricted to systems whose gradients would be nan’s otherwise. The
+Lorentzian method, on the other hand, will apply broadening to all
+systems, irrespective of whether or not it is necessary. Note that if
+the h function is a unity operator then this is identical to a
+standard backwards pass through an eigen-solver.</p>
+<p>Mathematical discussions regarding the Cholesky decomposition are
+made with reference to the  “Generalized Symmetric Definite
+Eigenproblems” chapter of Lapack. <a class="reference internal" href="#lapack" id="id4"><span>[Lapack]</span></a></p>
+<p>When operating in batch mode the zero valued padding columns and rows
+will result in the generation of “ghost” eigen-values/vectors. These
+are mostly harmless, but make it more difficult to extract the actual
+eigen-values/vectors. This function will move the “ghost” entities to
+the ends of their respective lists, making it easy to clip them out.</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id5" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">*</a><span class="fn-bracket">]</span></span>
+<p>Where stability is defined as the propensity of a function to
+return nan values or some raise an error.</p>
+</aside>
+</aside>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If operating upon zero-padded packed tensors then degenerate and zero
+valued eigen values will be encountered. This will <strong>always</strong> cause an
+error during the backwards pass unless broadening is enacted.</p>
+<p>As <code class="docutils literal notranslate"><span class="pre">torch.symeig</span></code> sorts its results prior to returning them, it is
+likely that any “ghost” eigen-values/vectors, which result from zero-
+padded packing, will be located in the middle of the returned arrays.
+This makes down-stream processing more challenging. Thus, the sort_out
+option is enabled by default. This results in the “ghost” values being
+moved to the end. <strong>However</strong>, this method identifies any entry with a
+zero-valued eigenvalue and an eigenvector which can be interpreted as
+a column of an identity matrix as a ghost.</p>
+</div>
+<p class="rubric">References</p>
+<div role="list" class="citation-list">
+<div class="citation" id="ms2019" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">MS2019</a><span class="fn-bracket">]</span></span>
+<p>Seeger, M., Hetzel, A., Dai, Z., &amp; Meissner, E. Auto-
+Differentiating Linear Algebra. ArXiv:1710.08717 [Cs,
+Stat], Aug. 2019. arXiv.org,
+http://arxiv.org/abs/1710.08717.</p>
+</div>
+<div class="citation" id="lh2019" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">LH2019</a><span class="fn-bracket">]</span></span>
+<p>Liao, H.-J., Liu, J.-G., Wang, L., &amp; Xiang, T. (2019).
+Differentiable Programming Tensor Networks. Physical
+Review X, 9(3).</p>
+</div>
+<div class="citation" id="lapack" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">Lapack</a><span class="fn-bracket">]</span></span>
+<p>www.netlib.org/lapack/lug/node54.html (Accessed 21/04/2023)</p>
+</div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+</tbody>
+</table>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.common.maths.html" class="btn btn-neutral float-left" title="2.1.1.6. maths" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.common.maths.estimate_minmax.html" class="btn btn-neutral float-right" title="2.1.1.6.2. estimate_minmax" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

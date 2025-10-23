@@ -1,0 +1,18 @@
+PairwiseRepulsiveEnergyFeed
+===========================
+
+.. currentmodule:: tbmalt.physics.dftb.feeds
+
+.. autoclass:: PairwiseRepulsiveEnergyFeed
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: 
+
+   
+
+   
+   .. rubric:: Methods
+
+   

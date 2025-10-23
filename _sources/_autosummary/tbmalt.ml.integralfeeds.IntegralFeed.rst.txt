@@ -1,0 +1,28 @@
+IntegralFeed
+============
+
+.. currentmodule:: tbmalt.ml.integralfeeds
+
+.. autoclass:: IntegralFeed
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: device, dtype
+
+   
+   .. rubric:: Attributes and Properties
+
+   .. autosummary::
+   
+      ~IntegralFeed.device
+   
+      ~IntegralFeed.dtype
+   
+
+   
+
+   
+   .. rubric:: Methods
+
+   

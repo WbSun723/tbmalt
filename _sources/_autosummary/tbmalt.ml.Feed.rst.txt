@@ -1,0 +1,18 @@
+Feed
+====
+
+.. currentmodule:: tbmalt.ml
+
+.. autoclass:: Feed
+   :members:
+   :show-inheritance:
+   :inherited-members:
+   :member-order: groupwise
+   :exclude-members: 
+
+   
+
+   
+   .. rubric:: Methods
+
+   

@@ -1,0 +1,8 @@
+fermi\_entropy
+==============
+
+.. currentmodule:: tbmalt.physics.filling
+
+.. autofunction:: tbmalt.physics.filling.fermi_entropy
+
+    .. autosummary::

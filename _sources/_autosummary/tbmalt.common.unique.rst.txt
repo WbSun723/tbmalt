@@ -1,0 +1,8 @@
+unique
+======
+
+.. currentmodule:: tbmalt.common
+
+.. autofunction:: tbmalt.common.unique
+
+    .. autosummary::

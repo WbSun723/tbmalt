@@ -1,0 +1,8 @@
+mulliken
+========
+
+.. currentmodule:: tbmalt.physics.dftb
+
+.. autofunction:: tbmalt.physics.dftb.mulliken
+
+    .. autosummary::

@@ -1,0 +1,215 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.5.1.7.2. dos &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.5.1.8. slaterkoster" href="tbmalt.physics.dftb.slaterkoster.html" />
+    <link rel="prev" title="2.1.5.1.7.1. band_pass_state_filter" href="tbmalt.physics.dftb.properties.band_pass_state_filter.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.physics.dftb.html">2.1.5.1. dftb</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.physics.filling.html">2.1.5.2. filling</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.html"><span class="section-number">2.1.5. </span>physics</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.dftb.html"><span class="section-number">2.1.5.1. </span>dftb</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.dftb.properties.html"><span class="section-number">2.1.5.1.7. </span>properties</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.5.1.7.2. </span>dos</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.physics.dftb.properties.dos.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dos">
+<h1><span class="section-number">2.1.5.1.7.2. </span>dos<a class="headerlink" href="#dos" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.properties.dos">
+<span class="sig-name descname"><span class="pre">dos</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/dftb/properties.html#dos"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.dftb.properties.dos" title="Link to this definition"></a></dt>
+<dd><p>Calculates the density of states for one or more systems.</p>
+<p>This calculates and returns the Density of States (DoS) for one or more
+systems. If desired, all but a selection of specific states can be masked
+out via the <code class="docutils literal notranslate"><span class="pre">mask</span></code> argument.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eps</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Energy eigenvalues (epsilon).</p></li>
+<li><p><strong>energies</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Energy values to evaluate the DoS at. These are assumed to
+be relative to the <code class="docutils literal notranslate"><span class="pre">offset</span></code> value, if it is specified.</p></li>
+<li><p><strong>sigma</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Real</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – Smearing width for gaussian broadening function. [DEFAULT=0]</p></li>
+<li><p><strong>offset</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Real</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code>]</span>) – Indicates that <code class="docutils literal notranslate"><span class="pre">energies</span></code> are given with respect to a offset
+value, e.g. the fermi energy.</p></li>
+<li><p><strong>mask</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code>]</span>) – Used to control which states are used in constricting the DoS.
+Only unmasked (True) states will be used, all others are ignored.</p></li>
+<li><p><strong>scale</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – Scales the DoS to have a maximum value of 1. [DEFAULT=False]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>dos</em> – The densities of states.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The DoS is calculated via an equation equivalent to:</p>
+<div class="math notranslate nohighlight">
+\[g(E)=\delta(E-\epsilon_{i})\]</div>
+<p>Where g(E) is the density of states at an energy value E, and δ(E-ε)
+is the smearing width calculated as:</p>
+<div class="math notranslate nohighlight">
+\[\delta(E-\epsilon)=\frac{
+    erf\left(\frac{E-\epsilon+\frac{\Delta E}{2}}{\sqrt{2}\sigma}\right)-
+    erf\left(\frac{E-\epsilon-\frac{\Delta E}{2}}{\sqrt{2}\sigma}\right)}
+    {2\Delta E}\]</div>
+<p>Where ΔE is the difference in energy between neighbouring points.
+It may be useful, such as in the creation of a cost function, to have
+only specific states (i.e. HOMO, HOMO-1, etc.) used to construct the
+PDoS. State selection can be achieved via the <code class="docutils literal notranslate"><span class="pre">mask</span></code> argument. This
+should be a boolean tensor with a shape matching that of <code class="docutils literal notranslate"><span class="pre">eps</span></code>. Only
+states whose mask value is True will be included in the DoS, e.g.</p>
+<blockquote>
+<div><p>mask = torch.Tensor([True, False, False, False])</p>
+</div></blockquote>
+<p>would only use the first state when constructing the DoS.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is imperative that padding values are masked out when operating on
+batches of systems! Failing to do so will result in the emergence of
+erroneous state occupancies. Care must also be taken to ensure that
+the number of sample points is the same for each system; i.e. all
+systems have the same number of elements in <code class="docutils literal notranslate"><span class="pre">energies</span></code>. As padding
+values will result in spurious behaviour.</p>
+</div>
+<p class="rubric">Examples</p>
+<p>Density of states constructed for an H2 molecule using test data:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tests.unittests.data.properties.dos</span><span class="w"> </span><span class="kn">import</span> <span class="n">H2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tbmalt.physics.dftb.properties</span><span class="w"> </span><span class="kn">import</span> <span class="n">dos</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">eps</span> <span class="o">=</span> <span class="n">H2</span><span class="p">[</span><span class="s1">&#39;eigenvalues&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">energies</span> <span class="o">=</span> <span class="n">H2</span><span class="p">[</span><span class="s1">&#39;dos&#39;</span><span class="p">][</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sigma</span> <span class="o">=</span> <span class="n">H2</span><span class="p">[</span><span class="s1">&#39;sigma&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dos_values</span> <span class="o">=</span> <span class="n">dos</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">energies</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">energies</span><span class="p">,</span> <span class="n">dos_values</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Energy [Ha]&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;DoS [Ha]&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+</tbody>
+</table>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.physics.dftb.properties.band_pass_state_filter.html" class="btn btn-neutral float-left" title="2.1.5.1.7.1. band_pass_state_filter" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.physics.dftb.slaterkoster.html" class="btn btn-neutral float-right" title="2.1.5.1.8. slaterkoster" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

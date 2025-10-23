@@ -1,0 +1,8 @@
+estimate\_minmax
+================
+
+.. currentmodule:: tbmalt.common.maths
+
+.. autofunction:: tbmalt.common.maths.estimate_minmax
+
+    .. autosummary::

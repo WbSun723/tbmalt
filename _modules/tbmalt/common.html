@@ -1,0 +1,373 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tbmalt.common &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">1. Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../documentation.html">2. Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">tbmalt.common</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for tbmalt.common</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;A collection of useful code abstractions.</span>
+
+<span class="sd">All modules that are not specifically associated with any one component of the</span>
+<span class="sd">code, such as generally mathematical operations, are located here.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="c1"># Types</span>
+<span class="n">float_like</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+<span class="n">bool_like</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="cached_property">
+<a class="viewcode-back" href="../../_autosummary/tbmalt.common.cached_property.html#tbmalt.common.cached_property">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cached_property</span><span class="p">(</span><span class="o">*</span><span class="n">dependency_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorator to handle caching of properties based on their dependencies.</span>
+
+<span class="sd">    Before returning a cached property, the decorator checks whether any</span>
+<span class="sd">    dependencies have been modified or reassigned. If so, the cache is rebuilt.</span>
+<span class="sd">    Note that this currently only supports torch tensors.</span>
+
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        dependency_names: Names of the class attributes that are considered to</span>
+<span class="sd">            be dependencies. These attributes must be torch tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrap the method to check dependencies before returning its value.&quot;&quot;&quot;</span>
+
+        <span class="nd">@property</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">method</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+            <span class="n">rebuild_cache</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Look over the dependency names.</span>
+            <span class="k">for</span> <span class="n">dependency_name</span> <span class="ow">in</span> <span class="n">dependency_names</span><span class="p">:</span>
+
+                <span class="c1"># Get the dependency (i.e. self.some_dependency_tensor)</span>
+                <span class="n">dependency</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dependency_name</span><span class="p">)</span>
+
+                <span class="c1"># Ensure the dependency is a torch tensor.</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dependency</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                        <span class="s1">&#39;Only torch tensors can be cache dependencies&#39;</span><span class="p">)</span>
+
+                <span class="c1"># Identify the current version of the dependency tensor and</span>
+                <span class="c1"># what version was used to last construct the cache. A mismatch</span>
+                <span class="c1"># in version numbers indicates the contents of the dependency</span>
+                <span class="c1"># changed since the cache was last build.</span>
+                <span class="n">current_version</span> <span class="o">=</span> <span class="n">dependency</span><span class="o">.</span><span class="n">_version</span>
+                <span class="n">cache_version</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                    <span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_version_</span><span class="si">{</span><span class="n">dependency_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">version_mismatch</span> <span class="o">=</span> <span class="n">current_version</span> <span class="o">!=</span> <span class="n">cache_version</span>
+
+                <span class="c1"># Repeat this process for the dependency tensor object&#39;s ID.</span>
+                <span class="c1"># This is used to determine if tensor itself changed since the</span>
+                <span class="c1"># cache was last constructed.</span>
+                <span class="n">current_id</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">dependency</span><span class="p">)</span>
+                <span class="n">cache_id</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                    <span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_id_</span><span class="si">{</span><span class="n">dependency_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">id_mismatch</span> <span class="o">=</span> <span class="n">current_id</span> <span class="o">!=</span> <span class="n">cache_id</span>
+
+                <span class="c1"># Repeat the process for the dependency tensors requires grad</span>
+                <span class="c1"># attribute. This is important to ensure that properties are</span>
+                <span class="c1"># reconstructed allowing for the graph to be rebuilt if users</span>
+                <span class="c1"># change whether or not they are tracking the gradient through</span>
+                <span class="c1"># a specific property.</span>
+                <span class="n">current_requires_grad</span> <span class="o">=</span> <span class="n">dependency</span><span class="o">.</span><span class="n">requires_grad</span>
+                <span class="n">cache_requires_grad</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                    <span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_requires_grad_</span><span class="si">{</span><span class="n">dependency_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">requires_grad_mismatch</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">current_requires_grad</span> <span class="o">!=</span> <span class="n">cache_requires_grad</span><span class="p">)</span>
+
+                <span class="c1"># Has the dependency tensor or its contents changed since the</span>
+                <span class="c1"># cache was last constructed?</span>
+                <span class="k">if</span> <span class="n">version_mismatch</span> <span class="ow">or</span> <span class="n">id_mismatch</span> <span class="ow">or</span> <span class="n">requires_grad_mismatch</span><span class="p">:</span>
+                    <span class="c1"># Earmark the cache for reconstruction.</span>
+                    <span class="n">rebuild_cache</span> <span class="o">=</span> <span class="kc">True</span>
+
+                    <span class="c1"># Update the cache version numbers. It is fine to to this</span>
+                    <span class="c1"># here as the cache will get updated immediately after this</span>
+                    <span class="c1"># loop has finished.</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_version_</span><span class="si">{</span><span class="n">dependency_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                            <span class="n">current_version</span><span class="p">)</span>
+
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_id_</span><span class="si">{</span><span class="n">dependency_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                            <span class="n">current_id</span><span class="p">)</span>
+
+                    <span class="nb">setattr</span><span class="p">(</span>
+                        <span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_requires_grad_</span><span class="si">{</span><span class="n">dependency_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                        <span class="n">current_requires_grad</span><span class="p">)</span>
+
+                    <span class="c1"># This loop is not broken out of here as one must ensure</span>
+                    <span class="c1"># that version numbers for other dependencies are updated.</span>
+
+            <span class="c1"># If a version mismatch has been detected in any of the dependencies</span>
+            <span class="c1"># then the cache must be recomputed.</span>
+            <span class="k">if</span> <span class="n">rebuild_cache</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="s1">&#39;cache&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+            <span class="c1"># Return the contents of the cache</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="s1">&#39;cache&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Add attributes to the *property* for tracking i) the version numbers,</span>
+        <span class="c1"># ii) the id&#39;s of its dependencies, and iii) the requires gradient</span>
+        <span class="c1"># status of the tensor.</span>
+        <span class="k">for</span> <span class="n">dependency_name_o</span> <span class="ow">in</span> <span class="n">dependency_names</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_version_</span><span class="si">{</span><span class="n">dependency_name_o</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_id_</span><span class="si">{</span><span class="n">dependency_name_o</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache_requires_grad_</span><span class="si">{</span><span class="n">dependency_name_o</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># Add an attribute for storing the cached value of the property.</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">wrapper</span><span class="o">.</span><span class="n">fget</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;cache&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">wrapper</span>
+
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+
+<div class="viewcode-block" id="split_by_size">
+<a class="viewcode-back" href="../../_autosummary/tbmalt.common.split_by_size.html#tbmalt.common.split_by_size">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">split_by_size</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">sizes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+                  <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Splits a tensor into chunks of specified length.</span>
+
+<span class="sd">    This function takes a tensor &amp; splits it into `n` chunks, where `n` is the</span>
+<span class="sd">    number of entries in ``sizes``. The length of the `i&#39;th` chunk is defined</span>
+<span class="sd">    by the `i&#39;th` element of ``sizes``.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        tensor: Tensor to be split.</span>
+<span class="sd">        sizes: Size of each chunk.</span>
+<span class="sd">        dim: Dimension along which to split ``tensor``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        chunked: Tuple of tensors viewing the original ``tensor``.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        Tensors can be sequentially split into multiple sub-tensors like so:</span>
+
+<span class="sd">        &gt;&gt;&gt; from tbmalt.common import split_by_size</span>
+<span class="sd">        &gt;&gt;&gt; a = torch.arange(10)</span>
+<span class="sd">        &gt;&gt;&gt; print(split_by_size(a, [2, 2, 2, 2, 2]))</span>
+<span class="sd">        (tensor([0, 1]), tensor([2, 3]), tensor([4, 5]), tensor([6, 7]), tensor([8, 9]))</span>
+<span class="sd">        &gt;&gt;&gt; print(split_by_size(a, [5, 5]))</span>
+<span class="sd">        tensor([0, 1, 2, 3, 4]), tensor([5, 6, 7, 8, 9]))</span>
+<span class="sd">        &gt;&gt;&gt; print(split_by_size(a, [1, 2, 3, 4]))</span>
+<span class="sd">        (tensor([0]), tensor([1, 2]), tensor([3, 4, 5]), tensor([6, 7, 8, 9]))</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The resulting tensors ``chunked`` are views of the original tensor and</span>
+<span class="sd">        not copies. This was created as no analog existed natively within the</span>
+<span class="sd">        pytorch framework. However, this will eventually be removed once the</span>
+<span class="sd">        pytorch function `split_with_sizes` becomes operational.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: If number of elements requested via ``split_sizes``</span>
+<span class="sd">            exceeds the number of elements present in ``tensor``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Looks like it returns a tuple rather than a list</span>
+    <span class="k">if</span> <span class="n">dim</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Shift dim to be compatible with torch.narrow</span>
+        <span class="n">dim</span> <span class="o">+=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span>
+
+    <span class="c1"># Ensure the tensor is large enough to satisfy the chunk declaration.</span>
+    <span class="n">size_match</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sizes</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">size_match</span><span class="p">,</span> <span class="s1">&#39;Sum of split sizes fails to match tensor length &#39;</span> \
+                       <span class="s1">&#39;along specified dim&#39;</span>
+
+    <span class="c1"># Identify the slice positions</span>
+    <span class="n">splits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="n">sizes</span><span class="p">]),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Return the sliced tensor. use torch.narrow to avoid data duplication</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+                 <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">splits</span><span class="p">,</span> <span class="n">sizes</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="unique">
+<a class="viewcode-back" href="../../_autosummary/tbmalt.common.unique.html#tbmalt.common.unique">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unique</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+           <span class="n">return_counts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Find the unique elements of a tensor.</span>
+
+<span class="sd">    Note that the code for this method is taken directly from a post provided</span>
+<span class="sd">    by user @wjaekim on PyTorch GitHub issue #36748, and the documentation is</span>
+<span class="sd">    taken directly from the numpy documentation. This function is intended to</span>
+<span class="sd">    act only a temporary fix until PyTorch supports the ``return_index`` key-</span>
+<span class="sd">    word argument in their internal method.</span>
+
+<span class="sd">    Returns the sorted unique elements of an array. There are three optional</span>
+<span class="sd">    outputs in addition to the unique elements:</span>
+
+<span class="sd">        - the indices of the input array that give the unique values.</span>
+<span class="sd">        - the indices of the unique array that reconstruct the input tensor.</span>
+<span class="sd">        - the number of times each unique value comes up in the input tensor.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        x: Input array. Unless dims is specified, this will be flattened if it</span>
+<span class="sd">            is not already 1-D.</span>
+<span class="sd">        return_index: If True, also return the indices of ar (along the specified</span>
+<span class="sd">            dimension, if provided, or in the flattened tensor) that result in the</span>
+<span class="sd">            unique tensor.</span>
+<span class="sd">        return_inverse: If True, also return the indices of the unique tensor (for</span>
+<span class="sd">            the specified dimension, if provided) that can be used to reconstruct</span>
+<span class="sd">            the supplied tensor.</span>
+<span class="sd">        return_counts: If True, also return the number of times each unique item</span>
+<span class="sd">            appears in the input tensor.</span>
+<span class="sd">        dims: The dimension to operate on. If None, the tensor will be flattened.</span>
+<span class="sd">            If an integer, the sub-tensors indexed by the given dimension will be</span>
+<span class="sd">            flattened and treated as the elements of a 1-D tensor with the</span>
+<span class="sd">            dimension of the given dimension. The default is None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        unique: The sorted unique values.</span>
+<span class="sd">        unique_indices: The indices of the first occurrences of the unique</span>
+<span class="sd">            values in the original tensor. Only provided if return_index is True.</span>
+<span class="sd">        unique_inverse: The indices to reconstruct the original array from</span>
+<span class="sd">            the unique tensor. Only provided if return_inverse is True.</span>
+<span class="sd">        unique_counts: The number of times each of the unique values comes up</span>
+<span class="sd">            in the original tensor. Only provided if return_counts is True.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">return_index</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">sorted</span> <span class="ow">and</span> <span class="n">dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">unique_v</span><span class="p">,</span> <span class="n">inverse</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span>
+
+        <span class="n">inv_sorted</span><span class="p">,</span> <span class="n">inv_argsort</span> <span class="o">=</span> <span class="n">inverse</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">stable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">tot_counts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">counts</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)))[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">index</span> <span class="o">=</span> <span class="n">inv_argsort</span><span class="p">[</span><span class="n">tot_counts</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">sorted</span><span class="p">:</span>
+            <span class="n">index</span><span class="p">,</span> <span class="n">idx_argsort</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+            <span class="n">unique_v</span> <span class="o">=</span> <span class="p">(</span><span class="n">unique_v</span><span class="p">[</span><span class="n">idx_argsort</span><span class="p">]</span> <span class="k">if</span> <span class="n">dim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">index_select</span><span class="p">(</span><span class="n">unique_v</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">idx_argsort</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">return_inverse</span><span class="p">:</span>
+                <span class="n">idx_tmp</span> <span class="o">=</span> <span class="n">idx_argsort</span><span class="o">.</span><span class="n">argsort</span><span class="p">()</span>
+                <span class="n">inverse</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span><span class="o">.</span><span class="n">index_put_</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">inv_argsort</span><span class="p">,),</span> <span class="n">idx_tmp</span><span class="p">[</span><span class="n">inv_sorted</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">return_counts</span><span class="p">:</span>
+                <span class="n">counts</span> <span class="o">=</span> <span class="n">counts</span><span class="p">[</span><span class="n">idx_argsort</span><span class="p">]</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="p">(</span><span class="n">unique_v</span><span class="p">,)</span>
+        <span class="k">if</span> <span class="n">return_index</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="n">index</span><span class="p">,)</span>
+        <span class="k">if</span> <span class="n">return_inverse</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="n">inverse</span><span class="p">,)</span>
+        <span class="k">if</span> <span class="n">return_counts</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">+=</span> <span class="p">(</span><span class="n">counts</span><span class="p">,)</span>
+        <span class="k">return</span> <span class="n">ret</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="nb">sorted</span><span class="p">,</span> <span class="n">return_inverse</span><span class="o">=</span><span class="n">return_inverse</span><span class="p">,</span>
+            <span class="n">return_counts</span><span class="o">=</span><span class="n">return_counts</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dim</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

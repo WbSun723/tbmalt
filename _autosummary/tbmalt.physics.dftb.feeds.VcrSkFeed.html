@@ -1,0 +1,466 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.1.5.1.5.8. VcrSkFeed &mdash; TBMaLT 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="2.1.5.1.6. gamma" href="tbmalt.physics.dftb.gamma.html" />
+    <link rel="prev" title="2.1.5.1.5.7. SkfOnSiteFeed" href="tbmalt.physics.dftb.feeds.SkfOnSiteFeed.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            TBMaLT
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Table of Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">1. Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../documentation.html">2. Documentation</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="tbmalt.html">2.1. tbmalt</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.common.html">2.1.1. common</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.data.html">2.1.2. data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.io.html">2.1.3. io</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.ml.html">2.1.4. ml</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="tbmalt.physics.html">2.1.5. physics</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="tbmalt.physics.dftb.html">2.1.5.1. dftb</a></li>
+<li class="toctree-l4"><a class="reference internal" href="tbmalt.physics.filling.html">2.1.5.2. filling</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.structures.html">2.1.6. structures</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tbmalt.tools.html">2.1.7. tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">3. Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">4. Development</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developer_guide.html">5. Development Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release_notes.html">6. Release notes</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">TBMaLT</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../documentation.html"><span class="section-number">2. </span>Documentation</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.html"><span class="section-number">2.1. </span>tbmalt</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.html"><span class="section-number">2.1.5. </span>physics</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.dftb.html"><span class="section-number">2.1.5.1. </span>dftb</a></li>
+          <li class="breadcrumb-item"><a href="tbmalt.physics.dftb.feeds.html"><span class="section-number">2.1.5.1.5. </span>feeds</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2.1.5.1.5.8. </span>VcrSkFeed</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/tbmalt.physics.dftb.feeds.VcrSkFeed.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="vcrskfeed">
+<h1><span class="section-number">2.1.5.1.5.8. </span>VcrSkFeed<a class="headerlink" href="#vcrskfeed" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">VcrSkFeed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">on_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">off_sites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/dftb/feeds.html#VcrSkFeed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="tbmalt.ml.integralfeeds.IntegralFeed.html#tbmalt.ml.integralfeeds.IntegralFeed" title="tbmalt.ml.integralfeeds.IntegralFeed"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntegralFeed</span></code></a></p>
+<p>Variable compression radius based DFTB Slater-Koster integral feed.</p>
+<p>This feed is similar in behaviour to the <cite>SkFeed</cite> but with the ability to
+dynamically change the compression radius in an ad-hoc manner; effectively
+allowing one to smoothly glide from one “standard” parameter set to
+another by adjusting the compression radius.</p>
+<p>This relies upon the existence of a variable compression radius reference
+database. Such as database stores a collection of parameter sets for each
+interaction computed with varying compression radii.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>on_sites</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parameter)</span></code></span>) – A torch <cite>ParameterDict</cite> where keys represent atomic numbers
+as strings, and values are torch parameters specifying the on-site
+energies for each orbital.</p></li>
+<li><p><strong>off_sites</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Module)</span></code></span>) – A torch <cite>ModuleDict</cite> containing the off-site integrals
+required for constructing Hamiltonian and/or overlap matrices.
+The keys are strings representing tuples in the format
+<cite>“(z₁, z₂, s₁, s₂)”</cite>, where <cite>z₁</cite> &amp; <cite>z₂</cite> are the atomic numbers
+of the interacting atoms (with <cite>z₁ ≤ z₂</cite>), and <cite>s₁</cite> &amp; <cite>s₂</cite> are
+their respective shell numbers. Keys must exactly match the
+string obtained from converting a tuple to a string, including
+the parentheses and spaces; for example, <cite>“(1, 6, 0, 0)”</cite>. The
+values are <cite>BicubInterpSpl</cite> instances, that provide the bond
+order integrals for the specified interactions as a function of
+not only distance but compression radius too.</p></li>
+<li><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code>]</span>) – Device on which the feed object and its contents resides.</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>]</span>) – dtype used by feed object.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.compression_radii">
+<span class="sig-name descname"><span class="pre">compression_radii</span></span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.compression_radii" title="Link to this definition"></a></dt>
+<dd><p>A torch <cite>Parameter</cite> instance specifying the
+compression radius of each atom in the target system. Note that
+this must be manually set for each target system before each call.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.is_local_onsite">
+<span class="sig-name descname"><span class="pre">is_local_onsite</span></span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.is_local_onsite" title="Link to this definition"></a></dt>
+<dd><p><cite>is_local_onsite</cite> allows for constructing chemical
+environment dependent on-site energies.</p>
+</dd></dl>
+
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is critical to note that this class is a work in progress with many
+rough edges. Currently, this feed cannot operate automatically.
+Before this feed is invoked one must set the <cite>compression_radii</cite>
+attribute for the target system. This torch <cite>Parameter</cite> instance should
+store the compression radii for each atom in the target system. This
+will not automatically be set or updated at this time and thus must be
+done manually before every call. Additionally, this feed does not
+support periodic systems. These issues will be addressed later on
+down the line, time permitting.</p>
+</div>
+<p class="rubric">Notes</p>
+<p>The splines contained within the <code class="docutils literal notranslate"><span class="pre">off_sites</span></code> argument must return
+all relevant bond order integrals; e.g. an s-s interaction should only
+return a single value for the σ interaction whereas a d-d interaction
+should return three values when interpolated (σ, π &amp; δ).</p>
+<p>Furthermore, it is critical that no duplicate interactions are present.
+That is to say if there is a (1, 6, 0, 0) (H[s]-C[s]) key present then
+there must not also be a (6, 1, 0, 0) (H[s]-C[s]) key present as they
+are the same interaction. To help prevent this the class will raise an
+error if the second atomic number is greater than the first; e.g. the
+key (6, 1, 0, 0) will raise an error but (1, 6, 0, 0) will not.</p>
+<p class="rubric">Attributes and Properties</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">device</span></code></p></td>
+<td><p>The device on which the feed object resides.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">dtype</span></code></p></td>
+<td><p>Floating point dtype used by feed object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">off_sites</span></code></p></td>
+<td><p>Module dictionary of off-site feed modules.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_sites</span></code></p></td>
+<td><p>Parameter dictionary of on-site values.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.from_database">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_database</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">species</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">requires_grad_onsite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/dftb/feeds.html#VcrSkFeed.from_database"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.from_database" title="Link to this definition"></a></dt>
+<dd><p>Instantiate instance from an HDF5 database of Slater-Koster files.</p>
+<p>Instantiate a <cite>SkFeed</cite> instance for the specified elements using
+integral tables contained within a Slater-Koster HDF5 database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span>) – Path to the HDF5 file from which integrals should be taken.</p></li>
+<li><p><strong>species</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">List</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>]</span>) – Integrals will only be loaded for the requested species.</p></li>
+<li><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Literal</span></code>[<code class="docutils literal notranslate"><span class="pre">'hamiltonian'</span></code>, <code class="docutils literal notranslate"><span class="pre">'overlap'</span></code>]</span>) – Specifies which integrals should be loaded, options are
+“hamiltonian” and “overlap”.</p></li>
+<li><p><strong>requires_grad_onsite</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>) – When set to <cite>True</cite> gradient tracking will be
+enabled for the on-site parameters. This flag is ignored for
+the overlap matrix case as its on-site terms are always unity.
+[DEFAULT=`False`]</p></li>
+<li><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code>]</span>) – Device on which the feed object and its contents resides.</p></li>
+<li><p><strong>dtype</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">dtype</span></code>]</span>) – dtype used by feed object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="#tbmalt.physics.dftb.feeds.VcrSkFeed" title="tbmalt.physics.dftb.feeds.VcrSkFeed"><code class="xref py py-class docutils literal notranslate"><span class="pre">VcrSkFeed</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>vcrsk_feed</em> – A <cite>VcrSkFeed</cite> instance with the requested integrals.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.load">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.load" title="Link to this definition"></a></dt>
+<dd><p>Load a stored integral feed object.</p>
+<p>This is only for loading preexisting <code class="docutils literal notranslate"><span class="pre">IntegralFeed</span></code> objects, from
+HDF5 databases, not instantiating new ones.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code>]</span>) – Name of a file to load the integral feed from or an HDF5
+group from which it can be extracted.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.ml.integralfeeds.IntegralFeed.html#tbmalt.ml.integralfeeds.IntegralFeed" title="tbmalt.ml.integralfeeds.IntegralFeed"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntegralFeed</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>ski_feed</em> – A <code class="docutils literal notranslate"><span class="pre">IntegralFeed</span></code> object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.partition_blocks">
+<em class="property"><span class="k"><span class="pre">static</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">partition_blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomic_idx_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_idx_2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.partition_blocks" title="Link to this definition"></a></dt>
+<dd><p>Mask identifying on-site interaction pairs.</p>
+<p>This helper function constructs a mask which is True wherever the
+associated atom index pair corresponds to an on-site interaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomic_idx_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 1’st atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>atomic_idx_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 2’nd atom associated with each
+desired interaction block.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>on_site_mask</em> – A tensor that is truthy wherever the atom index
+pair corresponds to an on-site interaction.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.atomic_block_indices">
+<span class="sig-name descname"><span class="pre">atomic_block_indices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomic_idx_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_idx_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.atomic_block_indices" title="Link to this definition"></a></dt>
+<dd><p>Returns the indices of the specified blocks.</p>
+<p>This method identifies the blocks associated with the specified atom
+pairs and returns the indexing arrays that can be used to retrieve
+said blocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomic_idx_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 1’st atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>atomic_idx_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Atomic indices of the 2’nd atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>orbs</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo" title="tbmalt.structures.orbitalinfo.OrbitalInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">OrbitalInfo</span></code></a></span>) – Orbital information associated with said systems.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>block_indices</em> – the indices of the specified blocks.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.blocks">
+<span class="sig-name descname"><span class="pre">blocks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atomic_idx_1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atomic_idx_2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/tbmalt/physics/dftb/feeds.html#VcrSkFeed.blocks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.blocks" title="Link to this definition"></a></dt>
+<dd><p>Compute atomic interaction blocks using SK-integral tables.</p>
+<p>Returns the atomic blocks associated with the atoms in <code class="docutils literal notranslate"><span class="pre">atomic_idx_1</span></code>
+interacting with those in <code class="docutils literal notranslate"><span class="pre">atomic_idx_2</span></code> splines and Slater-Koster
+transformations. This is the base method used in DFTB calculations.
+Note that The № of interaction blocks returned will be equal to the
+length of the two index lists; i.e. <em>not</em> one for every combination.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>atomic_idx_1</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Indices of the 1’st atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>atomic_idx_2</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span>) – Indices of the 2’nd atom associated with each
+desired interaction block.</p></li>
+<li><p><strong>geometry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span>) – The systems to which the atomic indices relate.</p></li>
+<li><p><strong>orbs</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo" title="tbmalt.structures.orbitalinfo.OrbitalInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">OrbitalInfo</span></code></a></span>) – Orbital information associated with said systems.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>blocks</em> – Requested atomic interaction sub-blocks.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.matrix">
+<span class="sig-name descname"><span class="pre">matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geometry</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.matrix" title="Link to this definition"></a></dt>
+<dd><p>Construct the hermitian matrix associated with this feed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>geometry</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.geometry.Geometry.html#tbmalt.structures.geometry.Geometry" title="tbmalt.structures.geometry.Geometry"><code class="xref py py-class docutils literal notranslate"><span class="pre">Geometry</span></code></a></span>) – Systems whose matrices are to be constructed.</p></li>
+<li><p><strong>orbs</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.structures.orbitalinfo.OrbitalInfo.html#tbmalt.structures.orbitalinfo.OrbitalInfo" title="tbmalt.structures.orbitalinfo.OrbitalInfo"><code class="xref py py-class docutils literal notranslate"><span class="pre">OrbitalInfo</span></code></a></span>) – Orbital information associated with said systems.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>kwargs</strong> – Any keyword arguments provided are passed during calls to
+the <cite>blocks</cite> method.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tensor</span></code></span></p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><em>matrix</em> – The resulting matrices.</p>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This method is in rapid development and is thus subject to change
+and or abstraction.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.matrix_from_calculator">
+<span class="sig-name descname"><span class="pre">matrix_from_calculator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">calculator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.matrix_from_calculator" title="Link to this definition"></a></dt>
+<dd><p>Construct the hermitian matrix associated with this feed.</p>
+<p>This method extracts the required arguments from the supplied
+<code class="docutils literal notranslate"><span class="pre">calculator</span></code> argument &amp; redirects to the <cite>matrix</cite> method. This allows
+for a <cite>Calculator</cite> to call a feeds <cite>matrix</cite> method in a call signature
+agnostic manner.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>calculator</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.ml.calculator.Calculator.html#tbmalt.ml.calculator.Calculator" title="tbmalt.ml.calculator.Calculator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Calculator</span></code></a></span>) – a calculator object from which the necessary data can
+be extracted.</p>
+</dd>
+<dt class="field-even">Keyword Arguments<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>kwargs</strong> – Any keyword arguments provided are passed during calls to
+the <cite>blocks</cite> method.</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>matrix</em> – The resulting matrices.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Each <cite>IntegralFeed</cite> object’s <cite>matrix</cite> method may require any
+number of arbitrary arguments. Consequently, it is unreasonable
+to expect a <cite>Calculator</cite> instance to know how to correctly
+invoke the <cite>matrix</cite> method for any given feed, particularly
+without resorting to introspection and reflection, which would
+introduce an unnecessary degree of complexity. Therefore, this
+pseudo-overload method is established, enabling <cite>Calculator`s
+to simply pass themselves in as the sole argument. This
+approach allows the feed to extract the necessary data
+independently and make the call to `matrix</cite> itself. While this
+is potentially more prone to errors, the errors that may arise
+are expected to be clearer and easier to resolve, thus
+enhancing the overall maintainability and debuggability.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.save">
+<span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.save" title="Link to this definition"></a></dt>
+<dd><p>Save the integral feed to an HDF5 database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>target</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">Group</span></code>]</span>) – Name of a file to save the integral feed to or an HDF5
+group in which it can be saved.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If <cite>target</cite> is a string then a new HDF5 database will be created
+at the path specified by the string. If an HDF5 entity was given
+then a new HDF5 group will be created and added to it.</p>
+<p>Under no circumstances should this just pickle an object. Doing so
+is unstable, unsafe and inflexible.</p>
+<p>It is good practice to save the name of the class so that the code
+automatically knows how to unpack it.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tbmalt.physics.dftb.feeds.VcrSkFeed.to">
+<span class="sig-name descname"><span class="pre">to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tbmalt.physics.dftb.feeds.VcrSkFeed.to" title="Link to this definition"></a></dt>
+<dd><p>Returns a copy of the <cite>SkFeed</cite> instance on the specified device.</p>
+<p>This method creates and returns a new copy of the <cite>SkFeed</cite> instance
+on the specified device “<code class="docutils literal notranslate"><span class="pre">device</span></code>”.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">device</span></code></span>) – Device on which the clone should be placed.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="tbmalt.ml.integralfeeds.IntegralFeed.html#tbmalt.ml.integralfeeds.IntegralFeed" title="tbmalt.ml.integralfeeds.IntegralFeed"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntegralFeed</span></code></a></span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>sk_feed</em> – A copy of the <cite>SkFeed</cite> instance placed on the specified
+device.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If the <cite>SkFeed</cite> instance is already on the desired device then
+<cite>self</cite> will be returned.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tbmalt.physics.dftb.feeds.SkfOnSiteFeed.html" class="btn btn-neutral float-left" title="2.1.5.1.5.7. SkfOnSiteFeed" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tbmalt.physics.dftb.gamma.html" class="btn btn-neutral float-right" title="2.1.5.1.6. gamma" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, TBMaLT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
